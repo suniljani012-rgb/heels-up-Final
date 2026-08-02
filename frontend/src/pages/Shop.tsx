@@ -58,12 +58,13 @@ function useShopProducts(filters: any) {
       if (filters.size) queryParams.set('size', filters.size);
 
 
-      const res = await fetch('/api/pro' + 'ducts?' + queryParams.toString());
+      const res = await fetch('/api/products?' + queryParams.toString());
       const data = await res.json();
       if (!data.success) throw new Error(data.error || 'Failed to fetch shop products');
 
       if (data.data && Array.isArray(data.data)) {
         data.data.forEach((p: any) => {
+          cacheProductData(p);
           queryClient.setQueryData(['product', String(p.id)], {
             product: p,
             reviews: p.reviews || [],
@@ -71,11 +72,26 @@ function useShopProducts(filters: any) {
             related: []
           });
         });
+        try {
+          if (!filters.category && !filters.searchQ && (filters.page || 1) === 1) {
+            localStorage.setItem('hu_fast_shop_page1', JSON.stringify(data));
+          }
+        } catch {}
       }
       return data;
     },
+    initialData: () => {
+      if (!filters.category && !filters.searchQ && (filters.page || 1) === 1) {
+        try {
+          const raw = localStorage.getItem('hu_fast_shop_page1');
+          if (raw) return JSON.parse(raw);
+        } catch {}
+      }
+      return undefined;
+    },
     placeholderData: keepPreviousData,
-    staleTime: 2 * 60 * 1000,
+    staleTime: 30 * 60 * 1000,
+    gcTime: 60 * 60 * 1000,
   });
 }
 

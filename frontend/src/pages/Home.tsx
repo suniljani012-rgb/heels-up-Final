@@ -116,7 +116,21 @@ function useFeaturedProducts() {
           }
         }
       }
-      return (data.data || []) as any[];
+      const result = (data.data || []) as any[];
+      try {
+        if (result.length > 0) {
+          localStorage.setItem('hu_fast_featured_cache', JSON.stringify(result));
+          result.forEach((p: any) => cacheProductData(p));
+        }
+      } catch {}
+      return result;
+    },
+    initialData: () => {
+      try {
+        const raw = localStorage.getItem('hu_fast_featured_cache');
+        if (raw) return JSON.parse(raw);
+      } catch {}
+      return undefined;
     },
     staleTime: 30 * 60 * 1000,
     retry: 3,

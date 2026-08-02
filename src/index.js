@@ -39,40 +39,25 @@ function rewriteAdminPath(request, fromPrefix, toPrefix) {
   return new Request(url.toString(), request);
 }
 
+// In-memory time-gate to avoid KV sub-requests on every fetch event
+let lastMaintRunInMemory = 0;
+
 export default {
   async fetch(request, env, ctx) {
     // Auto-update DB settings to ₹1599 threshold and fix announcements text.
-    // TIME-GATED: only runs once per hour to avoid burning D1 write quota on every request.
-    if (ctx && typeof ctx.waitUntil === 'function' && env.DB) {
+    // TIME-GATED IN-MEMORY: avoids KV sub-requests and Worker CPU overhead on every fetch event.
+    const now = Date.now();
+    if (now - lastMaintRunInMemory > 3600_000 && ctx && typeof ctx.waitUntil === 'function' && env.DB) {
+      lastMaintRunInMemory = now;
       ctx.waitUntil((async () => {
         try {
-          // Check when we last ran this maintenance task
-          const MAINT_KEY = 'sys:maint:last_run';
-          let shouldRun = true;
-          if (env.KV) {
-            try {
-              const lastRun = await env.KV.get(MAINT_KEY);
-              if (lastRun) {
-                const diffMs = Date.now() - parseInt(lastRun, 10);
-                if (diffMs < 3600_000) shouldRun = false; // within last hour — skip
-              }
-            } catch {}
-          }
-
-          if (shouldRun) {
-            await env.DB.prepare("UPDATE settings SET value = '1599' WHERE key = 'shipping_free_above'").run();
-            await env.DB.prepare("UPDATE settings SET value = '159900' WHERE key = 'free_shipping_above'").run();
-            await env.DB.prepare("UPDATE announcements SET text = '🚚 FREE Shipping on orders above ₹1599' WHERE text LIKE '%above %999%' OR text LIKE '%above %799%'").run();
-            await env.DB.prepare("ALTER TABLE orders ADD COLUMN cod_advance_paid INTEGER DEFAULT 0").run().catch(() => {});
-            await env.DB.prepare("ALTER TABLE orders ADD COLUMN cod_outstanding_amount INTEGER DEFAULT 0").run().catch(() => {});
-            await env.DB.prepare("UPDATE products SET rating = 0 WHERE review_count = 0 OR review_count IS NULL").run().catch(() => {});
-            await env.DB.prepare("UPDATE products SET active = 1 WHERE sku LIKE 'HU-%'").run().catch(() => {});
-
-            // Record last run time
-            if (env.KV) {
-              try { await env.KV.put(MAINT_KEY, String(Date.now()), { expirationTtl: 7200 }); } catch {}
-            }
-          }
+          await env.DB.prepare("UPDATE settings SET value = '1599' WHERE key = 'shipping_free_above'").run();
+          await env.DB.prepare("UPDATE settings SET value = '159900' WHERE key = 'free_shipping_above'").run();
+          await env.DB.prepare("UPDATE announcements SET text = '🚚 FREE Shipping on orders above ₹1599' WHERE text LIKE '%above %999%' OR text LIKE '%above %799%'").run();
+          await env.DB.prepare("ALTER TABLE orders ADD COLUMN cod_advance_paid INTEGER DEFAULT 0").run().catch(() => {});
+          await env.DB.prepare("ALTER TABLE orders ADD COLUMN cod_outstanding_amount INTEGER DEFAULT 0").run().catch(() => {});
+          await env.DB.prepare("UPDATE products SET rating = 0 WHERE review_count = 0 OR review_count IS NULL").run().catch(() => {});
+          await env.DB.prepare("UPDATE products SET active = 1 WHERE sku LIKE 'HU-%'").run().catch(() => {});
         } catch (err) {
           console.warn('DB settings auto-update failed:', err);
         }

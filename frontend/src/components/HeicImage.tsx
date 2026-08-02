@@ -115,11 +115,22 @@ function buildSrcSet(
 
   if (key) {
     const directUrl = `${R2_CDN}/${key}`;
-    return { src: directUrl };
+    // Free-plan compatible image optimization: Convert heavy PNGs to lightweight WebP thumbnails
+    // thumb: 450px width, quality 75 (~30 KB) | full: 900px width, quality 82 (~80 KB)
+    const width = size === 'thumb' ? 450 : size === 'full' ? 900 : 1200;
+    const quality = size === 'thumb' ? 75 : 85;
+    const optimizedUrl = `https://images.weserv.nl/?url=${encodeURIComponent(directUrl)}&w=${width}&q=${quality}&output=webp`;
+    return { src: optimizedUrl };
   }
 
+  // If URL is an HTTP/HTTPS image URL but not matching R2 key, optimize via proxy if it's a PNG/JPG
+  if (src.startsWith('http://') || src.startsWith('https://')) {
+    const width = size === 'thumb' ? 450 : size === 'full' ? 900 : 1200;
+    const quality = size === 'thumb' ? 75 : 85;
+    const optimizedUrl = `https://images.weserv.nl/?url=${encodeURIComponent(src)}&w=${width}&q=${quality}&output=webp`;
+    return { src: optimizedUrl };
+  }
 
-  // Unknown external URL — return as-is
   return { src };
 }
 
@@ -160,8 +171,7 @@ export default function HeicImage({
       }}
       loading={resolvedLoading}
       decoding={aboveFold ? 'sync' : 'async'}
-      // @ts-ignore — fetchpriority is valid HTML but TS lib types lag behind spec
-      fetchpriority={resolvedPriority}
+      fetchPriority={resolvedPriority}
       {...props}
     />
   );
