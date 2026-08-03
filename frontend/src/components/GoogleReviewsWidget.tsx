@@ -67,9 +67,9 @@ export const GoogleReviewsWidget: React.FC = () => {
   };
 
   return (
-    <section className="max-w-7xl mx-auto px-6 md:px-8 mt-24 mb-24 select-none">
+    <section className="max-w-7xl mx-auto px-4 md:px-8 mt-16 md:mt-24 mb-16 md:mb-24 select-none">
       {/* Heading matching EXACT review count (36 Total) */}
-      <div className="text-center max-w-xl mx-auto mb-8">
+      <div className="text-center max-w-xl mx-auto mb-6 md:mb-8">
         <span className="text-xs uppercase tracking-widest text-[#c9a96e] font-bold flex items-center justify-center gap-2">
           <svg className="w-4 h-4" viewBox="0 0 24 24">
             <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
@@ -79,22 +79,23 @@ export const GoogleReviewsWidget: React.FC = () => {
           </svg>
           Google Verified Reviews ({reviewsList.length} Reviews)
         </span>
-        <h2 className="text-3xl font-light text-gray-900 mt-2 font-display italic">What Our Customers Say</h2>
+        <h2 className="text-2xl md:text-3xl font-light text-gray-900 mt-2 font-display italic">What Our Customers Say</h2>
         <div className="h-[1.5px] w-12 bg-[#c9a96e] mx-auto mt-4" />
       </div>
 
-      {/* Dynamic Star Rating Filter Pills with exact counts */}
-      <div className="flex flex-wrap items-center justify-center gap-2 mb-8">
+      {/* Filter Buttons — Horizontal scrollable on mobile */}
+      <div className="flex items-center justify-start md:justify-center gap-2 overflow-x-auto pb-4 mb-6 no-scrollbar px-2">
         <button
           onClick={() => setSelectedFilter(0)}
-          className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all ${
+          className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition-all shrink-0 ${
             selectedFilter === 0 
               ? 'bg-[#c9a96e] text-white shadow-md' 
               : 'bg-white border border-gray-200 text-gray-700 hover:bg-gray-50'
           }`}
         >
-          All Reviews ({reviewsList.length})
+          All ({reviewsList.length})
         </button>
+
         {[5, 4, 3, 2, 1].map((star) => {
           const count = reviewsList.filter((r: any) => r.rating === star).length;
           if (count === 0 && selectedFilter !== star) return null;
@@ -102,7 +103,7 @@ export const GoogleReviewsWidget: React.FC = () => {
             <button
               key={star}
               onClick={() => setSelectedFilter(star)}
-              className={`px-4 py-1.5 rounded-full text-xs font-bold flex items-center gap-1 transition-all ${
+              className={`px-3.5 py-1.5 rounded-full text-xs font-bold flex items-center gap-1 transition-all shrink-0 ${
                 selectedFilter === star 
                   ? 'bg-[#c9a96e] text-white shadow-md' 
                   : 'bg-white border border-gray-200 text-gray-700 hover:bg-gray-50'
@@ -119,7 +120,7 @@ export const GoogleReviewsWidget: React.FC = () => {
       <div className="relative group">
         <button
           onClick={scrollLeft}
-          className="absolute -left-4 top-1/2 -translate-y-1/2 z-20 w-10 h-10 bg-white/95 border border-gray-200 rounded-full shadow-lg flex items-center justify-center text-gray-700 hover:bg-gray-900 hover:text-white transition-all opacity-0 group-hover:opacity-100"
+          className="hidden md:flex absolute -left-4 top-1/2 -translate-y-1/2 z-20 w-10 h-10 bg-white/95 border border-gray-200 rounded-full shadow-lg items-center justify-center text-gray-700 hover:bg-gray-900 hover:text-white transition-all opacity-0 group-hover:opacity-100"
           aria-label="Previous review"
         >
           <ChevronLeft className="w-5 h-5" />
@@ -127,7 +128,7 @@ export const GoogleReviewsWidget: React.FC = () => {
 
         <button
           onClick={scrollRight}
-          className="absolute -right-4 top-1/2 -translate-y-1/2 z-20 w-10 h-10 bg-white/95 border border-gray-200 rounded-full shadow-lg flex items-center justify-center text-gray-700 hover:bg-gray-900 hover:text-white transition-all opacity-0 group-hover:opacity-100"
+          className="hidden md:flex absolute -right-4 top-1/2 -translate-y-1/2 z-20 w-10 h-10 bg-white/95 border border-gray-200 rounded-full shadow-lg items-center justify-center text-gray-700 hover:bg-gray-900 hover:text-white transition-all opacity-0 group-hover:opacity-100"
           aria-label="Next review"
         >
           <ChevronRight className="w-5 h-5" />
@@ -135,12 +136,12 @@ export const GoogleReviewsWidget: React.FC = () => {
 
         <div
           ref={scrollRef}
-          className="flex overflow-x-auto snap-x snap-mandatory gap-6 pb-6 pt-2 px-2 scroll-smooth no-scrollbar"
+          className="flex overflow-x-auto snap-x snap-mandatory gap-4 md:gap-6 pb-6 pt-2 px-1 md:px-2 scroll-smooth no-scrollbar"
         >
           {filteredReviews.map((rev: any) => (
             <div
               key={rev.id}
-              className="min-w-[300px] md:min-w-[360px] max-w-[360px] snap-center p-6 bg-white border border-gray-100 rounded-xl shadow-sm hover:shadow-md transition-all flex flex-col justify-between shrink-0"
+              className="min-w-[280px] sm:min-w-[320px] md:min-w-[360px] max-w-[85vw] sm:max-w-[360px] snap-center p-5 md:p-6 bg-white border border-gray-100 rounded-xl shadow-sm hover:shadow-md transition-all flex flex-col justify-between shrink-0"
             >
               <div>
                 <div className="flex items-center justify-between mb-4">
