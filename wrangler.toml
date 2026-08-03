@@ -14,7 +14,8 @@ OTP_EXPIRY_MINUTES = "10"
 REQUIRE_EMAIL_OTP = "false"
 R2_PUBLIC_URL = "https://media.heelsup.in"
 INFOBIP_API_BASE_URL = "eegg4r.api.infobip.com"
-INFOBIP_SENDER = "HEELUP"
+GOOGLE_PLACES_API_KEY = "AIzaSyAQbbdffk0mJeUEgZIwzU7ySh9fdTsMT0o"
+GOOGLE_PLACE_ID = ""
 
 [[d1_databases]]
 binding = "DB"
