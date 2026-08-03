@@ -7,6 +7,7 @@ import { useCartStore } from '../store/useCartStore'
 import { useToastStore } from '../store/useToastStore'
 import HeicImage from '../components/HeicImage'
 import { GoogleReviewsWidget } from '../components/GoogleReviewsWidget'
+import { InstagramFeedWidget } from '../components/InstagramFeedWidget'
 import { useQuery } from '@tanstack/react-query'
 import { cacheProductData, prefetchProductApi } from '../utils/productCache'
 
@@ -488,6 +489,9 @@ export default function Home() {
 
       {/* Google Reviews Widget */}
       <GoogleReviewsWidget />
+
+      {/* Instagram Feed Widget */}
+      <InstagramFeedWidget />
 
       {/* Customer Testimonials Carousel */}
       {liveReviews.length > 0 && (
