@@ -224,9 +224,11 @@ export default function Product() {
     if (cachedObj && cachedObj.product) {
       setProduct(cachedObj.product)
       setReviews(cachedObj.reviews || [])
-      const imgs = cachedObj.images?.length > 0 ? cachedObj.images : (cachedObj.product.images || [])
+      const rawImgs = cachedObj.images?.length > 0 ? cachedObj.images : (cachedObj.product.images || [])
+      // Deduplicate images — show only as many as were uploaded
+      const imgs = Array.from(new Set(rawImgs.filter(Boolean))) as string[]
       setImages(imgs)
-      if (imgs.length > 0) setActiveImage(imgs[0])
+      if (imgs.length > 0) setActiveImage(imgs[0] as string)
       if (cachedObj.product.sizes?.length > 0) setSelectedSize(cachedObj.product.sizes[0])
       setRelated(cachedObj.related || [])
       setLoading(false)
@@ -251,7 +253,9 @@ export default function Product() {
           setReviews(reviewsList)
 
           const fetchedImgs = payload.images?.map((i: any) => typeof i === 'string' ? i : i.url) || []
-          const allImages = fetchedImgs.length > 0 ? fetchedImgs : (detail.images || [])
+          // Use only the images actually stored on the product — deduplicated
+          const baseImgs = fetchedImgs.length > 0 ? fetchedImgs : (detail.images || [])
+          const allImages = Array.from(new Set((baseImgs as string[]).filter(Boolean))) as string[]
           setImages(allImages)
           if (allImages.length > 0 && (!activeImage || !hasCached)) {
             setActiveImage(allImages[0])
@@ -422,14 +426,14 @@ export default function Product() {
                     activeImage === imgUrl ? 'border-primary ring-1 ring-primary' : 'border-gray-200'
                   }`}
                 >
-                  <HeicImage src={imgUrl} alt="" className="w-full h-full object-cover" size="thumb" loading="eager" fetchpriority="high" />
+                  <HeicImage src={imgUrl} alt="" className="w-full h-full object-contain" size="thumb" loading="eager" fetchpriority="high" />
                 </button>
               ))}
             </div>
           )}
 
           {/* Main Image */}
-          <div className="flex-1 rounded-xl overflow-hidden bg-white border border-gray-100 aspect-square order-1 md:order-2 relative shadow-sm flex items-center justify-center p-4">
+          <div className="flex-1 rounded-xl overflow-hidden bg-[#f5f2eb] border border-gray-100 aspect-square order-1 md:order-2 relative shadow-sm flex items-center justify-center p-4">
             <HeicImage src={activeImage || undefined} alt={product.name} className="max-w-full max-h-full object-contain" size="full" loading="eager" fetchpriority="high" />
           </div>
         </div>

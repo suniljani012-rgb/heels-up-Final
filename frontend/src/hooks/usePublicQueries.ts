@@ -3,6 +3,9 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 export function useCategories() {
   return useQuery({
     queryKey: ['categories'],
+    staleTime: 10 * 60 * 1000,
+    gcTime: 30 * 60 * 1000,
+    refetchOnWindowFocus: false,
     queryFn: async () => {
       const res = await fetch('/api/categories');
       const data = await res.json();
@@ -15,6 +18,9 @@ export function useCategories() {
 export function useBanners() {
   return useQuery({
     queryKey: ['banners'],
+    staleTime: 10 * 60 * 1000,
+    gcTime: 30 * 60 * 1000,
+    refetchOnWindowFocus: false,
     queryFn: async () => {
       const res = await fetch('/api/banners');
       const data = await res.json();
@@ -24,11 +30,12 @@ export function useBanners() {
   });
 }
 
-
-
 export function useLatestReviews() {
   return useQuery({
     queryKey: ['latestReviews'],
+    staleTime: 10 * 60 * 1000,
+    gcTime: 30 * 60 * 1000,
+    refetchOnWindowFocus: false,
     queryFn: async () => {
       const res = await fetch('/api/reviews/latest');
       const data = await res.json();
@@ -41,6 +48,9 @@ export function useLatestReviews() {
 export function useGoogleReviews() {
   return useQuery({
     queryKey: ['googleReviews'],
+    staleTime: 10 * 60 * 1000,
+    gcTime: 30 * 60 * 1000,
+    refetchOnWindowFocus: false,
     queryFn: async () => {
       const res = await fetch('/api/reviews/google');
       const data = await res.json();
@@ -53,6 +63,9 @@ export function useGoogleReviews() {
 export function useFeaturedProducts() {
   return useQuery({
     queryKey: ['featuredProducts'],
+    staleTime: 10 * 60 * 1000,
+    gcTime: 30 * 60 * 1000,
+    refetchOnWindowFocus: false,
     queryFn: async () => {
       const res = await fetch('/api/products?limit=8&featured=true');
       const data = await res.json();

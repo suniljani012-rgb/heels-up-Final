@@ -1,4 +1,5 @@
 import { useEffect, lazy, Suspense } from 'react'
+import { autoPreloadStorefrontImages } from './utils/imagePreloader'
 import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import Header from './components/Header'
@@ -106,6 +107,11 @@ function AppContent() {
       },
       staleTime: 30 * 60 * 1000,
     });
+
+    // 🚀 ULTRA-FAST: Silently preload ALL product + banner images into browser RAM
+    // so every page shows images at 0ms — no wait, no progressive load, instant!
+    autoPreloadStorefrontImages();
+
   }, [detectLocation])
 
   useEffect(() => {

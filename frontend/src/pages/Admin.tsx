@@ -91,36 +91,79 @@ export default function Admin() {
     }
   };
 
-  const loadAllData = async () => {
+  // Track which tabs have already been loaded (avoid repeat API calls)
+  const [loadedTabs, setLoadedTabs] = useState<Set<string>>(new Set());
+
+  // Map: tab name → API endpoint + setter
+  const TAB_DATA_MAP: Record<string, { endpoint: string; setter: Function }[]> = {
+    dashboard: [{ endpoint: '/api/admin/dashboard', setter: setDashboardData }],
+    products:  [{ endpoint: '/api/admin/products?limit=250&all=true', setter: setProductsList }],
+    stock:     [{ endpoint: '/api/admin/products?limit=250&all=true', setter: setProductsList }],
+    orders:    [{ endpoint: '/api/admin/orders?limit=250', setter: setOrdersList }],
+    customers: [{ endpoint: '/api/admin/customers?limit=250', setter: setCustomersList }],
+    categories:[{ endpoint: '/api/admin/categories', setter: setCategoriesList }],
+    coupons:   [{ endpoint: '/api/admin/coupons', setter: setCouponsList }],
+    banners:   [{ endpoint: '/api/admin/banners', setter: setBannersList }],
+    reviews:   [{ endpoint: '/api/admin/reviews', setter: setReviewsList }],
+    pages:     [{ endpoint: '/api/admin/pages', setter: setPageConfigsList }],
+    staff:     [{ endpoint: '/api/admin/staff', setter: setStaffList }],
+    settings:  [{ endpoint: '/api/admin/settings', setter: setSettingsList }],
+    returns:   [{ endpoint: '/api/admin/returns', setter: setReturnsList }],
+    pos:       [{ endpoint: '/api/admin/pos/sales?all=true', setter: setPosSalesList }],
+    audits:    [{ endpoint: '/api/admin/audit-logs', setter: setAuditLogs }],
+    analysis:  [
+      { endpoint: '/api/admin/orders?limit=250', setter: setOrdersList },
+      { endpoint: '/api/admin/products?limit=250&all=true', setter: setProductsList },
+    ],
+  };
+
+  // Load data for a specific tab (called when tab is clicked)
+  const loadTabData = async (tab: string, force = false) => {
     if (!token) return;
+    if (!force && loadedTabs.has(tab)) return; // Already loaded, skip
+    const entries = TAB_DATA_MAP[tab];
+    if (!entries) return;
     setDataLoading(true);
     try {
-      await Promise.all([
-        fetchSec('/api/admin/dashboard', setDashboardData),
-        fetchSec('/api/admin/products?limit=250&all=true', setProductsList),
-        fetchSec('/api/admin/orders?limit=250', setOrdersList),
-        fetchSec('/api/admin/customers?limit=250', setCustomersList),
-        fetchSec('/api/admin/categories', setCategoriesList),
-        fetchSec('/api/admin/coupons', setCouponsList),
-        fetchSec('/api/admin/banners', setBannersList),
-        fetchSec('/api/admin/reviews', setReviewsList),
-        fetchSec('/api/admin/pages', setPageConfigsList),
-        fetchSec('/api/admin/staff', setStaffList),
-        fetchSec('/api/admin/settings', setSettingsList),
-        fetchSec('/api/admin/returns', setReturnsList),
-        fetchSec('/api/admin/pos/sales?all=true', setPosSalesList),
-        fetchSec('/api/admin/audit-logs', setAuditLogs)
-      ]);
-    } catch (e) {
-      showToast('error', 'Sync Failure', 'Failed to retrieve administrative data.');
+      await Promise.allSettled(entries.map(({ endpoint, setter }) => fetchSec(endpoint, setter)));
+      setLoadedTabs(prev => new Set([...prev, tab]));
     } finally {
       setDataLoading(false);
     }
   };
 
+  // Full refresh (called by Refresh button)
+  const loadAllData = async () => {
+    if (!token) return;
+    setDataLoading(true);
+    setLoadedTabs(new Set()); // Reset cache
+    try {
+      // Load dashboard first for instant display
+      await fetchSec('/api/admin/dashboard', setDashboardData);
+      setDataLoading(false);
+      setLoadedTabs(new Set(['dashboard']));
+      // Load currently active tab data in background
+      const entries = TAB_DATA_MAP[activeTab] || [];
+      if (activeTab !== 'dashboard' && entries.length > 0) {
+        Promise.allSettled(entries.map(({ endpoint, setter }) => fetchSec(endpoint, setter))).then(() => {
+          setLoadedTabs(prev => new Set([...prev, activeTab]));
+        });
+      }
+    } catch (e) {
+      showToast('error', 'Sync Failure', 'Failed to retrieve administrative data.');
+      setDataLoading(false);
+    }
+  };
+
+  // On login: load only dashboard
   useEffect(() => {
     if (token && user) loadAllData();
   }, [token, user]);
+
+  // When tab changes: load that tab's data if not yet loaded
+  useEffect(() => {
+    if (token && user) loadTabData(activeTab);
+  }, [activeTab, token, user]);
 
   useEffect(() => {
     if (ordersList.length > 0 && lastOrderCount === null) {
@@ -157,6 +200,7 @@ export default function Admin() {
     }, 30000);
     return () => clearInterval(interval);
   }, [token, lastOrderCount]);
+
 
   useEffect(() => {
     const handleUnauth = () => {

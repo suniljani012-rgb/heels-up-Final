@@ -65,7 +65,7 @@ export default function AdminSidebar({
   ];
 
   return (
-    <aside className={`w-64 bg-white border-r border-neutral-200/80 flex flex-col justify-between shrink-0 h-full z-30 transition-transform fixed left-0 top-0 md:relative md:translate-x-0 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}`}>
+    <aside className={`w-64 bg-white border-r border-neutral-200/80 flex flex-col shrink-0 h-screen max-h-screen z-30 transition-transform fixed left-0 top-0 md:sticky md:top-0 md:translate-x-0 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}`}>
       <div className="h-16 flex items-center justify-between px-6 border-b border-neutral-200/80 shrink-0">
         <span className="text-xl font-bold tracking-tight text-neutral-900 font-sans uppercase flex items-center gap-3">
           <img src="/logo.png" alt="HeelsUp Logo" className="h-9 w-auto object-contain" /> Admin
@@ -75,7 +75,7 @@ export default function AdminSidebar({
         </button>
       </div>
       
-      <div className="flex-1 overflow-y-auto no-scrollbar px-4 py-6 space-y-6">
+      <div className="flex-1 overflow-y-auto min-h-0 max-h-[calc(100vh-8rem)] px-4 py-6 space-y-6">
         {menuSections.map((sect, sIdx) => {
           const allowedItems = sect.items.filter(item => hasPermission(item.id));
           if (allowedItems.length === 0) return null;
