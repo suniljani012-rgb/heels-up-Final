@@ -1,5 +1,5 @@
--- Migration 0020: Create google_reviews table and seed EXACT Google Reviews into both google_reviews and product_reviews tables
--- Created At: 2026-08-03
+-- Migration 0020: Create google_reviews table and seed EXACT Google Reviews
+PRAGMA foreign_keys = OFF;
 
 CREATE TABLE IF NOT EXISTS google_reviews (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
