@@ -38,6 +38,18 @@ export function useLatestReviews() {
   });
 }
 
+export function useGoogleReviews() {
+  return useQuery({
+    queryKey: ['googleReviews'],
+    queryFn: async () => {
+      const res = await fetch('/api/reviews/google');
+      const data = await res.json();
+      if (!data.success) throw new Error(data.error || 'Failed to fetch google reviews');
+      return data.data;
+    }
+  });
+}
+
 export function useFeaturedProducts() {
   return useQuery({
     queryKey: ['featuredProducts'],
