@@ -140,3 +140,26 @@ h1, h2, h3, h4, h5, h6 {
   -ms-overflow-style: none !important;  /* IE and Edge */
   scrollbar-width: none !important;  /* Firefox */
 }
+
+/* Hide Trustindex Branding, Badges & Watermarks */
+.ti-widget-container .ti-footer,
+.ti-widget-container .ti-small-logo,
+.ti-widget-container .ti-verified-by,
+.ti-widget-container .ti-badge,
+.ti-widget-container a[href*="trustindex"],
+.ti-verified-by,
+.ti-small-logo,
+.ti-footer,
+[class*="ti-footer"],
+[class*="ti-verified"],
+[class*="ti-badge"],
+a[href*="trustindex.io"],
+a[href*="trustindex"] {
+  display: none !important;
+  opacity: 0 !important;
+  visibility: hidden !important;
+  height: 0 !important;
+  max-height: 0 !important;
+  overflow: hidden !important;
+  pointer-events: none !important;
+}
