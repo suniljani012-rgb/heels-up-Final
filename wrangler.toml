@@ -19,8 +19,7 @@ INFOBIP_SENDER = "HEELUP"
 [[d1_databases]]
 binding = "DB"
 database_name = "heelsup-live"
-# Yahan wahi ID daalein jo 'npx wrangler d1 list' command se mili hai
-database_id = "e1421396-862d-4be9-bc68-72ce70b1644c"
+database_id = "14b73fc0-459c-412d-8e6f-8369d03cd912"
 
 [[r2_buckets]]
 binding = "MEDIA"

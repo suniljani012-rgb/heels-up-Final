@@ -1,4 +1,4 @@
--- Migration 0020: Create google_reviews table and seed EXACT Google Reviews from Google Maps Profile
+-- Migration 0020: Create google_reviews table and seed EXACT Google Reviews into both google_reviews and product_reviews tables
 -- Created At: 2026-08-03
 
 CREATE TABLE IF NOT EXISTS google_reviews (
@@ -19,7 +19,7 @@ CREATE TABLE IF NOT EXISTS google_reviews (
 CREATE INDEX IF NOT EXISTS idx_google_reviews_status ON google_reviews(status);
 CREATE INDEX IF NOT EXISTS idx_google_reviews_featured ON google_reviews(is_featured);
 
--- Seed EXACT Live Google Reviews for Heels Up Jodhpur
+-- Seed EXACT Live Google Reviews for Heels Up Jodhpur into google_reviews table
 INSERT OR IGNORE INTO google_reviews (google_review_id, author_name, author_photo_url, rating, review_text, review_date, relative_time_description, merchant_reply, is_featured, status, created_at) VALUES
   ('g_rev_001', 'Diya Nihalani', 'https://ui-avatars.com/api/?name=Diya+Nihalani&background=8C6239&color=FFFFFF', 5, 'Very affordable and best designs here.. must visit recommended. Great visit. Cooperative staff and helpful', '2024-08-01', '2 years ago', NULL, 1, 'approved', datetime('now', '-730 days')),
   ('g_rev_002', 'Hitesh Kumar', 'https://ui-avatars.com/api/?name=Hitesh+Kumar&background=4A148C&color=FFFFFF', 5, 'I purchase shoes and heels for my sister she love the product very much ❤comfortable soft and classy shoes and heels you can have here so go ahead do shoping 😁 😚', '2022-08-01', '4 years ago', NULL, 1, 'approved', datetime('now', '-1460 days')),
@@ -33,3 +33,18 @@ INSERT OR IGNORE INTO google_reviews (google_review_id, author_name, author_phot
   ('g_rev_010', 'Smart techno gaming king', 'https://ui-avatars.com/api/?name=Smart+techno&background=37474F&color=FFFFFF', 5, 'Good collection of footwear Service is Also good .', '2022-08-01', '4 years ago', NULL, 1, 'approved', datetime('now', '-1460 days')),
   ('g_rev_011', 'Reena Rajwani', 'https://ui-avatars.com/api/?name=Reena+Rajwani&background=5E35B1&color=FFFFFF', 5, 'Amazing products and outstanding quality of the products 👌 👌', '2022-08-01', '4 years ago', NULL, 1, 'approved', datetime('now', '-1460 days')),
   ('g_rev_012', 'surbhi chouhan', 'https://ui-avatars.com/api/?name=surbhi+chouhan&background=212121&color=FFFFFF', 5, 'Great service and awesome collection 👌', '2022-08-01', '4 years ago', NULL, 1, 'approved', datetime('now', '-1460 days'));
+
+-- ALSO Seed into product_reviews table for backward compatibility with storefront product_reviews queries
+INSERT OR IGNORE INTO product_reviews (id, product_id, user_id, rating, title, body, status, created_at) VALUES
+  (9001, 1, 1, 5, 'Google Review by Diya Nihalani', 'Very affordable and best designs here.. must visit recommended. Great visit. Cooperative staff and helpful', 'approved', datetime('now', '-730 days')),
+  (9002, 1, 1, 5, 'Google Review by Hitesh Kumar', 'I purchase shoes and heels for my sister she love the product very much ❤comfortable soft and classy shoes and heels you can have here so go ahead do shoping 😁 😚', 'approved', datetime('now', '-1460 days')),
+  (9003, 1, 1, 5, 'Google Review by Hemant Hotchandani', 'One Stop store for girl''s foot wear', 'approved', datetime('now', '-730 days')),
+  (9004, 1, 1, 5, 'Google Review by Ajayraj Prajapat', 'Best& primium smrat look shoes and sleeper collaction i like this and bast range i am happy to shoping in heels up 😋', 'approved', datetime('now', '-1460 days')),
+  (9005, 1, 1, 5, 'Google Review by Pratibha Bamaniya', 'Best quality shoes with affordable prices. Highly recommend!', 'approved', datetime('now', '-1095 days')),
+  (9006, 1, 1, 5, 'Google Review by Bhanu pratap', 'Very good shop for girls... Highly recommend !', 'approved', datetime('now', '-730 days')),
+  (9007, 1, 1, 5, 'Google Review by Kumer Detha', 'Good', 'approved', datetime('now', '-210 days')),
+  (9008, 1, 1, 5, 'Google Review by Mitesh Khatri', 'Best and superior quality products on affordable prices.', 'approved', datetime('now', '-1460 days')),
+  (9009, 1, 1, 5, 'Google Review by Rajkumar', 'Nice shop and Osm collection h', 'approved', datetime('now', '-365 days')),
+  (9010, 1, 1, 5, 'Google Review by Smart techno gaming king', 'Good collection of footwear Service is Also good .', 'approved', datetime('now', '-1460 days')),
+  (9011, 1, 1, 5, 'Google Review by Reena Rajwani', 'Amazing products and outstanding quality of the products 👌 👌', 'approved', datetime('now', '-1460 days')),
+  (9012, 1, 1, 5, 'Google Review by surbhi chouhan', 'Great service and awesome collection 👌', 'approved', datetime('now', '-1460 days'));
