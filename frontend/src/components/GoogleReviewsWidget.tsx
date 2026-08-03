@@ -23,7 +23,7 @@ export const GoogleReviewsWidget: React.FC = () => {
   const [modalOpen, setModalOpen] = useState(false);
 
   const reviews = (data?.reviews && data.reviews.length > 0) ? data.reviews : FALLBACK_GOOGLE_REVIEWS;
-  const stats = data?.stats || { average_rating: 4.9, total_reviews: reviews.length };
+  const stats = data?.stats || { average_rating: 4.9, total_reviews: 36 };
 
   return (
     <section className="max-w-7xl mx-auto px-6 md:px-8 mt-24 select-none mb-24">
