@@ -145,11 +145,23 @@ export const GoogleReviewsWidget: React.FC = () => {
               <div>
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center gap-3">
-                    <img
-                      src={rev.author_photo_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(rev.author_name)}&background=8C6239&color=FFFFFF`}
-                      alt={rev.author_name}
-                      className="w-10 h-10 rounded-full border border-[#ead2ae] object-cover"
-                    />
+                    {rev.author_photo_url && !rev.author_photo_url.includes('ui-avatars.com') ? (
+                      <img
+                        src={rev.author_photo_url}
+                        alt={rev.author_name}
+                        className="w-10 h-10 rounded-full border border-[#ead2ae] object-cover"
+                        onError={(e) => { e.currentTarget.style.display = 'none'; (e.currentTarget.nextSibling as HTMLElement).style.display = 'flex'; }}
+                      />
+                    ) : null}
+                    <div
+                      className="w-10 h-10 rounded-full border border-[#ead2ae] items-center justify-center text-white text-sm font-bold shrink-0"
+                      style={{
+                        background: `hsl(${(rev.author_name?.charCodeAt(0) || 65) * 5 % 360}, 55%, 45%)`,
+                        display: (!rev.author_photo_url || rev.author_photo_url.includes('ui-avatars.com')) ? 'flex' : 'none'
+                      }}
+                    >
+                      {rev.author_name?.split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase()}
+                    </div>
                     <div>
                       <h4 className="text-sm font-semibold text-gray-900 flex items-center gap-1 font-display">
                         {rev.author_name}
