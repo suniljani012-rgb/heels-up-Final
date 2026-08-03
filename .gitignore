@@ -34,3 +34,6 @@ npm-debug.log*
 # heelsup sub-folder specific
 dist/
 heels-up-new/
+
+# Built frontend assets (Cloudflare Pages builds these automatically)
+public/assets/
