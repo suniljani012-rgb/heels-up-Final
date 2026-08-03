@@ -18,8 +18,8 @@ INFOBIP_SENDER = "HEELUP"
 
 [[d1_databases]]
 binding = "DB"
-database_name = "heelsup-db"
-database_id = "14b73fc0-459c-412d-8e6f-8369d03cd912"
+database_name = "heelsup-live"
+database_id = "e1421396-862d-4be9-bc68-72ce70b1644c"
 
 [[r2_buckets]]
 binding = "MEDIA"
