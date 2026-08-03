@@ -1,4 +1,6 @@
--- Migration 0020: Create google_reviews table and seed EXACT Google Reviews
+-- Migration 0020: Create google_reviews table and seed EXACT Google Reviews into both google_reviews and product_reviews tables
+-- Created At: 2026-08-03
+
 PRAGMA foreign_keys = OFF;
 
 CREATE TABLE IF NOT EXISTS google_reviews (
@@ -33,6 +35,13 @@ INSERT OR IGNORE INTO google_reviews (google_review_id, author_name, author_phot
   ('g_rev_010', 'Smart techno gaming king', 'https://ui-avatars.com/api/?name=Smart+techno&background=37474F&color=FFFFFF', 5, 'Good collection of footwear Service is Also good .', '2022-08-01', '4 years ago', NULL, 1, 'approved', datetime('now', '-1460 days')),
   ('g_rev_011', 'Reena Rajwani', 'https://ui-avatars.com/api/?name=Reena+Rajwani&background=5E35B1&color=FFFFFF', 5, 'Amazing products and outstanding quality of the products 👌 👌', '2022-08-01', '4 years ago', NULL, 1, 'approved', datetime('now', '-1460 days')),
   ('g_rev_012', 'surbhi chouhan', 'https://ui-avatars.com/api/?name=surbhi+chouhan&background=212121&color=FFFFFF', 5, 'Great service and awesome collection 👌', '2022-08-01', '4 years ago', NULL, 1, 'approved', datetime('now', '-1460 days'));
+
+-- Ensure reference user and product exist to satisfy Foreign Key constraints
+INSERT OR IGNORE INTO users (id, first_name, last_name, email, password_hash, role, created_at, updated_at)
+VALUES (1, 'Google', 'Reviewer', 'google-review@heelsup.in', 'hashed_pass', 'customer', datetime('now'), datetime('now'));
+
+INSERT OR IGNORE INTO products (id, name, price, stock, active, rating, review_count, created_at, updated_at)
+VALUES (1, 'Heels Up Classic Collection', 99900, 100, 1, 5.0, 12, datetime('now'), datetime('now'));
 
 -- ALSO Seed into product_reviews table for backward compatibility with storefront product_reviews queries
 INSERT OR IGNORE INTO product_reviews (id, product_id, user_id, rating, title, body, status, created_at) VALUES

@@ -18,7 +18,7 @@ INFOBIP_SENDER = "HEELUP"
 
 [[d1_databases]]
 binding = "DB"
-database_name = "heelsup-live"
+database_name = "heelsup-db"
 database_id = "8093a3dc-176a-4585-ba0c-63fcbe17d8ec"
 
 [[r2_buckets]]
