@@ -3,28 +3,27 @@ import { useGoogleReviews } from '../hooks/usePublicQueries';
 import { Star, X, CheckCircle2, MessageSquareQuote } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
+const FALLBACK_GOOGLE_REVIEWS = [
+  { id: 1, author_name: 'Diya Nihalani', author_photo_url: 'https://ui-avatars.com/api/?name=Diya+Nihalani&background=8C6239&color=FFFFFF', rating: 5, review_text: 'Very affordable and best designs here.. must visit recommended. Great visit. Cooperative staff and helpful', relative_time_description: '2 years ago', merchant_reply: null },
+  { id: 2, author_name: 'Hitesh Kumar', author_photo_url: 'https://ui-avatars.com/api/?name=Hitesh+Kumar&background=4A148C&color=FFFFFF', rating: 5, review_text: 'I purchase shoes and heels for my sister she love the product very much ❤comfortable soft and classy shoes and heels you can have here so go ahead do shoping 😁 😚', relative_time_description: '4 years ago', merchant_reply: null },
+  { id: 3, author_name: 'Hemant Hotchandani', author_photo_url: 'https://ui-avatars.com/api/?name=Hemant+Hotchandani&background=1A237E&color=FFFFFF', rating: 5, review_text: "One Stop store for girl's foot wear", relative_time_description: '2 years ago', merchant_reply: null },
+  { id: 4, author_name: 'Ajayraj Prajapat', author_photo_url: 'https://ui-avatars.com/api/?name=Ajayraj+Prajapat&background=E65100&color=FFFFFF', rating: 5, review_text: 'Best& primium smrat look shoes and sleeper collaction i like this and bast range i am happy to shoping in heels up 😋', relative_time_description: '4 years ago', merchant_reply: null },
+  { id: 5, author_name: 'Pratibha Bamaniya', author_photo_url: 'https://ui-avatars.com/api/?name=Pratibha+Bamaniya&background=AA00FF&color=FFFFFF', rating: 5, review_text: 'Best quality shoes with affordable prices. Highly recommend!', relative_time_description: '3 years ago', merchant_reply: null },
+  { id: 6, author_name: 'Bhanu pratap', author_photo_url: 'https://ui-avatars.com/api/?name=Bhanu+pratap&background=0288D1&color=FFFFFF', rating: 5, review_text: 'Very good shop for girls... Highly recommend !', relative_time_description: 'Edited 2 years ago', merchant_reply: null },
+  { id: 7, author_name: 'Kumer Detha', author_photo_url: 'https://ui-avatars.com/api/?name=Kumer+Detha&background=795548&color=FFFFFF', rating: 5, review_text: 'Good', relative_time_description: '7 months ago', merchant_reply: null },
+  { id: 8, author_name: 'Mitesh Khatri', author_photo_url: 'https://ui-avatars.com/api/?name=Mitesh+Khatri&background=BF360C&color=FFFFFF', rating: 5, review_text: 'Best and superior quality products on affordable prices.', relative_time_description: '4 years ago', merchant_reply: null },
+  { id: 9, author_name: 'Rajkumar', author_photo_url: 'https://ui-avatars.com/api/?name=Rajkumar&background=00897B&color=FFFFFF', rating: 5, review_text: 'Nice shop and Osm collection h', relative_time_description: 'a year ago', merchant_reply: null },
+  { id: 10, author_name: 'Smart techno gaming king', author_photo_url: 'https://ui-avatars.com/api/?name=Smart+techno&background=37474F&color=FFFFFF', rating: 5, review_text: 'Good collection of footwear Service is Also good .', relative_time_description: '4 years ago', merchant_reply: null },
+  { id: 11, author_name: 'Reena Rajwani', author_photo_url: 'https://ui-avatars.com/api/?name=Reena+Rajwani&background=5E35B1&color=FFFFFF', rating: 5, review_text: 'Amazing products and outstanding quality of the products 👌 👌', relative_time_description: '4 years ago', merchant_reply: null },
+  { id: 12, author_name: 'surbhi chouhan', author_photo_url: 'https://ui-avatars.com/api/?name=surbhi+chouhan&background=212121&color=FFFFFF', rating: 5, review_text: 'Great service and awesome collection 👌', relative_time_description: '4 years ago', merchant_reply: null }
+];
+
 export const GoogleReviewsWidget: React.FC = () => {
-  const { data, isLoading } = useGoogleReviews();
+  const { data } = useGoogleReviews();
   const [modalOpen, setModalOpen] = useState(false);
 
-  const reviews = data?.reviews || [];
-  const stats = data?.stats || { average_rating: 4.9, total_reviews: reviews.length || 24 };
-
-  if (isLoading) {
-    return (
-      <div className="max-w-7xl mx-auto px-6 md:px-8 my-16 py-12 bg-white rounded-2xl border border-gray-100 shadow-sm animate-pulse">
-        <div className="h-6 w-48 bg-gray-200 rounded mx-auto mb-4" />
-        <div className="h-8 w-64 bg-gray-200 rounded mx-auto mb-8" />
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {[1, 2, 3].map(i => (
-            <div key={i} className="h-44 bg-gray-100 rounded-xl" />
-          ))}
-        </div>
-      </div>
-    );
-  }
-
-  if (reviews.length === 0) return null;
+  const reviews = (data?.reviews && data.reviews.length > 0) ? data.reviews : FALLBACK_GOOGLE_REVIEWS;
+  const stats = data?.stats || { average_rating: 4.9, total_reviews: reviews.length };
 
   return (
     <section className="max-w-7xl mx-auto px-6 md:px-8 mt-20 mb-20 select-none">
