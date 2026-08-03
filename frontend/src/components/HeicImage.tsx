@@ -1,12 +1,20 @@
 // frontend/src/components/HeicImage.tsx
-// Smart image renderer:
-// - PNG/JPG/WebP → Direct CDN → INSTANT
-// - HEIC/HEIF    → weserv.nl converts to WebP → Shows correctly in browser
-// New uploads are auto-converted to WebP at upload time (imageUpload.ts)
-// so this HEIC proxy path is only for OLD existing images.
+// Smart image renderer for R2 PNG product images:
+// - PNG/JPG → weserv.nl (PNG→WebP convert + resize) → 60-70% smaller → FAST
+// - HEIC/HEIF → weserv.nl converts to WebP → Browser compatible
+// - WebP already → Direct CDN (no proxy needed)
+// - data:/blob: → Direct (upload preview)
 import React, { useState } from 'react';
 
 const R2_CDN = 'https://media.heelsup.in';
+const WESERV = 'https://images.weserv.nl/';
+
+// Width per size slot — product cards are max 400px wide on any device
+const SIZE_W: Record<string, number> = {
+  thumb: 480,  // Shop grid cards (2-3 col grid) → 480px is plenty
+  full:  900,  // Product detail page main image
+  hero: 1200,  // Hero/banner (not used for products)
+};
 
 interface HeicImageProps extends React.ImgHTMLAttributes<HTMLImageElement> {
   src?: string;
@@ -17,30 +25,41 @@ interface HeicImageProps extends React.ImgHTMLAttributes<HTMLImageElement> {
   fit?: 'cover' | 'contain';
 }
 
-function getDisplaySrc(src: string | undefined): string | null {
+/**
+ * Build an optimized image URL:
+ * - PNG/JPG/HEIC → route through weserv.nl for WebP conversion + resize
+ * - WebP already → direct CDN (already optimized)
+ * - data:/blob:/static → return as-is
+ */
+function getDisplaySrc(src: string | undefined, size: 'thumb' | 'full' | 'hero' = 'thumb'): string | null {
   if (!src || !src.trim()) return null;
+
+  // Upload previews / blobs — show directly, no proxy
   if (src.startsWith('data:') || src.startsWith('blob:')) return src;
 
-  // Static path (logo, icons)
+  // Static site assets (logo, icons starting with /)
   if (src.startsWith('/') && !src.startsWith('/api/')) return src;
 
-  let fullUrl = src;
+  // Build full URL if relative path (R2 key)
+  let fullUrl = src.startsWith('http') ? src : `${R2_CDN}/${src}`;
 
-  // Relative key → build full R2 CDN URL
-  if (!src.startsWith('http')) {
-    fullUrl = `${R2_CDN}/${src}`;
-  }
-
-  // HEIC/HEIF: old images stored as .heic on R2
-  // Convert via weserv.nl → WebP so browser can display
   const lower = fullUrl.toLowerCase();
-  if (lower.includes('.heic') || lower.includes('.heif')) {
-    // weserv.nl caches converted images on their CDN
-    // First load: ~500ms conversion, subsequent loads: <20ms (cached)
-    return `https://images.weserv.nl/?url=${encodeURIComponent(fullUrl)}&output=webp&q=88&n=-1`;
+  const w = SIZE_W[size] ?? 480;
+
+  // Already WebP → direct CDN, no proxy needed (already small)
+  if (lower.endsWith('.webp') || lower.includes('.webp?')) {
+    return fullUrl;
   }
 
-  return fullUrl;
+  // PNG / JPG / JPEG / HEIC → convert to WebP via weserv.nl
+  // Parameters:
+  //   output=webp  → convert to WebP (60-70% smaller than PNG)
+  //   q=82         → 82% quality (sharp + small)
+  //   w={w}        → resize to card width (no point loading 2000px for a 400px card)
+  //   fit=inside   → preserve aspect ratio (don't crop)
+  //   n=-1         → cache forever on weserv.nl CDN
+  //   we=1         → without enlargement (don't upscale small images)
+  return `${WESERV}?url=${encodeURIComponent(fullUrl)}&output=webp&q=82&w=${w}&fit=inside&n=-1&we=1`;
 }
 
 export default function HeicImage({
@@ -59,18 +78,19 @@ export default function HeicImage({
   const [loaded, setLoaded] = useState(false);
   const [errored, setErrored] = useState(false);
 
-  const displaySrc = getDisplaySrc(src);
+  const displaySrc = getDisplaySrc(src, size);
   if (!displaySrc) return null;
 
+  // First 4 products are above-the-fold → load eagerly with high priority
   const aboveFold = index !== undefined ? index < 4 : (size === 'full' || size === 'hero');
-  const resolvedLoading = loading ?? (aboveFold ? 'eager' : 'lazy');
-  const resolvedPriority = fetchpriority ?? (aboveFold ? 'high' : 'auto');
+  const resolvedLoading  = loading      ?? (aboveFold ? 'eager'  : 'lazy');
+  const resolvedPriority = fetchpriority ?? (aboveFold ? 'high'  : 'auto');
 
   // Determine object-fit
   const hasFitInClass = className.includes('object-cover') || className.includes('object-contain');
   let fitClass = '';
   if (!hasFitInClass) {
-    if (fit === 'cover') fitClass = 'object-cover';
+    if (fit === 'cover')        fitClass = 'object-cover';
     else if (fit === 'contain') fitClass = 'object-contain';
     else fitClass = size === 'hero' ? 'object-cover' : 'object-contain';
   }
@@ -92,7 +112,12 @@ export default function HeicImage({
         if (onLoad) onLoad(e);
       }}
       onError={() => {
-        // Show placeholder shade on error
+        // On proxy error, fallback to original R2 URL
+        const imgEl = document.querySelector(`img[src="${displaySrc}"]`) as HTMLImageElement | null;
+        if (imgEl && src) {
+          const fallback = src.startsWith('http') ? src : `${R2_CDN}/${src}`;
+          if (imgEl.src !== fallback) imgEl.src = fallback;
+        }
         setLoaded(true);
         setErrored(true);
       }}
