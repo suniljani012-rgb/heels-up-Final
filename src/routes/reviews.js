@@ -312,5 +312,60 @@ export async function reviewsRouter(request, env) {
         }
     }
 
+    // POST /api/reviews/google/sync — Auto-sync reviews from Google Places API
+    if (path === '/google/sync' && method === 'POST') {
+        const { user, error: authError } = await requireAdmin(request, env);
+        if (authError) return authError;
+
+        try {
+            const apiKey = env.GOOGLE_PLACES_API_KEY;
+            const placeId = env.GOOGLE_PLACE_ID;
+
+            if (!apiKey || !placeId) {
+                return json({
+                    success: true,
+                    synced: 0,
+                    message: 'Auto-sync ready. To automatically fetch live Google Maps reviews continuously, set GOOGLE_PLACES_API_KEY and GOOGLE_PLACE_ID in wrangler.toml or environment variables.',
+                    instructions: 'Get a free Google Places API Key from Google Cloud Console & place ID for Heels Up Jodhpur.'
+                });
+            }
+
+            const res = await fetch(`https://maps.googleapis.com/maps/api/place/details/json?place_id=${placeId}&fields=reviews,rating,user_ratings_total&key=${apiKey}`);
+            if (!res.ok) throw new Error(`Google Places API returned HTTP ${res.status}`);
+            const data = await res.json();
+
+            if (!data.result || !Array.isArray(data.result.reviews)) {
+                return error('No reviews returned from Google Places API');
+            }
+
+            const stmt = env.DB.prepare(`
+                INSERT OR REPLACE INTO google_reviews 
+                (google_review_id, author_name, author_photo_url, rating, review_text, review_date, relative_time_description, is_featured, status, created_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, 1, 'approved', datetime('now'))
+            `);
+
+            let synced = 0;
+            for (const r of data.result.reviews) {
+                const gId = r.author_url ? r.author_url.split('/').pop() : ('g_api_' + Math.random().toString(36).substring(2, 8));
+                const name = r.author_name;
+                const photo = r.profile_photo_url;
+                const rating = r.rating;
+                const text = r.text;
+                const relTime = r.relative_time_description;
+                const dateStr = new Date(r.time * 1000).toISOString().split('T')[0];
+
+                await stmt.bind(gId, name, photo, rating, text, dateStr, relTime).run();
+                synced++;
+            }
+
+            if (env.KV) { try { await env.KV.delete('cache:reviews:google'); } catch {} }
+
+            return ok({ synced_count: synced, total_google_rating: data.result.rating }, `Successfully synced ${synced} Google reviews automatically!`);
+        } catch (e) {
+            console.error('Google auto-sync error:', e);
+            return serverError('Failed to auto-sync Google reviews: ' + e.message);
+        }
+    }
+
     return error('Route not found', 404);
 }

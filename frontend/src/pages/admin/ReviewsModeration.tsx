@@ -177,6 +177,29 @@ export default function ReviewsModeration({ reviews, onRefresh }: ReviewsModerat
     }
   };
 
+  const handleAutoSyncGoogleReviews = async () => {
+    setImporting(true);
+    try {
+      const res = await fetch('/api/reviews/google/sync', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('heelsup_token')}`
+        }
+      });
+      const data = await res.json();
+      if (data.success) {
+        showToast('success', 'Google Auto-Sync Triggered', data.message || 'Auto-synced Google reviews.');
+        fetchGoogleReviews();
+      } else {
+        showToast('error', 'Sync Error', data.error || 'Failed to auto-sync.');
+      }
+    } catch {
+      showToast('error', 'Connection Error', 'Failed to reach sync server.');
+    } finally {
+      setImporting(false);
+    }
+  };
+
   // Stats
   const stats = useMemo(() => {
     if (reviews.length === 0) return { avg: 0, pending: 0, approved: 0, total: 0 };
@@ -409,12 +432,21 @@ export default function ReviewsModeration({ reviews, onRefresh }: ReviewsModerat
               </div>
             </div>
 
-            <button
-              onClick={() => setImportModalOpen(true)}
-              className="px-5 py-2.5 bg-blue-500 hover:bg-blue-600 text-white font-bold rounded-xl text-xs uppercase tracking-wider transition-all shadow-md flex items-center gap-2"
-            >
-              + Bulk Import Google Reviews (JSON)
-            </button>
+            <div className="flex items-center gap-3">
+              <button
+                onClick={handleAutoSyncGoogleReviews}
+                disabled={importing}
+                className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs uppercase tracking-wider transition-all shadow-md flex items-center gap-2 disabled:opacity-50"
+              >
+                ⚡ Auto-Sync Live API
+              </button>
+              <button
+                onClick={() => setImportModalOpen(true)}
+                className="px-5 py-2.5 bg-blue-500 hover:bg-blue-600 text-white font-bold rounded-xl text-xs uppercase tracking-wider transition-all shadow-md flex items-center gap-2"
+              >
+                + Bulk Import (JSON)
+              </button>
+            </div>
           </div>
 
           {/* Google Reviews Table / List */}
