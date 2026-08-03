@@ -1,25 +1,20 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 
 export const InstagramFeedWidget: React.FC = () => {
-  useEffect(() => {
-    const SCRIPT_ID = 'ti-instagram-feed-script';
+  const containerRef = useRef<HTMLDivElement>(null);
 
-    // If script already loaded, just re-trigger window.__ti__init if available
-    if (document.getElementById(SCRIPT_ID)) {
-      try { (window as any).__tiInit?.(); } catch (_) {}
-      return;
-    }
+  useEffect(() => {
+    if (!containerRef.current) return;
+    
+    // Clear previous widget script instance if re-mounting
+    containerRef.current.innerHTML = '';
 
     const script = document.createElement('script');
-    script.id = SCRIPT_ID;
     script.src = 'https://cdn.trustindex.io/loader-feed.js?1039774780ec320d47866d93b06';
+    script.defer = true;
     script.async = true;
-    // Append to body — Trustindex scans the full DOM when script loads
-    document.body.appendChild(script);
 
-    return () => {
-      // Do NOT remove on unmount — Trustindex needs to stay alive across page navigations
-    };
+    containerRef.current.appendChild(script);
   }, []);
 
   return (
@@ -36,21 +31,8 @@ export const InstagramFeedWidget: React.FC = () => {
         <div className="h-[1.5px] w-12 bg-[#c9a96e] mx-auto mt-4" />
       </div>
 
-      {/* 
-        Trustindex Instagram Feed Widget placeholder.
-        The script (appended to body above) scans DOM for this element and renders the feed here.
-      */}
-      <div
-        className="w-full overflow-hidden rounded-2xl"
-        data-ti-widget="1039774780ec320d47866d93b06"
-      >
-        {/* Loading skeleton while Trustindex loads */}
-        <div className="grid grid-cols-3 sm:grid-cols-6 gap-2 animate-pulse">
-          {Array.from({ length: 6 }).map((_, i) => (
-            <div key={i} className="aspect-square rounded-xl bg-[#f0ebe0]" />
-          ))}
-        </div>
-      </div>
+      {/* Trustindex Instagram Feed Widget Container */}
+      <div ref={containerRef} className="w-full min-h-[250px] flex justify-center items-center" />
     </section>
   );
 };
