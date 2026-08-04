@@ -2,6 +2,7 @@ import { useEffect, lazy, Suspense } from 'react'
 import { autoPreloadStorefrontImages } from './utils/imagePreloader'
 import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { trackPageView } from './utils/analytics'
 import Header from './components/Header'
 import Footer from './components/Footer'
 import CartDrawer from './components/CartDrawer'
@@ -43,6 +44,12 @@ function AppContent() {
   const location = useLocation()
   const isAdmin = location.pathname.startsWith('/admin')
   const detectLocation = useCartStore(state => state.detectLocation)
+
+  // Track SPA page navigation on route change
+  useEffect(() => {
+    trackPageView(location.pathname + location.search);
+  }, [location.pathname, location.search])
+
 
   useEffect(() => {
     if ('scrollRestoration' in window.history) {

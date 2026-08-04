@@ -2,6 +2,10 @@ import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import './index.css'
 import App from './App.tsx'
+import { initAnalytics } from './utils/analytics'
+
+// Initialize Google Analytics GA4
+initAnalytics();
 
 // Register Enterprise Service Worker for 0ms instant loading
 if ('serviceWorker' in navigator && (window.location.protocol === 'https:' || window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) {
@@ -19,3 +23,4 @@ createRoot(document.getElementById('root')!).render(
     <App />
   </StrictMode>,
 )
+

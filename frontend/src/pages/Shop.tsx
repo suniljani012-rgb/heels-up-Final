@@ -9,6 +9,8 @@ import { useQuery, useQueryClient, keepPreviousData } from '@tanstack/react-quer
 import { useMemo } from 'react'
 import { formatSizeToIndian } from '../utils/sizeHelper'
 import { cacheProductData, prefetchProductApi } from '../utils/productCache'
+import { trackSearchQuery } from '../utils/analytics'
+
 
 interface Product {
   id: number;
@@ -61,6 +63,11 @@ function useShopProducts(filters: any) {
       const res = await fetch('/api/products?' + queryParams.toString());
       const data = await res.json();
       if (!data.success) throw new Error(data.error || 'Failed to fetch shop products');
+
+      if (filters.searchQ) {
+        trackSearchQuery(filters.searchQ, data.pagination?.total || data.data?.length || 0);
+      }
+
 
       if (data.data && Array.isArray(data.data)) {
         data.data.forEach((p: any) => {

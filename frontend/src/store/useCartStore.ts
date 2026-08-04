@@ -1,5 +1,7 @@
 import { create } from 'zustand'
 import { roundToProfessionalPrice } from '../utils/priceHelper'
+import { trackAddToCart } from '../utils/analytics'
+
 
 export interface CartItem {
   id: number;
@@ -101,7 +103,16 @@ export const useCartStore = create<CartState>((set, get) => {
         updated = [...currentItems, { ...newItem, qty: qtyToAdd }];
       }
       saveCart(updated);
+
+      // Track add to cart event in GA4
+      trackAddToCart({
+        id: newItem.id,
+        name: newItem.name,
+        price: Math.round(newItem.price / 100),
+        size: newItem.size,
+      });
     },
+
     removeItem: (id, color, size) => {
       const filtered = get().items.filter(
         (item) =>

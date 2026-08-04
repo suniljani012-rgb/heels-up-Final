@@ -33,7 +33,18 @@
          here to avoid blocking 500KB+ for regular shoppers.
          ═══════════════════════════════════════════════════════ -->
 
+    <!-- Google Analytics 4 (GA4) Tracking -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-XVQQHDGV99"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', window.GA_MEASUREMENT_ID || 'G-XVQQHDGV99', { send_page_view: true });
+    </script>
+
+
     <!-- Razorpay Checkout — load only on checkout page, deferred -->
+
     <script src="https://checkout.razorpay.com/v1/checkout.js" defer></script>
     <script type="module" crossorigin src="/assets/index-CxUIOUCr.js"></script>
     <link rel="modulepreload" crossorigin href="/assets/rolldown-runtime-M0oDzQ_3.js">

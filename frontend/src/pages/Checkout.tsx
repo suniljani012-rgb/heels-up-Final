@@ -14,6 +14,8 @@ declare global {
 }
 
 import { useDisplayPrice } from '../utils/priceHelper'
+import { trackCheckout } from '../utils/analytics'
+
 
 export default function Checkout() {
   const { items, getCartSubtotal, clearCart } = useCartStore()
@@ -27,8 +29,11 @@ export default function Checkout() {
     if (!token || !user) {
       showToast('error', 'Login Required 🔐', 'Please sign in or create an account to proceed with checkout.')
       navigate('/login?redirect=/checkout')
+    } else if (items.length > 0) {
+      trackCheckout(Math.round(getCartSubtotal() / 100), items.length)
     }
   }, [token, user, navigate])
+
 
   // Coupon variables from cart routing context
   const [couponCode, setCouponCode] = useState('')
