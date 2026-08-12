@@ -4,7 +4,7 @@ import { ok, list, created, error, serverError } from '../utils/response.js';
 
 export async function bannersRouter(request, env) {
     const url = new URL(request.url);
-    const path = url.pathname.replace('/api/banners', '') || '/';
+    const path = url.pathname.replace('/api/admin/banners', '').replace('/api/banners', '') || '/';
     const method = request.method;
 
     // GET /api/banners

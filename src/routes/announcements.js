@@ -4,7 +4,7 @@ import { ok, list, created, error, serverError } from '../utils/response.js';
 
 export async function announcementsRouter(request, env) {
     const url = new URL(request.url);
-    const path = url.pathname.replace('/api/announcements', '') || '/';
+    const path = url.pathname.replace('/api/admin/announcements', '').replace('/api/announcements', '') || '/';
     const method = request.method;
 
     // GET /api/announcements — public list of active announcements

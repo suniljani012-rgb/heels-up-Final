@@ -39,13 +39,7 @@ import { posRouter } from './pos.js';
 function rewritePath(request, newPathname) {
     const url = new URL(request.url);
     url.pathname = newPathname;
-    const newHeaders = new Headers(request.headers);
-    return new Request(url.toString(), {
-        method: request.method,
-        headers: newHeaders,
-        body: ['GET', 'HEAD'].includes(request.method) ? undefined : request.body,
-        duplex: 'half',
-    });
+    return new Request(url.toString(), request);
 }
 
 // ── Main admin router ─────────────────────────────────────────

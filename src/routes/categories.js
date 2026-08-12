@@ -4,7 +4,7 @@ import { ok, list, created, error, notFound, serverError } from '../utils/respon
 
 export async function categoriesRouter(request, env) {
     const url = new URL(request.url);
-    const path = url.pathname.replace('/api/categories', '') || '/';
+    const path = url.pathname.replace('/api/admin/categories', '').replace('/api/categories', '') || '/';
     const method = request.method;
 
     if (path === '/' && method === 'GET') {

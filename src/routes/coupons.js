@@ -4,7 +4,7 @@ import { ok, list, created, error, serverError } from '../utils/response.js';
 
 export async function couponsRouter(request, env) {
     const url = new URL(request.url);
-    const path = url.pathname.replace('/api/coupons', '') || '/';
+    const path = url.pathname.replace('/api/admin/coupons', '').replace('/api/coupons', '') || '/';
     const method = request.method;
 
     // POST /api/coupons/validate — validate a coupon code
