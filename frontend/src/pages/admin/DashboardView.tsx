@@ -199,174 +199,153 @@ export default function DashboardView({ data, products, returns, onTabChange }: 
   const growth = data?.revenueGrowth || 0;
 
   return (
-    <div className="space-y-8 animate-fade-in text-slate-800 font-sans pb-16 bg-[#f4f6f8] -mx-4 md:-mx-8 p-4 md:p-8 rounded-3xl">
-      {/* MUI Minimal Header Bar */}
-      <div className="bg-white border border-slate-200/80 rounded-2xl p-6 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-6">
-        <div className="space-y-1">
-          <div className="flex items-center gap-2">
-            <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
-            <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Store Operations Hub</span>
-          </div>
-          <h1 className="text-2xl md:text-3xl font-extrabold text-slate-900 tracking-tight">
-            Welcome back, Admin 👋
-          </h1>
-          <p className="text-xs text-slate-500">
-            Real-time analytics computed directly from Cloudflare Edge D1 Database.
-          </p>
-        </div>
-        <div className="flex items-center gap-3">
-          <button
-            onClick={() => onTabChange('pos')}
-            className="px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-xs shadow-md transition-all flex items-center gap-2"
-          >
-            <ShoppingCart className="w-4 h-4" /> Open POS Terminal
-          </button>
-          <button
-            onClick={() => onTabChange('stock')}
-            className="px-4 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs transition-all flex items-center gap-2"
-          >
-            <Footprints className="w-4 h-4" /> Stock Manager
-          </button>
-        </div>
-      </div>
-
-      {/* 6 Minimal Metric Cards Grid */}
+    <div className="space-y-8 animate-fade-in text-slate-800 font-sans pb-16">
+      {/* Horizon UI 6 Signature Metric Widgets */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {/* Card 1: Gross Revenue */}
-        <div className="bg-white border border-slate-200/80 rounded-2xl p-6 shadow-sm hover:shadow-md transition-all relative overflow-hidden group">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Gross Revenue</span>
-            <div className="w-10 h-10 rounded-xl bg-emerald-50 border border-emerald-100 flex items-center justify-center text-emerald-600">
-              <Wallet className="w-5 h-5" />
+        {/* Horizon Widget 1: Gross Revenue */}
+        <div className="rounded-[20px] bg-white dark:bg-[#111C44] p-5 shadow-[0px_18px_40px_rgba(112,144,176,0.12)] border border-slate-100 dark:border-navy-700 flex items-center justify-between transition-all hover:shadow-2xl">
+          <div className="flex items-center gap-4">
+            <div className="w-14 h-14 rounded-full bg-[#F4F7FE] dark:bg-navy-700 text-[#422AFB] dark:text-white flex items-center justify-center font-bold text-xl shrink-0">
+              <Wallet className="w-6 h-6" />
+            </div>
+            <div>
+              <p className="text-xs font-bold text-[#A3AED0] uppercase tracking-wider">Gross Revenue</p>
+              <h4 className="text-2xl font-bold text-[#2B3674] dark:text-white mt-0.5 tracking-tight">
+                {formatCurrency(totalRevenue)}
+              </h4>
             </div>
           </div>
-          <div className="mt-4">
-            <h3 className="text-3xl font-extrabold text-slate-900 tracking-tight">
-              {formatCurrency(totalRevenue)}
-            </h3>
-            <div className="mt-2 flex items-center justify-between text-xs text-slate-500">
-              <span className={`font-semibold flex items-center gap-1 ${growth >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
-                <TrendingUp className="w-3.5 h-3.5" /> {growth >= 0 ? `+${growth}%` : `${growth}%`} vs last month
-              </span>
-              <span>Web: {formatCurrency(data?.total_sales || 0)}</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Card 2: Total Orders */}
-        <div className="bg-white border border-slate-200/80 rounded-2xl p-6 shadow-sm hover:shadow-md transition-all relative overflow-hidden group">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Total Orders</span>
-            <div className="w-10 h-10 rounded-xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600">
-              <ShoppingCart className="w-5 h-5" />
-            </div>
-          </div>
-          <div className="mt-4">
-            <h3 className="text-3xl font-extrabold text-slate-900 tracking-tight">
-              {totalOrdersCount}
-            </h3>
-            <div className="mt-2 flex items-center justify-between text-xs text-slate-500">
-              <span>Online Store: {data?.orders_count || 0}</span>
-              <span>In-Store POS: {data?.pos_sales_count || 0}</span>
-            </div>
+          <div className="text-right">
+            <span className={`inline-flex items-center gap-1 text-xs font-bold px-2.5 py-1 rounded-full ${growth >= 0 ? 'bg-emerald-50 text-[#01B574]' : 'bg-rose-50 text-[#EE5D50]'}`}>
+              <TrendingUp className="w-3.5 h-3.5" /> {growth >= 0 ? `+${growth}%` : `${growth}%`}
+            </span>
+            <p className="text-[10px] text-[#A3AED0] font-semibold mt-1">Web: {formatCurrency(data?.total_sales || 0)}</p>
           </div>
         </div>
 
-        {/* Card 3: Average Order Value (AOV) */}
-        <div className="bg-white border border-slate-200/80 rounded-2xl p-6 shadow-sm hover:shadow-md transition-all relative overflow-hidden group">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Average Order Value (AOV)</span>
-            <div className="w-10 h-10 rounded-xl bg-violet-50 border border-violet-100 flex items-center justify-center text-violet-600">
-              <Sparkles className="w-5 h-5" />
+        {/* Horizon Widget 2: Total Orders */}
+        <div className="rounded-[20px] bg-white dark:bg-[#111C44] p-5 shadow-[0px_18px_40px_rgba(112,144,176,0.12)] border border-slate-100 dark:border-navy-700 flex items-center justify-between transition-all hover:shadow-2xl">
+          <div className="flex items-center gap-4">
+            <div className="w-14 h-14 rounded-full bg-[#F4F7FE] dark:bg-navy-700 text-[#422AFB] dark:text-white flex items-center justify-center font-bold text-xl shrink-0">
+              <ShoppingCart className="w-6 h-6" />
+            </div>
+            <div>
+              <p className="text-xs font-bold text-[#A3AED0] uppercase tracking-wider">Total Orders</p>
+              <h4 className="text-2xl font-bold text-[#2B3674] dark:text-white mt-0.5 tracking-tight">
+                {totalOrdersCount}
+              </h4>
             </div>
           </div>
-          <div className="mt-4">
-            <h3 className="text-3xl font-extrabold text-slate-900 tracking-tight">
-              {formatCurrency(data?.aov || 0)}
-            </h3>
-            <div className="mt-2 flex items-center justify-between text-xs text-slate-500">
-              <span className="text-violet-600 font-semibold">Per Paid Transaction</span>
-              <span>Computed Realtime</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Card 4: Low Stock Inventory Risk */}
-        <div className="bg-white border border-slate-200/80 rounded-2xl p-6 shadow-sm hover:shadow-md transition-all relative overflow-hidden group">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Low Stock Risk Items</span>
-            <div className="w-10 h-10 rounded-xl bg-rose-50 border border-rose-100 flex items-center justify-center text-rose-600">
-              <AlertTriangle className="w-5 h-5" />
-            </div>
-          </div>
-          <div className="mt-4">
-            <h3 className="text-3xl font-extrabold text-slate-900 tracking-tight">
-              {lowStockList.length} <span className="text-sm font-medium text-rose-500">Products (≤5 stock)</span>
-            </h3>
-            <div className="mt-2 flex items-center justify-between text-xs">
-              <span className="text-rose-600 font-semibold">Inventory Alert</span>
-              <button onClick={() => onTabChange('stock')} className="text-indigo-600 hover:underline font-bold flex items-center gap-0.5">
-                Restock <ArrowUpRight className="w-3.5 h-3.5" />
-              </button>
-            </div>
+          <div className="text-right">
+            <span className="text-xs font-bold text-[#422AFB] bg-indigo-50 px-2.5 py-1 rounded-full">
+              Live DB
+            </span>
+            <p className="text-[10px] text-[#A3AED0] font-semibold mt-1">Online: {data?.orders_count || 0} | POS: {data?.pos_sales_count || 0}</p>
           </div>
         </div>
 
-        {/* Card 5: Repeat Customers */}
-        <div className="bg-white border border-slate-200/80 rounded-2xl p-6 shadow-sm hover:shadow-md transition-all relative overflow-hidden group">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Repeat Customer Base</span>
-            <div className="w-10 h-10 rounded-xl bg-sky-50 border border-sky-100 flex items-center justify-center text-sky-600">
-              <Footprints className="w-5 h-5" />
+        {/* Horizon Widget 3: Average Order Value (AOV) */}
+        <div className="rounded-[20px] bg-white dark:bg-[#111C44] p-5 shadow-[0px_18px_40px_rgba(112,144,176,0.12)] border border-slate-100 dark:border-navy-700 flex items-center justify-between transition-all hover:shadow-2xl">
+          <div className="flex items-center gap-4">
+            <div className="w-14 h-14 rounded-full bg-[#F4F7FE] dark:bg-navy-700 text-[#422AFB] dark:text-white flex items-center justify-center font-bold text-xl shrink-0">
+              <Sparkles className="w-6 h-6" />
+            </div>
+            <div>
+              <p className="text-xs font-bold text-[#A3AED0] uppercase tracking-wider">Average Order Value (AOV)</p>
+              <h4 className="text-2xl font-bold text-[#2B3674] dark:text-white mt-0.5 tracking-tight">
+                {formatCurrency(data?.aov || 0)}
+              </h4>
             </div>
           </div>
-          <div className="mt-4">
-            <h3 className="text-3xl font-extrabold text-slate-900 tracking-tight">
-              {data?.repeatCustomers || 0} <span className="text-sm font-medium text-slate-500">Returning Buyers</span>
-            </h3>
-            <div className="mt-2 flex items-center justify-between text-xs text-slate-500">
-              <span className="text-sky-600 font-semibold">High Retention</span>
-              <span>Database Verified</span>
-            </div>
+          <div className="text-right">
+            <span className="text-xs font-bold text-purple-600 bg-purple-50 px-2.5 py-1 rounded-full">
+              Basket Size
+            </span>
+            <p className="text-[10px] text-[#A3AED0] font-semibold mt-1">Per Paid Transaction</p>
           </div>
         </div>
 
-        {/* Card 6: Pending Exchanges / Returns */}
-        <div className="bg-white border border-slate-200/80 rounded-2xl p-6 shadow-sm hover:shadow-md transition-all relative overflow-hidden group">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Pending Returns / Exchanges</span>
-            <div className="w-10 h-10 rounded-xl bg-amber-50 border border-amber-100 flex items-center justify-center text-amber-600">
-              <RotateCcw className="w-5 h-5" />
+        {/* Horizon Widget 4: Low Stock Inventory Risk */}
+        <div className="rounded-[20px] bg-white dark:bg-[#111C44] p-5 shadow-[0px_18px_40px_rgba(112,144,176,0.12)] border border-slate-100 dark:border-navy-700 flex items-center justify-between transition-all hover:shadow-2xl">
+          <div className="flex items-center gap-4">
+            <div className="w-14 h-14 rounded-full bg-rose-50 dark:bg-navy-700 text-[#EE5D50] flex items-center justify-center font-bold text-xl shrink-0">
+              <AlertTriangle className="w-6 h-6" />
+            </div>
+            <div>
+              <p className="text-xs font-bold text-[#A3AED0] uppercase tracking-wider">Low Stock Risk Items</p>
+              <h4 className="text-2xl font-bold text-[#2B3674] dark:text-white mt-0.5 tracking-tight">
+                {lowStockList.length} <span className="text-xs font-semibold text-[#EE5D50]">Products (≤5)</span>
+              </h4>
             </div>
           </div>
-          <div className="mt-4">
-            <h3 className="text-3xl font-extrabold text-slate-900 tracking-tight">
-              {returns.filter(r => r.status === 'pending').length} <span className="text-sm font-medium text-amber-600">Requests</span>
-            </h3>
-            <div className="mt-2 flex items-center justify-between text-xs text-slate-500">
-              <span>Requires Action</span>
-              <button onClick={() => onTabChange('returns')} className="text-indigo-600 hover:underline font-bold flex items-center gap-0.5">
-                Review <ArrowUpRight className="w-3.5 h-3.5" />
-              </button>
+          <div className="text-right">
+            <button onClick={() => onTabChange('stock')} className="text-xs font-bold text-[#422AFB] hover:underline flex items-center gap-0.5">
+              Restock <ArrowUpRight className="w-3.5 h-3.5" />
+            </button>
+            <p className="text-[10px] text-[#EE5D50] font-semibold mt-1">Action Required</p>
+          </div>
+        </div>
+
+        {/* Horizon Widget 5: Repeat Customers */}
+        <div className="rounded-[20px] bg-white dark:bg-[#111C44] p-5 shadow-[0px_18px_40px_rgba(112,144,176,0.12)] border border-slate-100 dark:border-navy-700 flex items-center justify-between transition-all hover:shadow-2xl">
+          <div className="flex items-center gap-4">
+            <div className="w-14 h-14 rounded-full bg-[#F4F7FE] dark:bg-navy-700 text-[#01B574] flex items-center justify-center font-bold text-xl shrink-0">
+              <Footprints className="w-6 h-6" />
             </div>
+            <div>
+              <p className="text-xs font-bold text-[#A3AED0] uppercase tracking-wider">Repeat Customer Base</p>
+              <h4 className="text-2xl font-bold text-[#2B3674] dark:text-white mt-0.5 tracking-tight">
+                {data?.repeatCustomers || 0} <span className="text-xs font-semibold text-[#A3AED0]">Returning</span>
+              </h4>
+            </div>
+          </div>
+          <div className="text-right">
+            <span className="text-xs font-bold text-[#01B574] bg-emerald-50 px-2.5 py-1 rounded-full">
+              High Loyalty
+            </span>
+            <p className="text-[10px] text-[#A3AED0] font-semibold mt-1">Multi-Order History</p>
+          </div>
+        </div>
+
+        {/* Horizon Widget 6: Pending Returns */}
+        <div className="rounded-[20px] bg-white dark:bg-[#111C44] p-5 shadow-[0px_18px_40px_rgba(112,144,176,0.12)] border border-slate-100 dark:border-navy-700 flex items-center justify-between transition-all hover:shadow-2xl">
+          <div className="flex items-center gap-4">
+            <div className="w-14 h-14 rounded-full bg-amber-50 dark:bg-navy-700 text-[#FFB547] flex items-center justify-center font-bold text-xl shrink-0">
+              <RotateCcw className="w-6 h-6" />
+            </div>
+            <div>
+              <p className="text-xs font-bold text-[#A3AED0] uppercase tracking-wider">Pending Exchanges</p>
+              <h4 className="text-2xl font-bold text-[#2B3674] dark:text-white mt-0.5 tracking-tight">
+                {returns.filter(r => r.status === 'pending').length} <span className="text-xs font-semibold text-[#FFB547]">Requests</span>
+              </h4>
+            </div>
+          </div>
+          <div className="text-right">
+            <button onClick={() => onTabChange('returns')} className="text-xs font-bold text-[#422AFB] hover:underline flex items-center gap-0.5">
+              Review <ArrowUpRight className="w-3.5 h-3.5" />
+            </button>
+            <p className="text-[10px] text-[#A3AED0] font-semibold mt-1">Requires Action</p>
           </div>
         </div>
       </div>
 
-      {/* Analytics Charts Row */}
+      {/* Horizon Analytics Charts Section */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left 2 Cols: Revenue Trend Area Chart */}
-        <div className="lg:col-span-2 bg-white border border-slate-200/80 rounded-2xl p-6 shadow-sm space-y-4">
-          <div className="flex items-center justify-between border-b border-slate-100 pb-4">
+        {/* Left 2 Cols: Horizon Total Spent Revenue Area Chart */}
+        <div className="lg:col-span-2 rounded-[20px] bg-white dark:bg-[#111C44] p-6 shadow-[0px_18px_40px_rgba(112,144,176,0.12)] border border-slate-100 dark:border-navy-700 space-y-4">
+          <div className="flex items-center justify-between border-b border-slate-100 dark:border-navy-700 pb-4">
             <div>
-              <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
-                <TrendingUp className="w-4 h-4 text-indigo-600" /> Revenue & Sales Performance
+              <p className="text-xs font-bold text-[#A3AED0] uppercase tracking-wider">Total Sales Stream</p>
+              <h3 className="text-2xl font-bold text-[#2B3674] dark:text-white tracking-tight flex items-center gap-3">
+                {formatCurrency(totalRevenue)}
+                <span className="text-xs font-bold text-[#01B574] bg-emerald-50 px-2.5 py-1 rounded-full flex items-center gap-1">
+                  <TrendingUp className="w-3.5 h-3.5" /> Realtime D1 Sync
+                </span>
               </h3>
-              <p className="text-xs text-slate-500">7-Day Real Revenue Stream (Online + POS Store)</p>
             </div>
             <button
               onClick={() => setCollapsedSalesTrend(!collapsedSalesTrend)}
-              className="text-xs text-indigo-600 hover:text-indigo-800 font-bold"
+              className="text-xs font-bold text-[#422AFB] hover:underline"
             >
               {collapsedSalesTrend ? 'Expand Chart' : 'Collapse Chart'}
             </button>
@@ -384,21 +363,21 @@ export default function DashboardView({ data, products, returns, onTabChange }: 
                     margin={{ top: 10, right: 10, left: -10, bottom: 0 }}
                   >
                     <defs>
-                      <linearGradient id="colorRevenueMuiMaster" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#6366f1" stopOpacity={0.4}/>
-                        <stop offset="95%" stopColor="#6366f1" stopOpacity={0.0}/>
+                      <linearGradient id="colorRevenueHorizon" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#422AFB" stopOpacity={0.4}/>
+                        <stop offset="95%" stopColor="#422AFB" stopOpacity={0.0}/>
                       </linearGradient>
                     </defs>
                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
                     <XAxis
                       dataKey="name"
-                      stroke="#64748b"
+                      stroke="#A3AED0"
                       fontSize={11}
                       tickLine={false}
                       axisLine={false}
                     />
                     <YAxis
-                      stroke="#64748b"
+                      stroke="#A3AED0"
                       fontSize={11}
                       tickLine={false}
                       axisLine={false}
@@ -406,29 +385,29 @@ export default function DashboardView({ data, products, returns, onTabChange }: 
                     />
                     <Tooltip
                       contentStyle={{
-                        backgroundColor: '#0f172a',
-                        borderRadius: '12px',
+                        backgroundColor: '#111C44',
+                        borderRadius: '16px',
                         color: '#ffffff',
                         border: 'none',
-                        boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.3)',
+                        boxShadow: '0 18px 40px rgba(112, 144, 176, 0.2)',
                         fontSize: '12px',
                       }}
-                      itemStyle={{ color: '#818cf8' }}
+                      itemStyle={{ color: '#8171FC' }}
                       labelStyle={{ color: '#ffffff', fontWeight: 'bold' }}
                       formatter={(value: any) => [`₹${value.toLocaleString('en-IN')}`, 'Revenue']}
                     />
                     <Area
                       type="monotone"
                       dataKey="Revenue"
-                      stroke="#6366f1"
-                      strokeWidth={3}
+                      stroke="#422AFB"
+                      strokeWidth={3.5}
                       fillOpacity={1}
-                      fill="url(#colorRevenueMuiMaster)"
+                      fill="url(#colorRevenueHorizon)"
                     />
                   </AreaChart>
                 </ResponsiveContainer>
               ) : (
-                <div className="h-full flex items-center justify-center text-xs text-slate-400 italic">
+                <div className="h-full flex items-center justify-center text-xs text-[#A3AED0] italic">
                   No sales recorded in the selected period.
                 </div>
               )}
@@ -436,16 +415,16 @@ export default function DashboardView({ data, products, returns, onTabChange }: 
           )}
         </div>
 
-        {/* Right 1 Col: Category Share Donut Chart */}
-        <div className="bg-white border border-slate-200/80 rounded-2xl p-6 shadow-sm space-y-4">
-          <div className="flex items-center justify-between border-b border-slate-100 pb-4">
+        {/* Right 1 Col: Horizon PieChartCard Category Share */}
+        <div className="rounded-[20px] bg-white dark:bg-[#111C44] p-6 shadow-[0px_18px_40px_rgba(112,144,176,0.12)] border border-slate-100 dark:border-navy-700 space-y-4">
+          <div className="flex items-center justify-between border-b border-slate-100 dark:border-navy-700 pb-4">
             <div>
-              <h3 className="text-base font-bold text-slate-900">Category Share</h3>
-              <p className="text-xs text-slate-500">Real database revenue distribution</p>
+              <p className="text-xs font-bold text-[#A3AED0] uppercase tracking-wider">Your Categories</p>
+              <h3 className="text-lg font-bold text-[#2B3674] dark:text-white">Category Share</h3>
             </div>
             <button
               onClick={() => setCollapsedCategoryShare(!collapsedCategoryShare)}
-              className="text-xs text-indigo-600 hover:text-indigo-800 font-bold"
+              className="text-xs font-bold text-[#422AFB] hover:underline"
             >
               {collapsedCategoryShare ? 'Expand' : 'Collapse'}
             </button>
@@ -467,19 +446,19 @@ export default function DashboardView({ data, products, returns, onTabChange }: 
                       nameKey="category"
                     >
                       {catShare.map((entry: CategorySale, index: number) => {
-                        const COLORS = ['#6366f1', '#10b981', '#f59e0b', '#ec4899', '#8b5cf6', '#06b6d4', '#ef4444'];
+                        const COLORS = ['#4318FF', '#6AD2FF', '#01B574', '#FFB547', '#EE5D50', '#8B5CF6'];
                         return <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />;
                       })}
                     </Pie>
                     <Tooltip
                       contentStyle={{
-                        backgroundColor: '#0f172a',
-                        borderRadius: '8px',
+                        backgroundColor: '#111C44',
+                        borderRadius: '12px',
                         color: '#ffffff',
                         border: 'none',
                         fontSize: '11px',
                       }}
-                      itemStyle={{ color: '#818cf8' }}
+                      itemStyle={{ color: '#6AD2FF' }}
                       labelStyle={{ color: '#ffffff', fontWeight: 'bold' }}
                       formatter={(value: any) => [`${value}%`, 'Share']}
                     />
@@ -489,13 +468,13 @@ export default function DashboardView({ data, products, returns, onTabChange }: 
                       iconType="circle"
                       iconSize={8}
                       formatter={(value: any) => (
-                        <span className="text-xs font-medium text-slate-600 font-sans px-1">{value}</span>
+                        <span className="text-xs font-semibold text-[#2B3674] dark:text-white font-sans px-1">{value}</span>
                       )}
                     />
                   </PieChart>
                 </ResponsiveContainer>
               ) : (
-                <div className="h-full flex items-center justify-center text-xs text-slate-400 italic">
+                <div className="h-full flex items-center justify-center text-xs text-[#A3AED0] italic">
                   No category sales recorded yet.
                 </div>
               )}
@@ -504,51 +483,51 @@ export default function DashboardView({ data, products, returns, onTabChange }: 
         </div>
       </div>
 
-      {/* Database Business Reports Grid (4 Real Tables & Widgets) */}
+      {/* Horizon Complex Data Tables Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Widget 1: Low Stock Risk Inventory Table */}
-        <div className="bg-white border border-slate-200/80 rounded-2xl p-6 shadow-sm space-y-4">
-          <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-lg bg-rose-50 border border-rose-100 flex items-center justify-center text-rose-600">
-                <AlertTriangle className="w-4 h-4" />
+        {/* Table 1: Low Stock Risk Inventory Data Grid */}
+        <div className="rounded-[20px] bg-white dark:bg-[#111C44] p-6 shadow-[0px_18px_40px_rgba(112,144,176,0.12)] border border-slate-100 dark:border-navy-700 space-y-4">
+          <div className="flex items-center justify-between border-b border-slate-100 dark:border-navy-700 pb-3">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-rose-50 text-[#EE5D50] flex items-center justify-center font-bold">
+                <AlertTriangle className="w-5 h-5" />
               </div>
               <div>
-                <h3 className="text-base font-bold text-slate-900">Low Stock Risk Report</h3>
-                <p className="text-xs text-slate-500">Products requiring inventory replenishment (≤5 units)</p>
+                <h3 className="text-base font-bold text-[#2B3674] dark:text-white">Low Stock Risk Report</h3>
+                <p className="text-xs text-[#A3AED0]">Items with ≤5 units remaining</p>
               </div>
             </div>
             <button
               onClick={() => onTabChange('stock')}
-              className="text-xs font-bold text-rose-600 hover:text-rose-800 flex items-center gap-1"
+              className="text-xs font-bold text-[#EE5D50] hover:underline flex items-center gap-1"
             >
               Manage Stock <ArrowUpRight className="w-3.5 h-3.5" />
             </button>
           </div>
 
-          <div className="divide-y divide-slate-100">
+          <div className="divide-y divide-slate-100 dark:divide-navy-700">
             {lowStockList.slice(0, 5).map((item) => (
               <div key={item.id} className="py-3 flex items-center justify-between gap-4">
                 <div className="flex items-center gap-3 min-w-0">
                   {item.image_url ? (
-                    <img src={item.image_url} alt={item.name} className="w-10 h-10 rounded-lg object-cover border border-slate-200" />
+                    <img src={item.image_url} alt={item.name} className="w-10 h-10 rounded-xl object-cover border border-slate-100" />
                   ) : (
-                    <div className="w-10 h-10 rounded-lg bg-slate-100 flex items-center justify-center text-slate-400 text-xs font-bold">
+                    <div className="w-10 h-10 rounded-xl bg-[#F4F7FE] flex items-center justify-center text-[#422AFB] font-bold text-xs">
                       HU
                     </div>
                   )}
                   <div className="min-w-0">
-                    <p className="text-xs font-bold text-slate-800 truncate">{item.name}</p>
-                    <p className="text-[11px] text-slate-500 font-mono">SKU: {item.sku || `PROD-${item.id}`}</p>
+                    <p className="text-xs font-bold text-[#2B3674] dark:text-white truncate">{item.name}</p>
+                    <p className="text-[11px] text-[#A3AED0] font-mono">SKU: {item.sku || `PROD-${item.id}`}</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
-                  <span className="px-2.5 py-1 rounded-full text-xs font-extrabold bg-rose-100 text-rose-700">
+                  <span className="px-3 py-1 rounded-full text-xs font-extrabold bg-rose-50 text-[#EE5D50]">
                     {item.stock} left
                   </span>
                   <button
                     onClick={() => onTabChange('stock')}
-                    className="text-xs text-indigo-600 font-bold hover:underline"
+                    className="text-xs text-[#422AFB] font-bold hover:underline"
                   >
                     Restock
                   </button>
@@ -556,82 +535,82 @@ export default function DashboardView({ data, products, returns, onTabChange }: 
               </div>
             ))}
             {lowStockList.length === 0 && (
-              <div className="py-8 text-center text-xs text-slate-400 italic">
+              <div className="py-8 text-center text-xs text-[#A3AED0] italic">
                 All inventory stock levels are healthy.
               </div>
             )}
           </div>
         </div>
 
-        {/* Widget 2: Coupon Code Performance */}
-        <div className="bg-white border border-slate-200/80 rounded-2xl p-6 shadow-sm space-y-4">
-          <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-lg bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600">
-                <Sparkles className="w-4 h-4" />
+        {/* Table 2: Top Active Promo Coupons */}
+        <div className="rounded-[20px] bg-white dark:bg-[#111C44] p-6 shadow-[0px_18px_40px_rgba(112,144,176,0.12)] border border-slate-100 dark:border-navy-700 space-y-4">
+          <div className="flex items-center justify-between border-b border-slate-100 dark:border-navy-700 pb-3">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-indigo-50 text-[#422AFB] flex items-center justify-center font-bold">
+                <Sparkles className="w-5 h-5" />
               </div>
               <div>
-                <h3 className="text-base font-bold text-slate-900">Coupon & Promo Performance</h3>
-                <p className="text-xs text-slate-500">Real redemption analytics</p>
+                <h3 className="text-base font-bold text-[#2B3674] dark:text-white">Active Promo Coupons</h3>
+                <p className="text-xs text-[#A3AED0]">Real redemption performance</p>
               </div>
             </div>
             <button
               onClick={() => onTabChange('coupons')}
-              className="text-xs font-bold text-indigo-600 hover:text-indigo-800 flex items-center gap-1"
+              className="text-xs font-bold text-[#422AFB] hover:underline flex items-center gap-1"
             >
               Coupons Manager <ArrowUpRight className="w-3.5 h-3.5" />
             </button>
           </div>
 
-          <div className="divide-y divide-slate-100">
+          <div className="divide-y divide-slate-100 dark:divide-navy-700">
             {couponsList.map((cp) => (
               <div key={cp.id} className="py-3 flex items-center justify-between gap-4">
                 <div className="space-y-0.5">
-                  <span className="px-2.5 py-0.5 rounded-md bg-indigo-50 text-indigo-700 font-mono text-xs font-bold border border-indigo-200/60">
+                  <span className="px-3 py-1 rounded-lg bg-[#F4F7FE] text-[#422AFB] font-mono text-xs font-bold border border-indigo-100">
                     {cp.code}
                   </span>
-                  <p className="text-[11px] text-slate-500">
-                    {cp.discount}% Off • Max Uses: {cp.max_uses || 'Unlimited'}
+                  <p className="text-[11px] text-[#A3AED0] mt-1">
+                    {cp.discount}% Discount • Max Uses: {cp.max_uses || 'Unlimited'}
                   </p>
                 </div>
                 <div className="text-right">
-                  <span className="text-xs font-bold text-slate-900 font-mono">{cp.used_count} Redemptions</span>
-                  <p className="text-[10px] text-emerald-600 font-semibold">Active Promo Code</p>
+                  <span className="text-xs font-bold text-[#2B3674] dark:text-white font-mono">{cp.used_count} Redemptions</span>
+                  <p className="text-[10px] text-[#01B574] font-semibold">Active Code</p>
                 </div>
               </div>
             ))}
             {couponsList.length === 0 && (
-              <div className="py-8 text-center text-xs text-slate-400 italic">
+              <div className="py-8 text-center text-xs text-[#A3AED0] italic">
                 No active promo codes found in database.
               </div>
             )}
           </div>
         </div>
 
-        {/* Widget 3: Recent Customer Orders Table */}
-        <div className="bg-white border border-slate-200/80 rounded-2xl p-6 shadow-sm space-y-4">
-          <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-            <h3 className="text-base font-bold text-slate-900">Recent Customer Orders</h3>
+        {/* Table 3: Recent Orders Live Log */}
+        <div className="rounded-[20px] bg-white dark:bg-[#111C44] p-6 shadow-[0px_18px_40px_rgba(112,144,176,0.12)] border border-slate-100 dark:border-navy-700 space-y-4">
+          <div className="flex items-center justify-between border-b border-slate-100 dark:border-navy-700 pb-3">
+            <h3 className="text-base font-bold text-[#2B3674] dark:text-white">Recent Customer Orders</h3>
             <button
               onClick={() => onTabChange('orders')}
-              className="text-xs font-bold text-indigo-600 hover:text-indigo-800 flex items-center gap-1"
+              className="text-xs font-bold text-[#422AFB] hover:underline flex items-center gap-1"
             >
-              View All Orders <ArrowUpRight className="w-3.5 h-3.5" />
+              View Orders Registry <ArrowUpRight className="w-3.5 h-3.5" />
             </button>
           </div>
 
-          <div className="divide-y divide-slate-100">
+          <div className="divide-y divide-slate-100 dark:divide-navy-700">
             {recentOrdersList.slice(0, 5).map((ord) => (
               <div key={ord.id} className="py-3 flex items-center justify-between gap-4">
                 <div className="space-y-0.5 min-w-0">
-                  <p className="text-xs font-bold text-slate-900 font-mono">#{ord.order_number}</p>
-                  <p className="text-[11px] text-slate-500 truncate">{ord.customer_name || 'Customer'}</p>
+                  <p className="text-xs font-bold text-[#2B3674] dark:text-white font-mono">#{ord.order_number}</p>
+                  <p className="text-[11px] text-[#A3AED0] truncate">{ord.customer_name || 'Customer'}</p>
                 </div>
                 <div className="text-right">
-                  <p className="text-xs font-extrabold text-slate-900">{formatCurrency(ord.total_amount || 0)}</p>
-                  <span className={`inline-block px-2 py-0.5 rounded text-[10px] font-bold ${
-                    ord.order_status === 'delivered' ? 'bg-emerald-100 text-emerald-700' :
-                    ord.order_status === 'cancelled' ? 'bg-rose-100 text-rose-700' : 'bg-indigo-100 text-indigo-700'
+                  <p className="text-xs font-extrabold text-[#2B3674] dark:text-white">{formatCurrency(ord.total_amount || 0)}</p>
+                  <span className={`inline-block px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
+                    ord.order_status === 'delivered' ? 'bg-emerald-50 text-[#01B574]' :
+                    ord.order_status === 'cancelled' ? 'bg-rose-50 text-[#EE5D50]' : 'bg-indigo-50 text-[#422AFB]'
                   }`}>
                     {ord.order_status.toUpperCase()}
                   </span>
@@ -639,49 +618,49 @@ export default function DashboardView({ data, products, returns, onTabChange }: 
               </div>
             ))}
             {recentOrdersList.length === 0 && (
-              <div className="py-8 text-center text-xs text-slate-400 italic">
+              <div className="py-8 text-center text-xs text-[#A3AED0] italic">
                 No orders recorded yet.
               </div>
             )}
           </div>
         </div>
 
-        {/* Widget 4: Top Selling Products */}
-        <div className="bg-white border border-slate-200/80 rounded-2xl p-6 shadow-sm space-y-4">
-          <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-            <h3 className="text-base font-bold text-slate-900">Top Selling Products</h3>
+        {/* Table 4: Top Selling Products */}
+        <div className="rounded-[20px] bg-white dark:bg-[#111C44] p-6 shadow-[0px_18px_40px_rgba(112,144,176,0.12)] border border-slate-100 dark:border-navy-700 space-y-4">
+          <div className="flex items-center justify-between border-b border-slate-100 dark:border-navy-700 pb-3">
+            <h3 className="text-base font-bold text-[#2B3674] dark:text-white">Top Selling Products</h3>
             <button
               onClick={() => onTabChange('products')}
-              className="text-xs font-bold text-indigo-600 hover:text-indigo-800 flex items-center gap-1"
+              className="text-xs font-bold text-[#422AFB] hover:underline flex items-center gap-1"
             >
-              All Products <ArrowUpRight className="w-3.5 h-3.5" />
+              Products Catalog <ArrowUpRight className="w-3.5 h-3.5" />
             </button>
           </div>
 
-          <div className="divide-y divide-slate-100">
+          <div className="divide-y divide-slate-100 dark:divide-navy-700">
             {topProductsList.slice(0, 5).map((tp) => (
               <div key={tp.id} className="py-3 flex items-center justify-between gap-4">
                 <div className="flex items-center gap-3 min-w-0">
                   {tp.image_url ? (
-                    <img src={tp.image_url} alt={tp.name} className="w-10 h-10 rounded-lg object-cover border border-slate-200" />
+                    <img src={tp.image_url} alt={tp.name} className="w-10 h-10 rounded-xl object-cover border border-slate-100" />
                   ) : (
-                    <div className="w-10 h-10 rounded-lg bg-slate-100 flex items-center justify-center text-slate-400 text-xs font-bold">
+                    <div className="w-10 h-10 rounded-xl bg-[#F4F7FE] flex items-center justify-center text-[#422AFB] font-bold text-xs">
                       HU
                     </div>
                   )}
                   <div className="min-w-0">
-                    <p className="text-xs font-bold text-slate-800 truncate">{tp.name}</p>
-                    <p className="text-[11px] text-slate-500 font-mono">{tp.sold} Sold</p>
+                    <p className="text-xs font-bold text-[#2B3674] dark:text-white truncate">{tp.name}</p>
+                    <p className="text-[11px] text-[#A3AED0] font-mono">{tp.sold} Units Sold</p>
                   </div>
                 </div>
                 <div className="text-right">
-                  <p className="text-xs font-bold text-slate-900">{formatCurrency(tp.revenue || 0)}</p>
-                  <p className="text-[10px] text-emerald-600 font-semibold">Top Revenue</p>
+                  <p className="text-xs font-bold text-[#2B3674] dark:text-white">{formatCurrency(tp.revenue || 0)}</p>
+                  <p className="text-[10px] text-[#01B574] font-semibold">Top Revenue</p>
                 </div>
               </div>
             ))}
             {topProductsList.length === 0 && (
-              <div className="py-8 text-center text-xs text-slate-400 italic">
+              <div className="py-8 text-center text-xs text-[#A3AED0] italic">
                 No product sales recorded yet.
               </div>
             )}

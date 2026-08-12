@@ -267,17 +267,18 @@ export default function Admin() {
   }
 
   return (
-    <div className="flex h-screen overflow-hidden bg-[#f5f5f4] text-neutral-900 font-sans relative">
+  return (
+    <div className="flex h-screen overflow-hidden bg-[#F4F7FE] dark:bg-[#0B1437] text-slate-800 font-sans relative">
       {showOrderBanner && (
-        <div className="fixed top-18 right-6 z-50 animate-slide-left pointer-events-auto bg-white text-neutral-900 p-4 rounded-xl shadow-2xl border border-neutral-200 flex items-center gap-3 w-80 max-w-sm">
-          <div className="w-8 h-8 rounded-full bg-neutral-50 border border-primary/30 flex items-center justify-center animate-pulse text-neutral-900">
-            <ShoppingCart className="w-4 h-4" />
+        <div className="fixed top-20 right-6 z-50 animate-slide-left pointer-events-auto bg-white text-slate-900 p-4 rounded-2xl shadow-2xl border border-slate-100 flex items-center gap-3 w-80 max-w-sm">
+          <div className="w-10 h-10 rounded-full bg-emerald-50 border border-emerald-200 flex items-center justify-center animate-bounce text-emerald-600">
+            <ShoppingCart className="w-5 h-5" />
           </div>
           <div className="flex-1 min-w-0">
-            <h5 className="text-[9px] uppercase font-extrabold text-neutral-900 tracking-wider">New Order Alert</h5>
-            <p className="text-[11px] font-semibold leading-snug mt-0.5">{showOrderBanner}</p>
+            <h5 className="text-[10px] uppercase font-extrabold text-slate-400 tracking-wider">New Realtime Order</h5>
+            <p className="text-xs font-bold text-slate-900 leading-snug mt-0.5">{showOrderBanner}</p>
           </div>
-          <button onClick={() => setShowOrderBanner(null)} className="text-neutral-500 hover:text-neutral-900 transition-colors shrink-0">
+          <button onClick={() => setShowOrderBanner(null)} className="text-slate-400 hover:text-slate-600 transition-colors shrink-0">
             <X className="w-4 h-4" />
           </button>
         </div>
@@ -296,20 +297,58 @@ export default function Admin() {
         handleLogout={handleLogout}
       />
 
-      <div className="flex-1 flex flex-col h-full overflow-y-auto bg-[#f5f5f4] min-w-0">
-        <header className="h-16 bg-white border-b border-neutral-200/80 flex items-center justify-between px-6 sticky top-0 z-20 md:hidden">
-          <div className="flex items-center gap-4">
-            <button onClick={() => setSidebarOpen(!sidebarOpen)} className="p-1.5 text-neutral-500 hover:bg-neutral-50 rounded-lg transition-colors">
+      <div className="flex-1 flex flex-col h-full overflow-y-auto min-w-0 p-4 md:p-6 space-y-6">
+        {/* Horizon UI Floating Header Navbar */}
+        <header className="sticky top-0 z-30 bg-white/80 dark:bg-navy-800/80 backdrop-blur-xl border border-white/40 dark:border-navy-700 shadow-[0px_18px_40px_rgba(112,144,176,0.12)] rounded-[20px] px-6 py-3 flex items-center justify-between transition-all">
+          <div className="flex items-center gap-3">
+            <button onClick={() => setSidebarOpen(!sidebarOpen)} className="md:hidden p-2 text-slate-500 hover:bg-slate-100 rounded-xl transition-colors">
               <Sliders className="w-5 h-5 rotate-90" />
             </button>
-            <span className="text-xs text-neutral-500 capitalize font-mono">admin &middot; {activeTab}</span>
+            <div>
+              <p className="text-[11px] font-bold text-[#A3AED0] uppercase tracking-wider">
+                Pages / Admin / <span className="text-[#2B3674] dark:text-white capitalize">{activeTab}</span>
+              </p>
+              <h2 className="text-xl md:text-2xl font-bold text-[#2B3674] dark:text-white capitalize tracking-tight">
+                {activeTab === 'dashboard' ? 'Overview Dashboard' : activeTab}
+              </h2>
+            </div>
           </div>
-          <button onClick={loadAllData} disabled={dataLoading} className="p-1.5 hover:bg-neutral-100 text-neutral-500 rounded-lg transition-colors">
-            <RefreshCw className={`w-4 h-4 ${dataLoading ? 'animate-spin' : ''}`} />
-          </button>
+
+          <div className="flex items-center gap-4">
+            {/* Search Input Bar (Horizon Style) */}
+            <div className="hidden sm:flex items-center gap-2 bg-[#F4F7FE] dark:bg-navy-900 rounded-full px-4 py-2 text-xs border border-slate-100 dark:border-navy-700 text-[#A3AED0] w-48 md:w-64">
+              <i className="fas fa-search text-slate-400"></i>
+              <input
+                type="text"
+                placeholder="Search orders, SKU..."
+                className="bg-transparent border-none outline-none text-xs text-[#2B3674] dark:text-white placeholder-[#A3AED0] w-full"
+              />
+            </div>
+
+            {/* Refresh Live Data */}
+            <button
+              onClick={loadAllData}
+              disabled={dataLoading}
+              title="Sync Realtime Data"
+              className="p-2.5 rounded-full bg-[#F4F7FE] hover:bg-slate-200 text-[#422AFB] transition-all flex items-center justify-center"
+            >
+              <RefreshCw className={`w-4 h-4 ${dataLoading ? 'animate-spin' : ''}`} />
+            </button>
+
+            {/* User Avatar Badge */}
+            <div className="flex items-center gap-2 border-l border-slate-200 dark:border-navy-700 pl-4">
+              <div className="w-9 h-9 rounded-full bg-gradient-to-tr from-[#422AFB] to-indigo-400 text-white flex items-center justify-center font-bold text-sm shadow-md">
+                {user.name ? user.name[0].toUpperCase() : 'A'}
+              </div>
+              <div className="hidden lg:block text-left">
+                <p className="text-xs font-bold text-[#2B3674] dark:text-white leading-tight">{user.name}</p>
+                <p className="text-[10px] text-[#A3AED0] uppercase font-bold">{user.role}</p>
+              </div>
+            </div>
+          </div>
         </header>
 
-        <main className="flex-1 p-6 max-w-7xl w-full mx-auto space-y-6">
+        <main className="flex-1 max-w-7xl w-full mx-auto space-y-6">
           <AdminRouter
             activeTab={activeTab}
             setActiveTab={setActiveTab}
