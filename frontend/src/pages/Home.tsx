@@ -54,7 +54,7 @@ const getInitials = (name: string) => {
 // ─── 0ms Big-Tech Instant Load Engine (Stale-While-Revalidate) ────────────────
 function getLocalCache<T>(key: string): T | undefined {
   try {
-    const raw = localStorage.getItem(`hu_fast_cache_${key}`);
+    const raw = localStorage.getItem(`hu_fast_cache_v3_${key}`);
     return raw ? JSON.parse(raw) : undefined;
   } catch {
     return undefined;
@@ -63,7 +63,7 @@ function getLocalCache<T>(key: string): T | undefined {
 
 function setLocalCache(key: string, data: any) {
   try {
-    if (data) localStorage.setItem(`hu_fast_cache_${key}`, JSON.stringify(data));
+    if (data) localStorage.setItem(`hu_fast_cache_v3_${key}`, JSON.stringify(data));
   } catch {}
 }
 

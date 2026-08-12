@@ -29,7 +29,7 @@ interface Product {
 
 function getShopLocalCache(key: string): any {
   try {
-    const raw = localStorage.getItem(`hu_fast_shop_${key}`);
+    const raw = localStorage.getItem(`hu_fast_shop_v3_${key}`);
     return raw ? JSON.parse(raw) : undefined;
   } catch {
     return undefined;
@@ -38,7 +38,7 @@ function getShopLocalCache(key: string): any {
 
 function setShopLocalCache(key: string, data: any) {
   try {
-    if (data) localStorage.setItem(`hu_fast_shop_${key}`, JSON.stringify(data));
+    if (data) localStorage.setItem(`hu_fast_shop_v3_${key}`, JSON.stringify(data));
   } catch {}
 }
 

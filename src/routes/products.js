@@ -25,31 +25,47 @@ function safeJsonParse(str, fallback = []) {
 }
 
 /**
- * Converts worker proxy URLs to direct R2 CDN URLs for ultra-fast image loading.
- * E.g. /api/upload?key=products/abc.jpg  →  https://media.heelsup.in/products/abc.jpg
+ * Converts worker proxy URLs or relative image paths to direct R2 CDN URLs.
+ * E.g. products/abc.jpg                     →  https://media.heelsup.in/products/abc.jpg
+ * E.g. /api/upload?key=products/abc.jpg     →  https://media.heelsup.in/products/abc.jpg
  * E.g. https://x.workers.dev/api/upload?key=products/abc.jpg  →  https://media.heelsup.in/products/abc.jpg
  * Direct CDN URLs and data:/blob: are returned as-is.
  */
 function normalizeImageUrl(url, r2PublicUrl) {
   if (!url || typeof url !== 'string') return url;
-  if (!r2PublicUrl) return url;
+  const baseCdn = (r2PublicUrl || 'https://media.heelsup.in').replace(/\/$/, '');
+
   // Already a direct CDN URL
-  if (url.startsWith(r2PublicUrl)) return url;
+  if (url.startsWith(baseCdn)) return url;
   // data: or blob:
   if (url.startsWith('data:') || url.startsWith('blob:')) return url;
-  // /api/upload?key=... or /api/admin/upload?key=...
+
+  // Relative key like "products/abc.jpg" or "/products/abc.jpg"
+  if (!url.startsWith('http://') && !url.startsWith('https://')) {
+    const cleanKey = url.replace(/^\//, '');
+    if (cleanKey.includes('key=')) {
+      try {
+        const parsed = new URL(url, 'https://x.invalid');
+        const k = parsed.searchParams.get('key');
+        if (k) return `${baseCdn}/${k.replace(/^\//, '')}`;
+      } catch {}
+    }
+    return `${baseCdn}/${cleanKey}`;
+  }
+
+  // HTTP(S) worker proxy URLs like https://heelsupnew.heelsup.workers.dev/api/upload?key=products/abc.jpg
   try {
-    const parsed = new URL(url, 'https://x.invalid');
+    const parsed = new URL(url);
     const key = parsed.searchParams.get('key');
-    if (key) return `${r2PublicUrl}/${key}`;
-    // /api/upload/products/abc.jpg (path-based)
+    if (key) return `${baseCdn}/${key.replace(/^\//, '')}`;
     for (const prefix of ['/api/admin/upload/', '/api/upload/']) {
       if (parsed.pathname.startsWith(prefix)) {
         const k = parsed.pathname.slice(prefix.length);
-        if (k) return `${r2PublicUrl}/${k}`;
+        if (k) return `${baseCdn}/${k.replace(/^\//, '')}`;
       }
     }
   } catch {}
+
   return url;
 }
 
@@ -476,7 +492,7 @@ export async function productsRouter(request, env) {
 
             // Check KV Edge Cache for all public listing/filter calls (0.01s latency)
             const isPublicList = !isAdmin;
-            const kvKey = `cache:products:v2:${page}:${limit}:${cat||'all'}:${featured||'0'}:${isNew||'0'}:${trending||'0'}:${sort}:${search||''}:${tag||''}:${minPrice||''}:${maxPrice||''}:${sizeFilter||''}:${color||''}`;
+            const kvKey = `cache:products:v3:${page}:${limit}:${cat||'all'}:${featured||'0'}:${isNew||'0'}:${trending||'0'}:${sort}:${search||''}:${tag||''}:${minPrice||''}:${maxPrice||''}:${sizeFilter||''}:${color||''}`;
 
             if (env.KV && isPublicList) {
                 try {
