@@ -474,11 +474,11 @@ export async function productsRouter(request, env) {
             const orderBy = sortMap[sort] || 'p.id DESC';
             const whereStr = where.length ? 'WHERE ' + where.join(' AND ') : '';
 
-            // Check KV Edge Cache for non-admin standard list calls
-            const isPublicDefaultList = !isAdmin && !search && !tag && !minPrice && !maxPrice && !sizeFilter && !color;
-            const kvKey = `cache:products:v1:${page}:${limit}:${cat||'all'}:${featured||'0'}:${isNew||'0'}:${trending||'0'}:${sort}`;
+            // Check KV Edge Cache for all public listing/filter calls (0.01s latency)
+            const isPublicList = !isAdmin;
+            const kvKey = `cache:products:v2:${page}:${limit}:${cat||'all'}:${featured||'0'}:${isNew||'0'}:${trending||'0'}:${sort}:${search||''}:${tag||''}:${minPrice||''}:${maxPrice||''}:${sizeFilter||''}:${color||''}`;
 
-            if (env.KV && isPublicDefaultList) {
+            if (env.KV && isPublicList) {
                 try {
                     const cached = await env.KV.get(kvKey, 'json');
                     if (cached && Array.isArray(cached.data)) {
@@ -515,8 +515,8 @@ export async function productsRouter(request, env) {
             };
 
             // Store in KV cache for 30 minutes (1800s) asynchronously.
-            // Product lists are stable — only invalidated on admin mutation.
-            if (env.KV && isPublicDefaultList && products.length > 0) {
+            // Product lists are ultra-fast (~10ms) and invalidated on admin mutation.
+            if (env.KV && isPublicList && products.length > 0) {
                 try {
                     const kvPayload = JSON.stringify({ data: products, meta: responseMeta });
                     if (ctx && typeof ctx.waitUntil === 'function') {

@@ -74,6 +74,7 @@ export async function uploadRouter(request, env, ctx) {
                             const ct = resized.headers.get('content-type');
                             headers.set('Content-Type', ct || `image/${targetFormat}`);
                             headers.set('Cache-Control', 'public, max-age=31536000, immutable');
+                            headers.set('CDN-Cache-Control', 'public, max-age=31536000, immutable');
                             headers.set('Vary', 'Accept'); // correct caching per Accept header
                             const origin = request.headers.get('Origin') || '';
                             const allowedOrigins = ['https://heelsup.in', 'https://www.heelsup.in', 'https://heelsupnew.heelsup.workers.dev'];
@@ -86,8 +87,8 @@ export async function uploadRouter(request, env, ctx) {
                     }
                 }
 
-                // Fallback: redirect to CDN without resize (still better than 500 error)
-                return Response.redirect(`${env.R2_PUBLIC_URL}/${key}`, 302);
+                // Fallback: 301 permanent redirect to CDN without resize
+                return Response.redirect(`${env.R2_PUBLIC_URL}/${key}`, 301);
             }
 
             // ─── FAST PATH: Non-HEIC, no resize → 301 redirect to R2 CDN (zero Worker overhead) ───
@@ -119,6 +120,7 @@ export async function uploadRouter(request, env, ctx) {
                         const allowedOrigins = ['https://heelsup.in', 'https://www.heelsup.in', 'https://heelsupnew.heelsup.workers.dev'];
                         headers.set('Access-Control-Allow-Origin', allowedOrigins.includes(origin) ? origin : '*');
                         headers.set('Cache-Control', 'public, max-age=31536000, immutable');
+                        headers.set('CDN-Cache-Control', 'public, max-age=31536000, immutable');
                         return new Response(optimizedRes.body, { status: optimizedRes.status, headers });
                     }
                 } catch (fetchErr) {
@@ -138,6 +140,7 @@ export async function uploadRouter(request, env, ctx) {
             const allowedOrigins = ['https://heelsup.in', 'https://www.heelsup.in', 'https://heelsupnew.heelsup.workers.dev'];
             headers.set('Access-Control-Allow-Origin', allowedOrigins.includes(origin) ? origin : '*');
             headers.set('Cache-Control', 'public, max-age=31536000, immutable');
+            headers.set('CDN-Cache-Control', 'public, max-age=31536000, immutable');
 
             return new Response(object.body, { headers });
         } catch (e) {
