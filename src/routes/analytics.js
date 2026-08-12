@@ -252,6 +252,32 @@ export async function dashboardStatsRouter(request, env) {
                 )
                 GROUP BY sale_date
                 ORDER BY sale_date ASC
+            `),
+            // 7: Low Stock Alerts (items with stock <= 5)
+            env.DB.prepare(`
+                SELECT id, name, sku, stock, price, category, image_url
+                FROM products
+                WHERE active = 1 AND stock <= 5
+                ORDER BY stock ASC
+                LIMIT 8
+            `),
+            // 8: Top Coupon Performance
+            env.DB.prepare(`
+                SELECT id, code, discount, type, used_count, max_uses, active
+                FROM coupons
+                ORDER BY used_count DESC
+                LIMIT 5
+            `),
+            // 9: Repeat Customer Count
+            env.DB.prepare(`
+                SELECT COUNT(DISTINCT customer_email) as repeat_count
+                FROM (
+                    SELECT customer_email
+                    FROM orders
+                    WHERE customer_email IS NOT NULL AND customer_email != ''
+                    GROUP BY customer_email
+                    HAVING COUNT(*) > 1
+                )
             `)
         ]);
 
@@ -262,6 +288,13 @@ export async function dashboardStatsRouter(request, env) {
         const posStats = results[4].results[0] || { pos_sales_count: 0, total_pos_sales: 0 };
         const categorySales = results[5]?.results || [];
         const dailySalesRaw = results[6]?.results || [];
+        const lowStockItems = results[7]?.results || [];
+        const topCoupons = results[8]?.results || [];
+        const repeatCount = results[9]?.results[0]?.repeat_count || 0;
+
+        // Calculate Average Order Value (AOV)
+        const totalPaidOrders = (s.total_orders || 0) - (s.cancelled || 0);
+        const aov = totalPaidOrders > 0 ? Math.round((s.total_revenue || 0) / totalPaidOrders) : 0;
 
         // Format category share percentages dynamically based on actual database categories
         const totalCatRevenue = categorySales.reduce((sum, item) => sum + (item.revenue || 0), 0);
@@ -307,6 +340,8 @@ export async function dashboardStatsRouter(request, env) {
             totalOrders: s.total_orders || 0,
             totalRevenue: s.total_revenue || 0,
             pendingOrders: s.pending_orders || 0,
+            aov,
+            repeatCustomers: repeatCount,
             ordersByStatus: {
                 placed: s.placed || 0,
                 confirmed: s.confirmed || 0,
@@ -317,6 +352,8 @@ export async function dashboardStatsRouter(request, env) {
             },
             recentOrders,
             topProducts,
+            lowStockItems,
+            topCoupons,
             category_sales: categorySalesFormatted,
             daily_sales: trendData,
             // POS stats mapping for frontend widgets
