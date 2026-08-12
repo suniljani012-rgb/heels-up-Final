@@ -198,24 +198,29 @@ export default {
       apiHeaders.set('Strict-Transport-Security', 'max-age=31536000; includeSubDomains; preload');
       apiHeaders.set('X-XSS-Protection', '1; mode=block');
 
+      if (isCacheable && response && response.status === 200) {
+        if (pathNormalized === "/api/upload") {
+          apiHeaders.set("Cache-Control", "public, max-age=31536000, immutable");
+          apiHeaders.set("CDN-Cache-Control", "public, max-age=31536000, immutable");
+        } else {
+          apiHeaders.set("Cache-Control", "public, max-age=300, stale-while-revalidate=60");
+          apiHeaders.set("CDN-Cache-Control", "public, max-age=300");
+        }
+      }
+
       const secureCorsResponse = new Response(corsResponse.body, {
         status: corsResponse.status,
         statusText: corsResponse.statusText,
         headers: apiHeaders
       });
 
-      // Store in cache if cacheable and status is 200 OK
+      // Store in Cloudflare Edge Cache if cacheable and status is 200 OK
       if (isCacheable && response && response.status === 200 && cache && cacheKey) {
         try {
-          const cacheableRes = new Response(secureCorsResponse.clone().body, secureCorsResponse);
-          if (pathNormalized !== "/api/upload") {
-            // 5 minutes for standard API — reduced D1 hits by 5x vs old 60s
-            cacheableRes.headers.set("Cache-Control", "public, max-age=300, stale-while-revalidate=60");
-          }
           if (ctx && ctx.waitUntil) {
-            ctx.waitUntil(cache.put(cacheKey, cacheableRes).catch(() => {}));
+            ctx.waitUntil(cache.put(cacheKey, secureCorsResponse.clone()).catch(() => {}));
           } else {
-            await cache.put(cacheKey, cacheableRes).catch(() => {});
+            await cache.put(cacheKey, secureCorsResponse.clone()).catch(() => {});
           }
         } catch (e) {
           console.warn("Cache write failed:", e);
