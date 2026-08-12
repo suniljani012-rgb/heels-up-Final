@@ -51,11 +51,18 @@ const getInitials = (name: string) => {
 
 
 
-// ─── 0ms Big-Tech Instant Load Engine (Stale-While-Revalidate) ────────────────
+// ─── 0ms Big-Tech Instant Load Engine (Stale-While-Revalidate + 12h TTL Expiration) ───
+const MAX_CACHE_AGE_MS = 12 * 60 * 60 * 1000; // 12 Hours TTL max age
+
 function getLocalCache<T>(key: string): T | undefined {
   try {
-    const raw = localStorage.getItem(`hu_fast_cache_v3_${key}`);
-    return raw ? JSON.parse(raw) : undefined;
+    const raw = localStorage.getItem(`hu_fast_cache_v4_${key}`);
+    if (!raw) return undefined;
+    const parsed = JSON.parse(raw);
+    if (!parsed || !parsed.ts || (Date.now() - parsed.ts > MAX_CACHE_AGE_MS)) {
+      return undefined; // Expired (>12h) — force fresh fetch from server
+    }
+    return parsed.data;
   } catch {
     return undefined;
   }
@@ -63,7 +70,7 @@ function getLocalCache<T>(key: string): T | undefined {
 
 function setLocalCache(key: string, data: any) {
   try {
-    if (data) localStorage.setItem(`hu_fast_cache_v3_${key}`, JSON.stringify(data));
+    if (data) localStorage.setItem(`hu_fast_cache_v4_${key}`, JSON.stringify({ ts: Date.now(), data }));
   } catch {}
 }
 

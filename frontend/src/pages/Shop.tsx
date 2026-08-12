@@ -27,10 +27,17 @@ interface Product {
 }
 
 
+const MAX_SHOP_CACHE_AGE_MS = 12 * 60 * 60 * 1000; // 12 Hours TTL max age
+
 function getShopLocalCache(key: string): any {
   try {
-    const raw = localStorage.getItem(`hu_fast_shop_v3_${key}`);
-    return raw ? JSON.parse(raw) : undefined;
+    const raw = localStorage.getItem(`hu_fast_shop_v4_${key}`);
+    if (!raw) return undefined;
+    const parsed = JSON.parse(raw);
+    if (!parsed || !parsed.ts || (Date.now() - parsed.ts > MAX_SHOP_CACHE_AGE_MS)) {
+      return undefined; // Expired (>12h) — force fresh fetch from server
+    }
+    return parsed.data;
   } catch {
     return undefined;
   }
@@ -38,7 +45,7 @@ function getShopLocalCache(key: string): any {
 
 function setShopLocalCache(key: string, data: any) {
   try {
-    if (data) localStorage.setItem(`hu_fast_shop_v3_${key}`, JSON.stringify(data));
+    if (data) localStorage.setItem(`hu_fast_shop_v4_${key}`, JSON.stringify({ ts: Date.now(), data }));
   } catch {}
 }
 
