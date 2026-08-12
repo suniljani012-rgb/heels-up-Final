@@ -51,8 +51,21 @@ const getInitials = (name: string) => {
 
 
 
-// ─── 100% Live Data from Database ───────────────────────────────────────────
-// No mock data. No localStorage cache. Every render shows real DB data.
+// ─── 0ms Big-Tech Instant Load Engine (Stale-While-Revalidate) ────────────────
+function getLocalCache<T>(key: string): T | undefined {
+  try {
+    const raw = localStorage.getItem(`hu_fast_cache_${key}`);
+    return raw ? JSON.parse(raw) : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+function setLocalCache(key: string, data: any) {
+  try {
+    if (data) localStorage.setItem(`hu_fast_cache_${key}`, JSON.stringify(data));
+  } catch {}
+}
 
 function useCategories() {
   return useQuery({
@@ -62,8 +75,10 @@ function useCategories() {
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
       if (!data.success) throw new Error(data.error || 'Failed to fetch categories');
+      setLocalCache('categories', data.data);
       return data.data as any[];
     },
+    initialData: () => getLocalCache('categories'),
     staleTime: 30 * 60 * 1000, // 30 min — matches KV cache TTL on backend
     retry: 3,
   });
@@ -77,8 +92,10 @@ function useBanners() {
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
       if (!data.success) throw new Error(data.error || 'Failed to fetch banners');
+      setLocalCache('banners', data.data);
       return data.data as any[];
     },
+    initialData: () => getLocalCache('banners'),
     staleTime: 60 * 60 * 1000, // 1 hr — banners rarely change
     retry: 3,
   });
@@ -92,8 +109,10 @@ function useLatestReviews() {
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
       if (!data.success) throw new Error(data.error || 'Failed to fetch latest reviews');
+      setLocalCache('latestReviews', data.data);
       return data.data as any[];
     },
+    initialData: () => getLocalCache('latestReviews'),
     staleTime: 10 * 60 * 1000,
     retry: 2,
   });
@@ -108,18 +127,17 @@ function useFeaturedProducts() {
       let data = await res.json();
       if (!data.success) throw new Error(data.error || 'Failed to fetch featured products');
       
+      let list = data.data;
       // Fallback: If no products are marked as featured=1 in DB, fetch latest active products!
-      if (!Array.isArray(data.data) || data.data.length === 0) {
+      if (!Array.isArray(list) || list.length === 0) {
         res = await fetch('/api/products?limit=8');
         if (res.ok) {
           const fallbackData = await res.json();
           if (fallbackData.success && Array.isArray(fallbackData.data) && fallbackData.data.length > 0) {
-            return fallbackData.data as any[];
+            list = fallbackData.data;
           }
         }
       }
-      const result = (data.data || []) as any[];
-      try {
         if (result.length > 0) {
           localStorage.setItem('hu_fast_featured_cache', JSON.stringify(result));
           result.forEach((p: any) => cacheProductData(p));

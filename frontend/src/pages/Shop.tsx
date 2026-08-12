@@ -27,25 +27,39 @@ interface Product {
 }
 
 
+function getShopLocalCache(key: string): any {
+  try {
+    const raw = localStorage.getItem(`hu_fast_shop_${key}`);
+    return raw ? JSON.parse(raw) : undefined;
+  } catch {
+    return undefined;
+  }
+}
 
+function setShopLocalCache(key: string, data: any) {
+  try {
+    if (data) localStorage.setItem(`hu_fast_shop_${key}`, JSON.stringify(data));
+  } catch {}
+}
 
 function useCategories() {
   return useQuery({
     queryKey: ['categories'],
     queryFn: async () => {
-      const res = await fetch('/api/ca' + 'tegories');
+      const res = await fetch('/api/categories');
       const data = await res.json();
       if (!data.success) throw new Error(data.error || 'Failed to fetch categories');
+      setShopLocalCache('categories', data.data);
       return data.data;
     },
+    initialData: () => getShopLocalCache('categories'),
     staleTime: 30 * 60 * 1000, // 30 min — matches KV cache TTL
   });
 }
 
-
-
 function useShopProducts(filters: any) {
   const queryClient = useQueryClient();
+  const cacheKey = `products_${filters.category || 'all'}_${filters.page || 1}_${filters.sort || 'default'}`;
   return useQuery({
     queryKey: ['shopProducts', filters],
     queryFn: async () => {
@@ -59,7 +73,6 @@ function useShopProducts(filters: any) {
       if (filters.priceMax) queryParams.set('max_price', String(Number(filters.priceMax) * 100));
       if (filters.size) queryParams.set('size', filters.size);
 
-
       const res = await fetch('/api/products?' + queryParams.toString());
       const data = await res.json();
       if (!data.success) throw new Error(data.error || 'Failed to fetch shop products');
@@ -68,8 +81,8 @@ function useShopProducts(filters: any) {
         trackSearchQuery(filters.searchQ, data.pagination?.total || data.data?.length || 0);
       }
 
-
       if (data.data && Array.isArray(data.data)) {
+        setShopLocalCache(cacheKey, data);
         data.data.forEach((p: any) => {
           cacheProductData(p);
           queryClient.setQueryData(['product', String(p.id)], {
@@ -79,11 +92,6 @@ function useShopProducts(filters: any) {
             related: []
           });
         });
-        try {
-          if (!filters.category && !filters.searchQ && (filters.page || 1) === 1) {
-            localStorage.setItem('hu_fast_shop_page1', JSON.stringify(data));
-          }
-        } catch {}
       }
       return data;
     },
