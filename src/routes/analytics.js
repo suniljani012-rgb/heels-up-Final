@@ -212,11 +212,10 @@ export async function dashboardStatsRouter(request, env) {
                     COALESCE(SUM(total), 0) as total_pos_sales
                 FROM offline_sales WHERE created_at BETWEEN ? AND ?
             `).bind(fromDt, toDt),
-            // 5: Category sales share (LEFT JOIN categories to fetch actual database categories)
+            // 5: Category sales share from active ladies footwear products
             env.DB.prepare(`
-                SELECT c.name as category, c.product_count, COALESCE(SUM(sales.amount), 0) as revenue
-                FROM categories c
-                LEFT JOIN products p ON p.category = c.name
+                SELECT p.category as category, COUNT(p.id) as product_count, COALESCE(SUM(sales.amount), 0) as revenue
+                FROM products p
                 LEFT JOIN (
                     SELECT oi.product_id, oi.line_total as amount
                     FROM order_items oi
@@ -230,9 +229,10 @@ export async function dashboardStatsRouter(request, env) {
                     JOIN offline_sales os ON os.id = osi.sale_id
                     WHERE os.created_at BETWEEN ? AND ?
                 ) sales ON sales.product_id = p.id
-                WHERE c.active = 1
-                GROUP BY c.name, c.product_count
-                ORDER BY revenue DESC, c.product_count DESC
+                WHERE p.active = 1 AND p.category IS NOT NULL AND p.category != '' 
+                  AND p.category NOT IN ('Chelsea Boot', 'Double Monk', 'Loafers', 'Oxford Jodhpur', 'Men', 'Mens Footwear')
+                GROUP BY p.category
+                ORDER BY revenue DESC, product_count DESC
             `).bind(fromDt, toDt, fromDt, toDt),
             // 6: 7-day daily revenue trend (online & offline combined)
             env.DB.prepare(`

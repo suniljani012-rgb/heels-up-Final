@@ -199,147 +199,148 @@ export default function DashboardView({ data, products, returns, onTabChange }: 
   const growth = data?.revenueGrowth || 0;
 
   return (
-    <div className="space-y-8 animate-fade-in text-slate-800 font-sans pb-16">
-      {/* Horizon UI 6 Signature Metric Widgets */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+  return (
+    <div className="space-y-6 animate-fade-in text-[#2B3674] font-sans pb-16">
+      {/* Refined Horizon Metric Widgets (Enterprise Typography Scale) */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
         {/* Horizon Widget 1: Gross Revenue */}
-        <div className="rounded-[20px] bg-white dark:bg-[#111C44] p-5 shadow-[0px_18px_40px_rgba(112,144,176,0.12)] border border-slate-100 dark:border-navy-700 flex items-center justify-between transition-all hover:shadow-2xl">
-          <div className="flex items-center gap-4">
-            <div className="w-14 h-14 rounded-full bg-[#F4F7FE] dark:bg-navy-700 text-[#422AFB] dark:text-white flex items-center justify-center font-bold text-xl shrink-0">
-              <Wallet className="w-6 h-6" />
+        <div className="rounded-2xl bg-white dark:bg-[#111C44] p-4.5 shadow-[0px_14px_30px_rgba(112,144,176,0.08)] border border-slate-100 dark:border-navy-700 flex items-center justify-between transition-all hover:shadow-xl">
+          <div className="flex items-center gap-3.5">
+            <div className="w-12 h-12 rounded-full bg-[#F4F7FE] dark:bg-navy-700 text-[#422AFB] dark:text-white flex items-center justify-center font-bold text-lg shrink-0">
+              <Wallet className="w-5 h-5" />
             </div>
             <div>
-              <p className="text-xs font-bold text-[#A3AED0] uppercase tracking-wider">Gross Revenue</p>
-              <h4 className="text-2xl font-bold text-[#2B3674] dark:text-white mt-0.5 tracking-tight">
+              <p className="text-[10px] font-extrabold text-[#A3AED0] uppercase tracking-wider">Gross Revenue</p>
+              <h4 className="text-xl font-extrabold text-[#1B2559] dark:text-white mt-0.5 tracking-tight">
                 {formatCurrency(totalRevenue)}
               </h4>
             </div>
           </div>
           <div className="text-right">
-            <span className={`inline-flex items-center gap-1 text-xs font-bold px-2.5 py-1 rounded-full ${growth >= 0 ? 'bg-emerald-50 text-[#01B574]' : 'bg-rose-50 text-[#EE5D50]'}`}>
-              <TrendingUp className="w-3.5 h-3.5" /> {growth >= 0 ? `+${growth}%` : `${growth}%`}
+            <span className={`inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-full ${growth >= 0 ? 'bg-emerald-50 text-[#01B574]' : 'bg-rose-50 text-[#EE5D50]'}`}>
+              <TrendingUp className="w-3 h-3" /> {growth >= 0 ? `+${growth}%` : `${growth}%`}
             </span>
-            <p className="text-[10px] text-[#A3AED0] font-semibold mt-1">Web: {formatCurrency(data?.total_sales || 0)}</p>
+            <p className="text-[10px] text-[#A3AED0] font-semibold mt-0.5">Web: {formatCurrency(data?.total_sales || 0)}</p>
           </div>
         </div>
 
         {/* Horizon Widget 2: Total Orders */}
-        <div className="rounded-[20px] bg-white dark:bg-[#111C44] p-5 shadow-[0px_18px_40px_rgba(112,144,176,0.12)] border border-slate-100 dark:border-navy-700 flex items-center justify-between transition-all hover:shadow-2xl">
-          <div className="flex items-center gap-4">
-            <div className="w-14 h-14 rounded-full bg-[#F4F7FE] dark:bg-navy-700 text-[#422AFB] dark:text-white flex items-center justify-center font-bold text-xl shrink-0">
-              <ShoppingCart className="w-6 h-6" />
+        <div className="rounded-2xl bg-white dark:bg-[#111C44] p-4.5 shadow-[0px_14px_30px_rgba(112,144,176,0.08)] border border-slate-100 dark:border-navy-700 flex items-center justify-between transition-all hover:shadow-xl">
+          <div className="flex items-center gap-3.5">
+            <div className="w-12 h-12 rounded-full bg-[#F4F7FE] dark:bg-navy-700 text-[#422AFB] dark:text-white flex items-center justify-center font-bold text-lg shrink-0">
+              <ShoppingCart className="w-5 h-5" />
             </div>
             <div>
-              <p className="text-xs font-bold text-[#A3AED0] uppercase tracking-wider">Total Orders</p>
-              <h4 className="text-2xl font-bold text-[#2B3674] dark:text-white mt-0.5 tracking-tight">
+              <p className="text-[10px] font-extrabold text-[#A3AED0] uppercase tracking-wider">Total Orders</p>
+              <h4 className="text-xl font-extrabold text-[#1B2559] dark:text-white mt-0.5 tracking-tight">
                 {totalOrdersCount}
               </h4>
             </div>
           </div>
           <div className="text-right">
-            <span className="text-xs font-bold text-[#422AFB] bg-indigo-50 px-2.5 py-1 rounded-full">
+            <span className="text-[11px] font-bold text-[#422AFB] bg-indigo-50 px-2 py-0.5 rounded-full">
               Live DB
             </span>
-            <p className="text-[10px] text-[#A3AED0] font-semibold mt-1">Online: {data?.orders_count || 0} | POS: {data?.pos_sales_count || 0}</p>
+            <p className="text-[10px] text-[#A3AED0] font-semibold mt-0.5">Online: {data?.orders_count || 0} | POS: {data?.pos_sales_count || 0}</p>
           </div>
         </div>
 
         {/* Horizon Widget 3: Average Order Value (AOV) */}
-        <div className="rounded-[20px] bg-white dark:bg-[#111C44] p-5 shadow-[0px_18px_40px_rgba(112,144,176,0.12)] border border-slate-100 dark:border-navy-700 flex items-center justify-between transition-all hover:shadow-2xl">
-          <div className="flex items-center gap-4">
-            <div className="w-14 h-14 rounded-full bg-[#F4F7FE] dark:bg-navy-700 text-[#422AFB] dark:text-white flex items-center justify-center font-bold text-xl shrink-0">
-              <Sparkles className="w-6 h-6" />
+        <div className="rounded-2xl bg-white dark:bg-[#111C44] p-4.5 shadow-[0px_14px_30px_rgba(112,144,176,0.08)] border border-slate-100 dark:border-navy-700 flex items-center justify-between transition-all hover:shadow-xl">
+          <div className="flex items-center gap-3.5">
+            <div className="w-12 h-12 rounded-full bg-[#F4F7FE] dark:bg-navy-700 text-[#422AFB] dark:text-white flex items-center justify-center font-bold text-lg shrink-0">
+              <Sparkles className="w-5 h-5" />
             </div>
             <div>
-              <p className="text-xs font-bold text-[#A3AED0] uppercase tracking-wider">Average Order Value (AOV)</p>
-              <h4 className="text-2xl font-bold text-[#2B3674] dark:text-white mt-0.5 tracking-tight">
+              <p className="text-[10px] font-extrabold text-[#A3AED0] uppercase tracking-wider">Average Order Value (AOV)</p>
+              <h4 className="text-xl font-extrabold text-[#1B2559] dark:text-white mt-0.5 tracking-tight">
                 {formatCurrency(data?.aov || 0)}
               </h4>
             </div>
           </div>
           <div className="text-right">
-            <span className="text-xs font-bold text-purple-600 bg-purple-50 px-2.5 py-1 rounded-full">
+            <span className="text-[11px] font-bold text-purple-600 bg-purple-50 px-2 py-0.5 rounded-full">
               Basket Size
             </span>
-            <p className="text-[10px] text-[#A3AED0] font-semibold mt-1">Per Paid Transaction</p>
+            <p className="text-[10px] text-[#A3AED0] font-semibold mt-0.5">Per Paid Transaction</p>
           </div>
         </div>
 
         {/* Horizon Widget 4: Low Stock Inventory Risk */}
-        <div className="rounded-[20px] bg-white dark:bg-[#111C44] p-5 shadow-[0px_18px_40px_rgba(112,144,176,0.12)] border border-slate-100 dark:border-navy-700 flex items-center justify-between transition-all hover:shadow-2xl">
-          <div className="flex items-center gap-4">
-            <div className="w-14 h-14 rounded-full bg-rose-50 dark:bg-navy-700 text-[#EE5D50] flex items-center justify-center font-bold text-xl shrink-0">
-              <AlertTriangle className="w-6 h-6" />
+        <div className="rounded-2xl bg-white dark:bg-[#111C44] p-4.5 shadow-[0px_14px_30px_rgba(112,144,176,0.08)] border border-slate-100 dark:border-navy-700 flex items-center justify-between transition-all hover:shadow-xl">
+          <div className="flex items-center gap-3.5">
+            <div className="w-12 h-12 rounded-full bg-rose-50 dark:bg-navy-700 text-[#EE5D50] flex items-center justify-center font-bold text-lg shrink-0">
+              <AlertTriangle className="w-5 h-5" />
             </div>
             <div>
-              <p className="text-xs font-bold text-[#A3AED0] uppercase tracking-wider">Low Stock Risk Items</p>
-              <h4 className="text-2xl font-bold text-[#2B3674] dark:text-white mt-0.5 tracking-tight">
+              <p className="text-[10px] font-extrabold text-[#A3AED0] uppercase tracking-wider">Low Stock Risk Items</p>
+              <h4 className="text-xl font-extrabold text-[#1B2559] dark:text-white mt-0.5 tracking-tight">
                 {lowStockList.length} <span className="text-xs font-semibold text-[#EE5D50]">Products (≤5)</span>
               </h4>
             </div>
           </div>
           <div className="text-right">
             <button onClick={() => onTabChange('stock')} className="text-xs font-bold text-[#422AFB] hover:underline flex items-center gap-0.5">
-              Restock <ArrowUpRight className="w-3.5 h-3.5" />
+              Restock <ArrowUpRight className="w-3 h-3" />
             </button>
-            <p className="text-[10px] text-[#EE5D50] font-semibold mt-1">Action Required</p>
+            <p className="text-[10px] text-[#EE5D50] font-semibold mt-0.5">Action Required</p>
           </div>
         </div>
 
         {/* Horizon Widget 5: Repeat Customers */}
-        <div className="rounded-[20px] bg-white dark:bg-[#111C44] p-5 shadow-[0px_18px_40px_rgba(112,144,176,0.12)] border border-slate-100 dark:border-navy-700 flex items-center justify-between transition-all hover:shadow-2xl">
-          <div className="flex items-center gap-4">
-            <div className="w-14 h-14 rounded-full bg-[#F4F7FE] dark:bg-navy-700 text-[#01B574] flex items-center justify-center font-bold text-xl shrink-0">
-              <Footprints className="w-6 h-6" />
+        <div className="rounded-2xl bg-white dark:bg-[#111C44] p-4.5 shadow-[0px_14px_30px_rgba(112,144,176,0.08)] border border-slate-100 dark:border-navy-700 flex items-center justify-between transition-all hover:shadow-xl">
+          <div className="flex items-center gap-3.5">
+            <div className="w-12 h-12 rounded-full bg-[#F4F7FE] dark:bg-navy-700 text-[#01B574] flex items-center justify-center font-bold text-lg shrink-0">
+              <Footprints className="w-5 h-5" />
             </div>
             <div>
-              <p className="text-xs font-bold text-[#A3AED0] uppercase tracking-wider">Repeat Customer Base</p>
-              <h4 className="text-2xl font-bold text-[#2B3674] dark:text-white mt-0.5 tracking-tight">
+              <p className="text-[10px] font-extrabold text-[#A3AED0] uppercase tracking-wider">Repeat Customer Base</p>
+              <h4 className="text-xl font-extrabold text-[#1B2559] dark:text-white mt-0.5 tracking-tight">
                 {data?.repeatCustomers || 0} <span className="text-xs font-semibold text-[#A3AED0]">Returning</span>
               </h4>
             </div>
           </div>
           <div className="text-right">
-            <span className="text-xs font-bold text-[#01B574] bg-emerald-50 px-2.5 py-1 rounded-full">
+            <span className="text-[11px] font-bold text-[#01B574] bg-emerald-50 px-2 py-0.5 rounded-full">
               High Loyalty
             </span>
-            <p className="text-[10px] text-[#A3AED0] font-semibold mt-1">Multi-Order History</p>
+            <p className="text-[10px] text-[#A3AED0] font-semibold mt-0.5">Multi-Order History</p>
           </div>
         </div>
 
         {/* Horizon Widget 6: Pending Returns */}
-        <div className="rounded-[20px] bg-white dark:bg-[#111C44] p-5 shadow-[0px_18px_40px_rgba(112,144,176,0.12)] border border-slate-100 dark:border-navy-700 flex items-center justify-between transition-all hover:shadow-2xl">
-          <div className="flex items-center gap-4">
-            <div className="w-14 h-14 rounded-full bg-amber-50 dark:bg-navy-700 text-[#FFB547] flex items-center justify-center font-bold text-xl shrink-0">
-              <RotateCcw className="w-6 h-6" />
+        <div className="rounded-2xl bg-white dark:bg-[#111C44] p-4.5 shadow-[0px_14px_30px_rgba(112,144,176,0.08)] border border-slate-100 dark:border-navy-700 flex items-center justify-between transition-all hover:shadow-xl">
+          <div className="flex items-center gap-3.5">
+            <div className="w-12 h-12 rounded-full bg-amber-50 dark:bg-navy-700 text-[#FFB547] flex items-center justify-center font-bold text-lg shrink-0">
+              <RotateCcw className="w-5 h-5" />
             </div>
             <div>
-              <p className="text-xs font-bold text-[#A3AED0] uppercase tracking-wider">Pending Exchanges</p>
-              <h4 className="text-2xl font-bold text-[#2B3674] dark:text-white mt-0.5 tracking-tight">
+              <p className="text-[10px] font-extrabold text-[#A3AED0] uppercase tracking-wider">Pending Exchanges</p>
+              <h4 className="text-xl font-extrabold text-[#1B2559] dark:text-white mt-0.5 tracking-tight">
                 {returns.filter(r => r.status === 'pending').length} <span className="text-xs font-semibold text-[#FFB547]">Requests</span>
               </h4>
             </div>
           </div>
           <div className="text-right">
             <button onClick={() => onTabChange('returns')} className="text-xs font-bold text-[#422AFB] hover:underline flex items-center gap-0.5">
-              Review <ArrowUpRight className="w-3.5 h-3.5" />
+              Review <ArrowUpRight className="w-3 h-3" />
             </button>
-            <p className="text-[10px] text-[#A3AED0] font-semibold mt-1">Requires Action</p>
+            <p className="text-[10px] text-[#A3AED0] font-semibold mt-0.5">Requires Action</p>
           </div>
         </div>
       </div>
 
       {/* Horizon Analytics Charts Section */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
         {/* Left 2 Cols: Horizon Total Spent Revenue Area Chart */}
-        <div className="lg:col-span-2 rounded-[20px] bg-white dark:bg-[#111C44] p-6 shadow-[0px_18px_40px_rgba(112,144,176,0.12)] border border-slate-100 dark:border-navy-700 space-y-4">
-          <div className="flex items-center justify-between border-b border-slate-100 dark:border-navy-700 pb-4">
+        <div className="lg:col-span-2 rounded-2xl bg-white dark:bg-[#111C44] p-5 shadow-[0px_14px_30px_rgba(112,144,176,0.08)] border border-slate-100 dark:border-navy-700 space-y-3">
+          <div className="flex items-center justify-between border-b border-slate-100 dark:border-navy-700 pb-3">
             <div>
-              <p className="text-xs font-bold text-[#A3AED0] uppercase tracking-wider">Total Sales Stream</p>
-              <h3 className="text-2xl font-bold text-[#2B3674] dark:text-white tracking-tight flex items-center gap-3">
+              <p className="text-[10px] font-extrabold text-[#A3AED0] uppercase tracking-wider">Total Sales Stream</p>
+              <h3 className="text-lg font-bold text-[#1B2559] dark:text-white tracking-tight flex items-center gap-2.5">
                 {formatCurrency(totalRevenue)}
-                <span className="text-xs font-bold text-[#01B574] bg-emerald-50 px-2.5 py-1 rounded-full flex items-center gap-1">
-                  <TrendingUp className="w-3.5 h-3.5" /> Realtime D1 Sync
+                <span className="text-[10px] font-bold text-[#01B574] bg-emerald-50 px-2 py-0.5 rounded-full flex items-center gap-1">
+                  <TrendingUp className="w-3 h-3" /> Realtime D1 Sync
                 </span>
               </h3>
             </div>

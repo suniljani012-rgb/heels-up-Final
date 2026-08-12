@@ -59,6 +59,7 @@ export default {
           await env.DB.prepare("ALTER TABLE orders ADD COLUMN cod_outstanding_amount INTEGER DEFAULT 0").run().catch(() => {});
           await env.DB.prepare("UPDATE products SET rating = 0 WHERE review_count = 0 OR review_count IS NULL").run().catch(() => {});
           await env.DB.prepare("UPDATE products SET active = 1 WHERE sku LIKE 'HU-%'").run().catch(() => {});
+          await env.DB.prepare("DELETE FROM categories WHERE name IN ('Chelsea Boot', 'Double Monk', 'Loafers', 'Oxford Jodhpur', 'Men', 'Mens Footwear')").run().catch(() => {});
         } catch (err) {
           console.warn('DB settings auto-update failed:', err);
         }
