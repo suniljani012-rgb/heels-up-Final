@@ -278,6 +278,12 @@ export async function dashboardStatsRouter(request, env) {
                     GROUP BY customer_email
                     HAVING COUNT(*) > 1
                 )
+            `),
+            // 10: Previous 30 days revenue (for real MOM growth percentage calculation)
+            env.DB.prepare(`
+                SELECT COALESCE(SUM(total_amount), 0) as prev_revenue
+                FROM orders
+                WHERE payment_status = 'paid' AND created_at BETWEEN date('now', '-60 days') AND date('now', '-30 days')
             `)
         ]);
 
@@ -291,10 +297,12 @@ export async function dashboardStatsRouter(request, env) {
         const lowStockItems = results[7]?.results || [];
         const topCoupons = results[8]?.results || [];
         const repeatCount = results[9]?.results[0]?.repeat_count || 0;
+        const prevRevenue = results[10]?.results[0]?.prev_revenue || 0;
 
-        // Calculate Average Order Value (AOV)
+        // Calculate Average Order Value (AOV) and real growth percentage
         const totalPaidOrders = (s.total_orders || 0) - (s.cancelled || 0);
         const aov = totalPaidOrders > 0 ? Math.round((s.total_revenue || 0) / totalPaidOrders) : 0;
+        const revenueGrowth = prevRevenue > 0 ? Math.round(((s.total_revenue - prevRevenue) / prevRevenue) * 100) : 0;
 
         // Format category share percentages dynamically based on actual database categories
         const totalCatRevenue = categorySales.reduce((sum, item) => sum + (item.revenue || 0), 0);
@@ -342,6 +350,7 @@ export async function dashboardStatsRouter(request, env) {
             pendingOrders: s.pending_orders || 0,
             aov,
             repeatCustomers: repeatCount,
+            revenueGrowth,
             ordersByStatus: {
                 placed: s.placed || 0,
                 confirmed: s.confirmed || 0,
