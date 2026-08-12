@@ -564,19 +564,46 @@ export default function Home() {
                 </div>
               </div>
             ))}
-          </div>
-
-          <div className="flex justify-center mt-12">
-            <button
-              onClick={() => setReviewsModalOpen(true)}
-              className="inline-flex items-center gap-2 px-6 py-2.5 border border-primary text-primary hover:bg-primary hover:text-white rounded-lg text-xs font-bold uppercase tracking-wider transition-all shadow-sm"
-            >
-              View All Reviews
-              <ArrowRight className="w-4 h-4" />
-            </button>
+            {/* View All Reviews Button */}
+            {liveReviews.length > 3 && (
+              <div className="text-center mt-10">
+                <button
+                  onClick={() => setReviewsModalOpen(true)}
+                  className="inline-flex items-center gap-2 px-6 py-3 border border-gray-300 rounded-full text-xs font-bold text-gray-800 hover:bg-gray-900 hover:text-white transition-all shadow-sm"
+                >
+                  <MessageSquareQuote className="w-4 h-4" /> View All Verified Customer Reviews ({liveReviews.length})
+                </button>
+              </div>
+            )}
           </div>
         </section>
       )}
+
+      {/* National SEO Ranking Content Section (#1 Rank for 'heels' & 'heel' in India) */}
+      <section className="max-w-7xl mx-auto px-6 md:px-8 my-16 border-t border-gray-100 pt-16">
+        <div className="max-w-4xl mx-auto text-left space-y-6 text-gray-600 text-xs leading-relaxed font-sans">
+          <h1 className="text-2xl md:text-3xl font-bold text-gray-900 font-display italic">
+            Buy Heels &amp; Heel Online in India — #1 Ladies Footwear Store | HeelsUp
+          </h1>
+          <p>
+            Welcome to <strong>HeelsUp</strong>, India’s premier destination to buy handcrafted <strong>ladies heels online</strong>. Whether you are looking for comfortable <strong>block heels</strong> for work, glamorous <strong>stiletto heels</strong> for parties, classic <strong>pencil heels</strong>, elegant <strong>bridal heels</strong>, or casual <strong>flats &amp; wedges</strong>, HeelsUp brings you unmatched craftsmanship, premium cushioned soles, and pan-India express delivery.
+          </p>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-2">
+            <div>
+              <h3 className="font-bold text-gray-900 text-sm mb-1.5">Block Heels Online India</h3>
+              <p className="text-[11px] leading-normal text-gray-500">Discover all-day comfortable block heels designed for Indian women. Ideal for office, daily wear, and festive celebrations.</p>
+            </div>
+            <div>
+              <h3 className="font-bold text-gray-900 text-sm mb-1.5">Stilettos &amp; Pencil Heels</h3>
+              <p className="text-[11px] leading-normal text-gray-500">Elevate your evening wardrobe with high-shine stiletto heels and pencil heels featuring anti-slip soles and memory foam padding.</p>
+            </div>
+            <div>
+              <h3 className="font-bold text-gray-900 text-sm mb-1.5">Bridal &amp; Party Heels</h3>
+              <p className="text-[11px] leading-normal text-gray-500">Explore luxury handcrafted bridal heels with golden embellishments, rhinestones, and custom sizing for weddings.</p>
+            </div>
+          </div>
+        </div>
+      </section>
 
       {/* View All Reviews Modal */}
       <AnimatePresence>

@@ -74,6 +74,50 @@ export default {
     const path = url.pathname;
     const method = request.method;
 
+    // Dynamic Real-time XML Sitemap for Googlebot & Bingbot Search Indexing
+    if (path === '/sitemap.xml') {
+      try {
+        let productUrls = '';
+        if (env.DB) {
+          const prods = await env.DB.prepare('SELECT id, updated_at FROM products WHERE active = 1 ORDER BY id DESC').all();
+          if (prods && prods.results) {
+            productUrls = prods.results.map(p => `
+  <url>
+    <loc>https://heelsup.in/product/${p.id}</loc>
+    <lastmod>${p.updated_at ? p.updated_at.substring(0, 10) : new Date().toISOString().substring(0, 10)}</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>`).join('');
+          }
+        }
+
+        const xml = `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url><loc>https://heelsup.in/</loc><changefreq>daily</changefreq><priority>1.0</priority></url>
+  <url><loc>https://heelsup.in/shop</loc><changefreq>daily</changefreq><priority>0.95</priority></url>
+  <url><loc>https://heelsup.in/heels</loc><changefreq>daily</changefreq><priority>0.95</priority></url>
+  <url><loc>https://heelsup.in/block-heels</loc><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://heelsup.in/pencil-heels</loc><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://heelsup.in/stilettos</loc><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://heelsup.in/wedges</loc><changefreq>daily</changefreq><priority>0.85</priority></url>
+  <url><loc>https://heelsup.in/flats</loc><changefreq>daily</changefreq><priority>0.85</priority></url>
+  <url><loc>https://heelsup.in/bags</loc><changefreq>daily</changefreq><priority>0.85</priority></url>
+  <url><loc>https://heelsup.in/about</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
+  <url><loc>https://heelsup.in/contact</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>${productUrls}
+</urlset>`;
+
+        return new Response(xml, {
+          headers: {
+            'Content-Type': 'application/xml; charset=utf-8',
+            'Cache-Control': 'public, max-age=3600, s-maxage=86400',
+            'Access-Control-Allow-Origin': '*'
+          }
+        });
+      } catch (err) {
+        console.error('Sitemap generation error:', err);
+      }
+    }
+
     // 2. Health check
     if (path === '/api/health') {
       return addCors(json({ success: true, message: 'HeelsUp API is running!', ts: new Date().toISOString() }), request);
