@@ -7,10 +7,11 @@ async function getRazorpayCredentials(env) {
   let keyId = (env.RAZORPAY_KEY_ID || "").trim();
   let keySecret = (env.RAZORPAY_KEY_SECRET || "").trim();
   try {
-    const rows = await env.DB.prepare("SELECT key, value FROM settings WHERE key IN ('razorpay_key_id', 'razorpay_key_secret')").all();
+    const rows = await env.DB.prepare("SELECT key, value FROM settings WHERE LOWER(key) IN ('razorpay_key_id', 'razorpay_key', 'razorpay_key_secret', 'razorpay_secret')").all();
     for (const row of (rows.results || [])) {
-      if (row.key === 'razorpay_key_id' && row.value) keyId = row.value.trim();
-      if (row.key === 'razorpay_key_secret' && row.value) keySecret = row.value.trim();
+      const k = (row.key || '').toLowerCase();
+      if ((k === 'razorpay_key_id' || k === 'razorpay_key') && row.value) keyId = row.value.trim();
+      if ((k === 'razorpay_key_secret' || k === 'razorpay_secret') && row.value) keySecret = row.value.trim();
     }
   } catch {}
   return { keyId, keySecret };
@@ -172,26 +173,25 @@ export const razorpay = {
     const rawContact = String(customer.contact || '').replace(/\D/g, '');
     const cleanPhone = rawContact.length >= 10 ? rawContact.slice(-10) : '';
 
-    const custPayload = {};
-    if (customer.name && customer.name.trim()) custPayload.name = customer.name.trim();
-    if (cleanPhone) custPayload.contact = `+91${cleanPhone}`;
-    if (customer.email && customer.email.includes('@')) custPayload.email = customer.email.trim();
-
     const payload = {
       amount: Math.round(Number(amount)), // in paise
       currency: currency || 'INR',
       accept_partial: false,
       description: description || 'HEELSUP Footwear Order Payment',
       notify: {
-        sms: Boolean(cleanPhone),
-        email: Boolean(customer.email && customer.email.includes('@'))
+        sms: false,
+        email: false
       },
-      reminder_enable: true,
+      reminder_enable: false,
       notes: notes || {}
     };
 
-    if (Object.keys(custPayload).length > 0) {
-      payload.customer = custPayload;
+    if (cleanPhone || (customer.name && customer.name.trim())) {
+      payload.customer = {
+        name: customer.name ? customer.name.trim() : 'Customer',
+        contact: cleanPhone ? `+91${cleanPhone}` : undefined,
+        email: customer.email && customer.email.includes('@') ? customer.email.trim() : undefined
+      };
     }
 
     try {
@@ -206,7 +206,13 @@ export const razorpay = {
 
       const data = await res.json().catch(() => null);
       if (res.ok && data && (data.short_url || data.id)) {
-        return { success: true, ...data };
+        return {
+          success: true,
+          id: data.id,
+          short_url: data.short_url,
+          payment_link: data.short_url || `https://rzp.io/i/${data.id}`,
+          ...data
+        };
       } else {
         console.error('Razorpay payment link error:', data);
         const errDesc = data?.error?.description || data?.error?.code || 'Failed to generate link on Razorpay';

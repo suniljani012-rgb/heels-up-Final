@@ -115,23 +115,27 @@ export default function PaymentsManager({ payments = [], orders = [], token, onR
         })
       });
       const data = await res.json();
-      if (data && data.success && data.payment_link) {
-        setGeneratedLinkUrl(data.payment_link);
+      const pLink = data?.payment_link || data?.data?.payment_link || data?.short_url || data?.link || (data?.link_id ? `https://rzp.io/i/${data.link_id}` : '');
+
+      if (data && (data.success || pLink)) {
+        setGeneratedLinkUrl(pLink);
         showToast('success', 'Razorpay Link Created', 'Payment link generated successfully.');
 
         const cleanDigits = (linkCustPhone || '').replace(/\D/g, '');
         const targetPhone = cleanDigits.length >= 10 ? cleanDigits.slice(-10) : '';
         const greeting = linkCustName.trim() ? `Hello ${linkCustName.trim()}!` : 'Hello!';
-        const waMsg = `${greeting} 👡✨\n\nYour payment link of ₹${linkAmountRs} for your Heelsup order is ready.\n\n💳 Pay securely via UPI / Cards:\n${data.payment_link}\n\nThank you for choosing Heelsup, Jodhpur!`;
+        const waMsg = `${greeting} 👡✨\n\nYour payment link of ₹${linkAmountRs} for your Heelsup order is ready.\n\n💳 Pay securely via UPI / Cards:\n${pLink}\n\nThank you for choosing Heelsup, Jodhpur!`;
         const waUrl = targetPhone 
           ? `https://api.whatsapp.com/send?phone=91${targetPhone}&text=${encodeURIComponent(waMsg)}`
           : `https://api.whatsapp.com/send?text=${encodeURIComponent(waMsg)}`;
 
         if (autoOpenWhatsApp && targetPhone) {
-          window.open(waUrl, '_blank');
+          try {
+            window.open(waUrl, '_blank');
+          } catch {}
         }
       } else {
-        const errMsg = data?.error || 'Razorpay link creation failed. Please check your credentials in Settings.';
+        const errMsg = data?.error || data?.message || 'Razorpay link creation failed. Please check your credentials in Settings.';
         setLinkError(errMsg);
         showToast('error', 'Failed to Create Link', errMsg);
       }
