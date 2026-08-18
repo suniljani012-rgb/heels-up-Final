@@ -85,6 +85,49 @@ export default function LogisticsManager({ orders = [], token, onRefresh }: Logi
   // Selected Order for Full Post-Courier Net Value Breakdown
   const [selectedOrderEconomics, setSelectedOrderEconomics] = useState<ShipmentRecord | null>(null);
 
+  // Delhivery Official Booking Modal State
+  const [bookingShipmentModal, setBookingShipmentModal] = useState<ShipmentRecord | null>(null);
+  const [bookingWeightKg, setBookingWeightKg] = useState(0.85);
+  const [bookingLengthCm, setBookingLengthCm] = useState(25);
+  const [bookingWidthCm, setBookingWidthCm] = useState(15);
+  const [bookingHeightCm, setBookingHeightCm] = useState(10);
+  const [bookingShippingMode, setBookingShippingMode] = useState<'Surface' | 'Express'>('Surface');
+  const [bookingLoading, setBookingLoading] = useState(false);
+
+  const handleConfirmDelhiveryBooking = async () => {
+    if (!bookingShipmentModal) return;
+    try {
+      setBookingLoading(true);
+      const res = await fetch('/api/admin/delhivery/create-shipment', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          order_id: bookingShipmentModal.order_id,
+          weight_kg: bookingWeightKg,
+          length_cm: bookingLengthCm,
+          width_cm: bookingWidthCm,
+          height_cm: bookingHeightCm,
+          shipping_mode: bookingShippingMode
+        })
+      });
+      const data = await res.json();
+      if (data && data.success && data.tracking_number) {
+        showToast('success', 'Delhivery AWB Generated', `Shipment booked successfully with AWB ${data.tracking_number}.`);
+        setBookingShipmentModal(null);
+        onRefresh();
+      } else {
+        showToast('error', 'Delhivery Booking Failed', data.error || 'Failed to generate AWB on Delhivery.');
+      }
+    } catch (e: any) {
+      showToast('error', 'Booking Error', e.message || 'Network error communicating with Delhivery API');
+    } finally {
+      setBookingLoading(false);
+    }
+  };
+
   // Delhivery COD Remittance & Bank Payout Modal
   const [showRemittanceModal, setShowRemittanceModal] = useState(false);
 
@@ -144,9 +187,10 @@ export default function LogisticsManager({ orders = [], token, onRefresh }: Logi
     bank_name: '',
     bank_account: '',
     bank_ifsc: '',
-    last_synced: ''
+    last_synced: '',
   });
   const [walletLoading, setWalletLoading] = useState(false);
+  const [bookingShipmentId, setBookingShipmentId] = useState<number | null>(null);
 
   const [page, setPage] = useState(0);
   const pageSize = 12;
@@ -156,17 +200,21 @@ export default function LogisticsManager({ orders = [], token, onRefresh }: Logi
     try {
       setWalletLoading(true);
       const res = await fetch('/api/admin/delhivery/wallet', {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
+        headers: { 'Authorization': `Bearer ${token}` }
       });
-      if (res.ok) {
-        const data = await res.json();
-        if (data && data.success && data.data) {
-          setLiveWallet(data.data);
-        } else if (data && data.connected !== undefined) {
-          setLiveWallet(data);
-        }
+      const data = await res.json();
+      if (data && data.success) {
+        setLiveWallet({
+          connected: data.connected ?? true,
+          client_name: data.client_name || 'HEELSUP BOUTIQUE',
+          wallet_balance: data.wallet_balance || 0,
+          billing_mode: data.billing_mode || 'PREPAID_WALLET',
+          currency: data.currency || 'INR',
+          bank_name: data.bank_details?.bank_name || 'HDFC Bank Ltd.',
+          bank_account: data.bank_details?.account_number || '••••••••9035',
+          bank_ifsc: data.bank_details?.ifsc || 'HDFC0000049',
+          last_synced: data.last_synced || new Date().toLocaleTimeString('en-IN'),
+        });
       }
     } catch (e) {
       console.warn('Failed to fetch live Delhivery wallet:', e);
@@ -179,27 +227,63 @@ export default function LogisticsManager({ orders = [], token, onRefresh }: Logi
     fetchLiveWallet();
   }, [token]);
 
+  // Quick 1-click book shipment on Delhivery API
+  const handleAutoBookDelhivery = async (orderId: number) => {
+    try {
+      setBookingShipmentId(orderId);
+      const res = await fetch('/api/admin/delhivery/create-shipment', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ order_id: orderId }),
+      });
+      const data = await res.json();
+      if (data && data.success && data.tracking_number) {
+        showToast('success', 'Delhivery AWB Assigned', `Shipment booked successfully with AWB ${data.tracking_number}.`);
+        onRefresh();
+      } else {
+        showToast('error', 'Booking Failed', data.error || 'Failed to generate AWB on Delhivery.');
+      }
+    } catch (e: any) {
+      showToast('error', 'Error', e.message || 'Network error communicating with Delhivery API');
+    } finally {
+      setBookingShipmentId(null);
+    }
+  };
+
   // Transform store orders into structured shipment records
   const shipments = useMemo<ShipmentRecord[]>(() => {
     return orders.map((o) => {
-      const isCOD = (o.payment_method || '').toLowerCase().includes('cod');
-      const totalRs = Math.round(Number(o.total_amount) / 100);
-      const advPaid = isCOD ? Math.round(Number(o.cod_advance_paid || (o.total_amount * 0.10)) / 100) : totalRs;
-      const balanceToCollect = isCOD ? Math.max(0, totalRs - advPaid) : 0;
+      const isCOD = (o.payment_method || '').toLowerCase().includes('cod') || (o.cod_outstanding_amount && o.cod_outstanding_amount > 0);
+      const totalRs = Number(o.total_amount ? (o.total_amount > 10000 ? o.total_amount / 100 : o.total_amount) : 0);
+      const advOnlineRs = isCOD ? Math.round(totalRs * 0.10) : totalRs;
+      const balanceToCollect = isCOD ? (o.cod_outstanding_amount ? Math.round(o.cod_outstanding_amount / 100) : (totalRs - advOnlineRs)) : 0;
 
       // Realistic tracking mapping
       const awb = o.tracking_number || (o.delhivery_waybill || '');
       const courier = o.courier_name || 'Delhivery Surface Express';
 
-      let status: ShipmentRecord['status'] = 'manifested';
+      let status: ShipmentRecord['status'] = 'pending_booking';
       if (!awb) {
-        status = 'manifested'; // Awaiting booking
+        status = 'pending_booking'; // Awaiting booking
       } else if (o.order_status === 'delivered' || o.order_status === 'Completed') {
         status = 'delivered';
-      } else if (o.order_status === 'shipped') {
+      } else if (o.order_status === 'out_for_delivery') {
+        status = 'out_for_delivery';
+      } else if (o.order_status === 'shipped' || o.order_status === 'in_transit') {
         status = 'in_transit';
+      } else if (o.order_status === 'picked_up') {
+        status = 'picked_up';
+      } else if (o.order_status === 'delivery_failed' || o.order_status === 'ndr') {
+        status = 'delivery_failed';
+      } else if (o.order_status === 'returned' || o.order_status === 'rto') {
+        status = 'returned';
       } else if (o.order_status === 'cancelled') {
         status = 'cancelled';
+      } else {
+        status = 'manifested';
       }
 
       const itemsSummary = (o.items || [])
@@ -212,9 +296,9 @@ export default function LogisticsManager({ orders = [], token, onRefresh }: Logi
         order_number: o.order_number,
         customer_name: o.customer_name || 'Valued Customer',
         customer_phone: o.customer_phone || '',
-        city: o.city || 'Jaipur',
+        city: o.city || 'Jodhpur',
         state: o.state || 'Rajasthan',
-        pincode: o.pincode || '302001',
+        pincode: o.pincode || '342001',
         address: `${o.address_line1 || ''} ${o.address_line2 || ''}`.trim(),
         courier_name: courier,
         tracking_number: awb,
@@ -245,8 +329,8 @@ export default function LogisticsManager({ orders = [], token, onRefresh }: Logi
         s.pincode.includes(q);
 
       let matchesStatus = true;
-      if (statusFilter === 'pending_booking') matchesStatus = s.status === 'pending_booking' || !s.tracking_number;
-      else if (statusFilter === 'manifested') matchesStatus = s.status === 'manifested' || !!s.tracking_number;
+      if (statusFilter === 'pending_booking') matchesStatus = !s.tracking_number || s.status === 'pending_booking';
+      else if (statusFilter === 'manifested') matchesStatus = Boolean(s.tracking_number) && s.status !== 'pending_booking';
       else if (statusFilter === 'picked_up') matchesStatus = s.status === 'picked_up';
       else if (statusFilter === 'in_transit') matchesStatus = s.status === 'in_transit';
       else if (statusFilter === 'out_for_delivery') matchesStatus = s.status === 'out_for_delivery';
@@ -328,8 +412,8 @@ export default function LogisticsManager({ orders = [], token, onRefresh }: Logi
 
     return {
       total: shipments.length,
-      pendingBooking: shipments.filter((s) => s.status === 'pending_booking' || !s.tracking_number).length,
-      totalBooked: shipments.filter((s) => s.status === 'manifested' || !!s.tracking_number).length,
+      pendingBooking: shipments.filter((s) => !s.tracking_number || s.status === 'pending_booking').length,
+      totalBooked: shipments.filter((s) => Boolean(s.tracking_number) && s.status !== 'pending_booking').length,
       pickedUp: shipments.filter((s) => s.status === 'picked_up').length,
       inTransit: shipments.filter((s) => s.status === 'in_transit').length,
       outForDelivery: shipments.filter((s) => s.status === 'out_for_delivery').length,
@@ -695,35 +779,6 @@ export default function LogisticsManager({ orders = [], token, onRefresh }: Logi
     printWin.document.close();
   };
 
-  const [bookingShipmentId, setBookingShipmentId] = useState<number | null>(null);
-
-  const handleAutoBookDelhivery = async (orderId: number) => {
-    try {
-      setBookingShipmentId(orderId);
-      const res = await fetch('/api/admin/delhivery/create-shipment', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ order_id: orderId }),
-      });
-
-      const data = await res.json();
-      if (!res.ok || !data.success) {
-        showToast('error', 'Delhivery API Error', data.error || data.message || 'Failed to book on Delhivery API');
-        return;
-      }
-
-      showToast('success', 'Shipment Booked on Delhivery', `Assigned AWB: ${data.tracking_number}`);
-      onRefresh();
-    } catch (e: any) {
-      showToast('error', 'Network Error', e.message || 'Network error connecting to Delhivery API');
-    } finally {
-      setBookingShipmentId(null);
-    }
-  };
-
   return (
     <div className="space-y-3.5 antialiased font-sans">
       {/* ── 1. DELHIVERY WALLET & FINANCIAL RECONCILIATION STRIP ─────── */}
@@ -909,77 +964,86 @@ export default function LogisticsManager({ orders = [], token, onRefresh }: Logi
         </Card>
       </div>
 
-      {/* ── 3. FILTER & SEARCH BAR ──────────────────────────────────── */}
-      <Card className="p-3 bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 space-y-2.5">
-        <div className="flex flex-wrap items-center justify-between gap-2.5">
-          {/* Status Tabs */}
-          <div className="flex items-center gap-1 overflow-x-auto scrollbar-none pb-0.5">
-            {[
-              { id: 'all', label: 'All Shipments', count: summary.total },
-              { id: 'pending_booking', label: 'Pending for Booking', count: summary.pendingBooking },
-              { id: 'manifested', label: 'Total Booked', count: summary.totalBooked },
-              { id: 'picked_up', label: 'Picked Up', count: summary.pickedUp },
-              { id: 'in_transit', label: 'In-Transit', count: summary.inTransit },
-              { id: 'out_for_delivery', label: 'Out for Delivery', count: summary.outForDelivery },
-              { id: 'delivered', label: 'Delivered', count: summary.delivered },
-              { id: 'delivery_failed', label: 'Delivery Failed', count: summary.deliveryFailed },
-              { id: 'returned', label: 'RTO / Return', count: summary.returned },
-              { id: 'cod', label: 'COD Parcels', count: summary.codCount },
-              { id: 'remittances', label: 'Bank Payout Entries', count: summary.codCount },
-            ].map((tab) => {
-              const active = statusFilter === tab.id;
-              return (
-                <button
-                  key={tab.id}
-                  onClick={() => {
-                    setStatusFilter(tab.id as any);
-                    setPage(0);
-                  }}
-                  className={`h-7 px-2.5 rounded-lg text-xs font-bold whitespace-nowrap transition-all flex items-center gap-1.5 ${
-                    active
-                      ? 'bg-slate-900 dark:bg-white text-white dark:text-slate-900 shadow-xs'
-                      : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200'
-                  }`}
-                >
-                  <span>{tab.label}</span>
-                  <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono ${active ? 'bg-white/20 dark:bg-black/20 text-white dark:text-slate-900' : 'bg-slate-200 dark:bg-slate-700 text-slate-500'}`}>
-                    {tab.count}
-                  </span>
-                </button>
-              );
-            })}
-          </div>
-
-          {/* Search & Export */}
-          <div className="flex items-center gap-2">
-            <div className="relative">
-              <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" />
-              <input
-                type="text"
-                placeholder="Search AWB, Order, City, Pincode..."
-                value={searchQuery}
-                onChange={(e) => {
-                  setSearchQuery(e.target.value);
+      {/* ── 3. PIPELINE STATUS TABS ─────────────────────────────────── */}
+      <Card className="p-2.5 bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800">
+        <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none pb-0.5">
+          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider px-1 shrink-0 flex items-center gap-1">
+            <Package className="w-3.5 h-3.5 text-indigo-500" /> Stages:
+          </span>
+          {[
+            { id: 'all', label: 'All Shipments', count: summary.total },
+            { id: 'pending_booking', label: 'Pending for Booking', count: summary.pendingBooking, color: 'text-amber-600 dark:text-amber-400' },
+            { id: 'manifested', label: 'Total Booked', count: summary.totalBooked, color: 'text-indigo-600 dark:text-indigo-400' },
+            { id: 'picked_up', label: 'Picked Up', count: summary.pickedUp },
+            { id: 'in_transit', label: 'In-Transit', count: summary.inTransit },
+            { id: 'out_for_delivery', label: 'Out for Delivery', count: summary.outForDelivery },
+            { id: 'delivered', label: 'Delivered', count: summary.delivered, color: 'text-emerald-600 dark:text-emerald-400' },
+            { id: 'delivery_failed', label: 'Delivery Failed', count: summary.deliveryFailed, color: 'text-rose-500' },
+            { id: 'returned', label: 'RTO / Return', count: summary.returned, color: 'text-orange-500' },
+            { id: 'cod', label: 'COD Parcels', count: summary.codCount },
+          ].map((tab) => {
+            const active = statusFilter === tab.id;
+            return (
+              <button
+                key={tab.id}
+                onClick={() => {
+                  setStatusFilter(tab.id as any);
                   setPage(0);
                 }}
-                className="h-7 pl-8 pr-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-xs w-64 focus:outline-none font-mono"
-              />
-            </div>
+                className={`h-7 px-3 rounded-lg text-xs font-bold whitespace-nowrap transition-all flex items-center gap-1.5 shrink-0 ${
+                  active
+                    ? 'bg-slate-900 dark:bg-white text-white dark:text-slate-900 shadow-xs'
+                    : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200'
+                }`}
+              >
+                <span>{tab.label}</span>
+                <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono font-bold ${
+                  active 
+                    ? 'bg-white/20 dark:bg-black/20 text-white dark:text-slate-900' 
+                    : 'bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300'
+                }`}>
+                  {tab.count}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      </Card>
 
+      {/* ── 4. CONTROLS, SEARCH & HISTORICAL FILTERS ─────────────────── */}
+      <Card className="p-3 bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 space-y-2.5">
+        <div className="flex flex-wrap items-center justify-between gap-2.5">
+          {/* Search Box */}
+          <div className="relative flex-1 min-w-[240px] max-w-md">
+            <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+            <input
+              type="text"
+              placeholder="Search AWB, Order #, Customer, City, Pincode..."
+              value={searchQuery}
+              onChange={(e) => {
+                setSearchQuery(e.target.value);
+                setPage(0);
+              }}
+              className="w-full h-8 pl-8.5 pr-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-xs focus:outline-none font-mono"
+            />
+          </div>
+
+          {/* Action Toolbar */}
+          <div className="flex items-center gap-2">
             <Button
               onClick={handleExportCsv}
               variant="outline"
               size="sm"
-              className="h-7 text-xs px-2.5 border-slate-200 dark:border-slate-700 font-semibold"
+              className="h-8 text-xs px-3 border-slate-200 dark:border-slate-700 font-semibold"
             >
-              <Download className="w-3.5 h-3.5 mr-1 text-slate-500" />
+              <Download className="w-3.5 h-3.5 mr-1.5 text-slate-500" />
               Manifest CSV
             </Button>
 
             <Button
               onClick={() => setShowPickupModal(true)}
               size="sm"
-              className="h-7 text-xs px-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold flex items-center gap-1 shadow-xs"
+              className="h-8 text-xs px-3 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold flex items-center gap-1.5 shadow-xs"
             >
               <Truck className="w-3.5 h-3.5" />
               <span>Schedule Pickup</span>
@@ -991,7 +1055,7 @@ export default function LogisticsManager({ orders = [], token, onRefresh }: Logi
                 fetchLiveWallet();
               }}
               title="Refresh Shipments & Live Wallet"
-              className="p-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-600 dark:text-slate-300"
+              className="h-8 w-8 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-600 dark:text-slate-300 flex items-center justify-center transition-colors"
             >
               <RefreshCw className="w-3.5 h-3.5" />
             </button>
@@ -999,10 +1063,10 @@ export default function LogisticsManager({ orders = [], token, onRefresh }: Logi
         </div>
 
         {/* Secondary Filter Row: Timeframe, Historical Months & Zones */}
-        <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-slate-100 dark:border-slate-800/60 text-xs">
+        <div className="flex flex-wrap items-center justify-between gap-2.5 pt-2 border-t border-slate-100 dark:border-slate-800/60 text-xs">
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1">
-              <Filter className="w-3 h-3 text-slate-400" /> Filters:
+            <span className="text-[10.5px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1 shrink-0">
+              <Filter className="w-3 h-3 text-slate-400" /> Timeframe:
             </span>
 
             {/* Timeframe selector */}
@@ -1015,7 +1079,6 @@ export default function LogisticsManager({ orders = [], token, onRefresh }: Logi
                 { id: 'this_month', label: 'This Month' },
                 { id: 'last_month', label: 'Last Month' },
                 { id: 'last_2m', label: 'Last 2M' },
-                { id: 'last_3m', label: 'Last 3M' },
                 { id: 'custom', label: 'Custom Date' },
               ].map((tf) => (
                 <button
@@ -1037,7 +1100,7 @@ export default function LogisticsManager({ orders = [], token, onRefresh }: Logi
 
             {/* Custom Date Range Pickers (Visible when 'Custom Date' is active) */}
             {timeframeFilter === 'custom' && (
-              <div className="flex items-center gap-1.5 bg-slate-50 dark:bg-slate-800/80 px-2 py-1 rounded-lg border border-slate-200 dark:border-slate-700">
+              <div className="flex items-center gap-1.5 bg-slate-50 dark:bg-slate-800/80 px-2 py-0.5 rounded-lg border border-slate-200 dark:border-slate-700">
                 <span className="text-[10px] text-slate-400 font-medium">From:</span>
                 <input
                   type="date"
@@ -1065,11 +1128,11 @@ export default function LogisticsManager({ orders = [], token, onRefresh }: Logi
             <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 p-0.5 rounded-lg">
               {[
                 { id: 'all', label: 'All Zones' },
-                { id: 'A', label: 'Zone A (Home)' },
-                { id: 'B', label: 'Zone B (North)' },
-                { id: 'C', label: 'Zone C (West/South)' },
-                { id: 'D', label: 'Zone D (East)' },
-                { id: 'E', label: 'Zone E (Far/NE)' },
+                { id: 'A', label: 'Zone A' },
+                { id: 'B', label: 'Zone B' },
+                { id: 'C', label: 'Zone C' },
+                { id: 'D', label: 'Zone D' },
+                { id: 'E', label: 'Zone E' },
               ].map((z) => (
                 <button
                   key={z.id}
@@ -1375,15 +1438,24 @@ export default function LogisticsManager({ orders = [], token, onRefresh }: Logi
 
                   {/* Actions */}
                   <TableCell className="text-right py-2.5" onClick={(e) => e.stopPropagation()}>
-                    <div className="flex items-center justify-end gap-1">
+                    <div className="flex items-center justify-end gap-1.5">
                       {!s.tracking_number ? (
                         <Button
                           size="sm"
-                          onClick={() => handleAutoBookDelhivery(s.order_id)}
-                          disabled={bookingShipmentId === s.order_id}
-                          className="h-7 px-2.5 text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs"
+                          onClick={() => {
+                            setBookingShipmentModal(s);
+                            setBookingWeightKg(0.85);
+                            setBookingLengthCm(25);
+                            setBookingWidthCm(15);
+                            setBookingHeightCm(10);
+                            setBookingShippingMode('Surface');
+                          }}
+                          className="h-7.5 px-3 text-[11px] font-black bg-[#0B132B] hover:bg-[#1C2541] text-white flex items-center gap-1.5 rounded-lg border border-slate-700 shadow-sm transition-all hover:scale-[1.02]"
                         >
-                          {bookingShipmentId === s.order_id ? 'Booking...' : '🚀 Book Delhivery'}
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+                          <span className="text-[#38bdf8] font-mono tracking-wider font-extrabold uppercase text-[10px]">DELHIVERY</span>
+                          <span className="text-white font-bold">Book</span>
+                          <ArrowRight className="w-3 h-3 text-slate-300" />
                         </Button>
                       ) : (
                         <>
@@ -1636,7 +1708,183 @@ export default function LogisticsManager({ orders = [], token, onRefresh }: Logi
           </div>
         );
       })()}
-      {/* ── 5. DELHIVERY WAREHOUSE PICKUP SCHEDULING MODAL ──────────── */}
+
+      {/* ── 5. OFFICIAL DELHIVERY ONE SHIPMENT BOOKING MODAL ─────────── */}
+      {bookingShipmentModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-200">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl max-w-lg w-full p-5 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
+              <div className="flex items-center gap-2.5">
+                <div className="px-2.5 py-1 rounded-lg bg-[#0B132B] text-white flex items-center gap-1.5 shadow-xs">
+                  <Truck className="w-4 h-4 text-[#38bdf8]" />
+                  <span className="text-xs font-black tracking-wider text-[#38bdf8]">DELHIVERY</span>
+                  <span className="text-[10px] text-slate-300 font-bold uppercase">Express</span>
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-slate-900 dark:text-white">Create Shipment & Generate AWB</h3>
+                  <p className="text-[10px] text-slate-400 font-mono">Order #{bookingShipmentModal.order_number}</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setBookingShipmentModal(null)}
+                className="w-7 h-7 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-500 hover:bg-slate-200 flex items-center justify-center text-xs font-bold"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Warehouse Origin (Heelsup Jodhpur) */}
+            <div className="p-3 bg-slate-50 dark:bg-slate-800/60 rounded-xl border border-slate-200 dark:border-slate-700 space-y-1">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1">
+                  <MapPin className="w-3 h-3 text-indigo-500" /> Pickup Warehouse (Origin)
+                </span>
+              </div>
+              <p className="text-xs font-bold text-slate-800 dark:text-slate-100">HEELSUP BOUTIQUE — JODHPUR HUB</p>
+              <p className="text-[11px] text-slate-500">
+                Heelsup, 1st B Rd, near Mahaveer Mega Mart, Sardarpura, Jodhpur, Rajasthan 342001
+              </p>
+            </div>
+
+            {/* Consignee Details */}
+            <div className="p-3 bg-indigo-50/40 dark:bg-indigo-950/20 rounded-xl border border-indigo-100 dark:border-indigo-900/40 space-y-1">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-indigo-600 dark:text-indigo-400">
+                  Destination (Consignee)
+                </span>
+              </div>
+              <p className="text-xs font-bold text-slate-900 dark:text-white">
+                {bookingShipmentModal.customer_name} ({bookingShipmentModal.customer_phone || 'No phone'})
+              </p>
+              <p className="text-[11px] text-slate-600 dark:text-slate-300">
+                {bookingShipmentModal.address}, {bookingShipmentModal.city}, {bookingShipmentModal.state} - {bookingShipmentModal.pincode}
+              </p>
+            </div>
+
+            {/* Package Dimensions & Weight */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
+              <div>
+                <label className="block text-[10px] font-bold text-slate-500 mb-1">Dead Weight (kg)</label>
+                <input
+                  type="number"
+                  step="0.05"
+                  min="0.1"
+                  value={bookingWeightKg}
+                  onChange={(e) => setBookingWeightKg(parseFloat(e.target.value) || 0.85)}
+                  className="w-full h-8 px-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg font-mono text-xs text-slate-900 dark:text-white focus:outline-none"
+                />
+              </div>
+              <div>
+                <label className="block text-[10px] font-bold text-slate-500 mb-1">Length (cm)</label>
+                <input
+                  type="number"
+                  min="5"
+                  value={bookingLengthCm}
+                  onChange={(e) => setBookingLengthCm(parseInt(e.target.value) || 25)}
+                  className="w-full h-8 px-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg font-mono text-xs text-slate-900 dark:text-white focus:outline-none"
+                />
+              </div>
+              <div>
+                <label className="block text-[10px] font-bold text-slate-500 mb-1">Width (cm)</label>
+                <input
+                  type="number"
+                  min="5"
+                  value={bookingWidthCm}
+                  onChange={(e) => setBookingWidthCm(parseInt(e.target.value) || 15)}
+                  className="w-full h-8 px-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg font-mono text-xs text-slate-900 dark:text-white focus:outline-none"
+                />
+              </div>
+              <div>
+                <label className="block text-[10px] font-bold text-slate-500 mb-1">Height (cm)</label>
+                <input
+                  type="number"
+                  min="5"
+                  value={bookingHeightCm}
+                  onChange={(e) => setBookingHeightCm(parseInt(e.target.value) || 10)}
+                  className="w-full h-8 px-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg font-mono text-xs text-slate-900 dark:text-white focus:outline-none"
+                />
+              </div>
+            </div>
+
+            {/* Shipping Mode & Payment Mode Summary */}
+            <div className="p-3 bg-slate-50 dark:bg-slate-800/40 rounded-xl border border-slate-200 dark:border-slate-700 space-y-2">
+              <div className="flex items-center justify-between text-xs">
+                <span className="font-bold text-slate-600 dark:text-slate-300">Shipping Mode:</span>
+                <div className="flex items-center gap-1">
+                  <button
+                    type="button"
+                    onClick={() => setBookingShippingMode('Surface')}
+                    className={`px-2.5 py-1 rounded-md text-[11px] font-bold transition-colors ${
+                      bookingShippingMode === 'Surface'
+                        ? 'bg-[#0B132B] text-white shadow-2xs'
+                        : 'bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300'
+                    }`}
+                  >
+                    Surface (Standard 3-5D)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setBookingShippingMode('Express')}
+                    className={`px-2.5 py-1 rounded-md text-[11px] font-bold transition-colors ${
+                      bookingShippingMode === 'Express'
+                        ? 'bg-[#0B132B] text-white shadow-2xs'
+                        : 'bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300'
+                    }`}
+                  >
+                    Air Express (2-3D)
+                  </button>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between text-xs pt-1.5 border-t border-slate-200 dark:border-slate-700">
+                <span className="font-bold text-slate-600 dark:text-slate-300">Payment Collection:</span>
+                {bookingShipmentModal.is_cod ? (
+                  <span className="font-mono font-bold text-amber-600 dark:text-amber-400">
+                    COD: Collect ₹{bookingShipmentModal.collect_cash_amount.toLocaleString('en-IN')} Cash
+                  </span>
+                ) : (
+                  <span className="font-mono font-bold text-emerald-600 dark:text-emerald-400">
+                    Prepaid
+                  </span>
+                )}
+              </div>
+            </div>
+
+            {/* Modal Actions */}
+            <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100 dark:border-slate-800">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setBookingShipmentModal(null)}
+                className="h-8.5 text-xs font-semibold px-3"
+              >
+                Cancel
+              </Button>
+              <Button
+                size="sm"
+                disabled={bookingLoading}
+                onClick={handleConfirmDelhiveryBooking}
+                className="h-8.5 text-xs font-black bg-[#0B132B] hover:bg-[#1C2541] text-white flex items-center gap-2 px-4 shadow-md border border-slate-700"
+              >
+                {bookingLoading ? (
+                  <>
+                    <RefreshCw className="w-3.5 h-3.5 animate-spin text-[#38bdf8]" />
+                    <span>Booking on Delhivery API...</span>
+                  </>
+                ) : (
+                  <>
+                    <Truck className="w-3.5 h-3.5 text-[#38bdf8]" />
+                    <span>Confirm & Generate Waybill (AWB)</span>
+                  </>
+                )}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── 6. DELHIVERY WAREHOUSE PICKUP SCHEDULING MODAL ──────────── */}
       {showPickupModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-200">
           <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl max-w-md w-full p-5 shadow-2xl space-y-4">
@@ -1725,4 +1973,3 @@ export default function LogisticsManager({ orders = [], token, onRefresh }: Logi
     </div>
   );
 }
-
