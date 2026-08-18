@@ -478,16 +478,8 @@ const ADMIN_API_CACHE = new Map<string, any>();
       <div className="flex-1 flex flex-col h-screen max-h-screen overflow-y-auto min-w-0 p-3 md:p-4 space-y-3.5">
         {/* Top Header Navbar - Professional SaaS Standard */}
         <header className="sticky top-0 z-30 shrink-0 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border border-slate-200/80 dark:border-slate-800 shadow-xs rounded-xl px-4 py-2.5 flex items-center justify-between gap-4 transition-all">
-          {/* Left: Mobile Toggle & Clean Heading */}
+          {/* Left: Clean Heading */}
           <div className="flex items-center gap-3 shrink-0">
-            <button
-              onClick={() => setSidebarOpen(!sidebarOpen)}
-              className="md:hidden p-1.5 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
-              aria-label="Toggle Sidebar"
-            >
-              <Menu className="w-4 h-4" />
-            </button>
-
             <div>
               <h1 className="text-sm md:text-base font-bold text-slate-900 dark:text-white tracking-tight leading-tight">
                 {currentTabMeta.title}
