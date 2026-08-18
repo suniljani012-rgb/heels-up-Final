@@ -21,8 +21,10 @@ function parseCSVLine(line: string): string[] {
   for (let i = 0; i < line.length; i++) {
     const char = line[i];
     if (char === '"') {
-      if (inQuotes && line[i + 1] === '"') { current += '"'; i++; }
-      else inQuotes = !inQuotes;
+      if (inQuotes && line[i + 1] === '"') {
+        current += '"';
+        i++;
+      } else inQuotes = !inQuotes;
     } else if (char === ',' && !inQuotes) {
       result.push(current.trim());
       current = '';
@@ -44,16 +46,23 @@ export default function BulkImport({ token, defaultCategory, onClose, onComplete
   const csvRef = useRef<HTMLInputElement>(null);
 
   const handleImport = async () => {
-    if (!csvFile) { showToast('error', 'No File', 'Select a CSV file first.'); return; }
+    if (!csvFile) {
+      showToast('error', 'No File', 'Select a CSV file first.');
+      return;
+    }
     setLoading(true);
     setResult(null);
     try {
       const text = await csvFile.text();
-      const lines = text.trim().split('\n').filter(l => l.trim() && !l.trim().startsWith('#'));
-      if (lines.length < 2) throw new Error('CSV must contain a header row plus at least one data row.');
+      const lines = text
+        .trim()
+        .split('\n')
+        .filter((l) => l.trim() && !l.trim().startsWith('#'));
+      if (lines.length < 2)
+        throw new Error('CSV must contain a header row plus at least one data row.');
 
-      const headers = parseCSVLine(lines[0]).map(h => h.trim().toLowerCase());
-      const missing = REQUIRED_FIELDS.filter(f => !headers.includes(f));
+      const headers = parseCSVLine(lines[0]).map((h) => h.trim().toLowerCase());
+      const missing = REQUIRED_FIELDS.filter((f) => !headers.includes(f));
       if (missing.length > 0) throw new Error(`Missing required columns: ${missing.join(', ')}`);
 
       const rows: BulkImportRow[] = [];
@@ -64,7 +73,9 @@ export default function BulkImport({ token, defaultCategory, onClose, onComplete
         const rowNum = i + 1;
         const vals = parseCSVLine(lines[i]);
         const row: Record<string, string> = {};
-        headers.forEach((h, idx) => { row[h] = (vals[idx] || '').trim(); });
+        headers.forEach((h, idx) => {
+          row[h] = (vals[idx] || '').trim();
+        });
 
         try {
           const name = row['name'];
@@ -84,26 +95,37 @@ export default function BulkImport({ token, defaultCategory, onClose, onComplete
           }
           seenSkus.add(sku);
 
-          // Collect all stock_<size> columns generically
           const size_stock = headers
-            .filter(h => h.startsWith('stock_'))
-            .map(h => ({ size_label: h.replace('stock_', ''), stock: parseInt(row[h] || '0', 10) || 0 }))
-            .filter(s => isValidEuSize(s.size_label));
+            .filter((h) => h.startsWith('stock_'))
+            .map((h) => ({
+              size_label: h.replace('stock_', ''),
+              stock: parseInt(row[h] || '0', 10) || 0,
+            }))
+            .filter((s) => isValidEuSize(s.size_label));
 
           rows.push({
             name,
             sku,
             category,
             price,
-            original_price: row['original_price'] ? Math.round((parseFloat(row['original_price']) || 0) * 100) : null,
-            cost_price: row['cost_price'] ? Math.round((parseFloat(row['cost_price']) || 0) * 100) : null,
+            original_price: row['original_price']
+              ? Math.round((parseFloat(row['original_price']) || 0) * 100)
+              : null,
+            cost_price: row['cost_price']
+              ? Math.round((parseFloat(row['cost_price']) || 0) * 100)
+              : null,
             color: row['color'] || '',
             material: row['material'] || '',
             heel_height: row['heel_height'] || '',
             width_option: row['width_option'] || '',
             brand: row['brand'] || 'HeelsUp',
             description: row['description'] || '',
-            tags: row['tags'] ? row['tags'].split(';').map(t => t.trim()).filter(Boolean) : [],
+            tags: row['tags']
+              ? row['tags']
+                  .split(';')
+                  .map((t) => t.trim())
+                  .filter(Boolean)
+              : [],
             active: row['active'] !== 'false',
             featured: row['featured'] === 'true',
             is_new: row['is_new'] !== 'false',
@@ -140,55 +162,100 @@ export default function BulkImport({ token, defaultCategory, onClose, onComplete
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
-      <div onClick={onClose} className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
-      <div className="bg-white border border-neutral-200 w-full max-w-lg rounded-3xl shadow-2xl relative z-10 p-6 space-y-5">
-        <div className="flex items-center justify-between border-b border-neutral-200 pb-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div onClick={onClose} className="absolute inset-0 bg-slate-900/60 backdrop-blur-xs" />
+      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 w-full max-w-lg rounded-3xl shadow-2xl relative z-10 p-6 space-y-5 text-slate-900 dark:text-white">
+        <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-4">
           <div>
-            <h3 className="text-sm font-bold text-neutral-900">Bulk Product Import</h3>
-            <p className="text-[10px] text-neutral-500 mt-0.5">Validated CSV import with row-level error reporting</p>
+            <h3 className="text-base font-bold text-slate-900 dark:text-white">
+              Bulk Catalog CSV Import
+            </h3>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+              Validated batch CSV import with size-by-size inventory mapping
+            </p>
           </div>
-          <button onClick={onClose} className="p-1.5 hover:bg-neutral-100 rounded-lg text-neutral-500"><X className="w-4 h-4" /></button>
+          <button
+            onClick={onClose}
+            className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800"
+          >
+            <X className="w-5 h-5" />
+          </button>
         </div>
 
-        <div onClick={() => csvRef.current?.click()}
-          className="border-2 border-dashed border-neutral-200 hover:border-neutral-400 rounded-2xl p-8 text-center cursor-pointer transition-colors group">
-          <input ref={csvRef} type="file" accept=".csv" onChange={e => { setCsvFile(e.target.files?.[0] || null); setResult(null); }} className="hidden" />
-          <FileText className="w-8 h-8 text-neutral-300 group-hover:text-neutral-500 mx-auto mb-2 transition-colors" />
+        <div
+          onClick={() => csvRef.current?.click()}
+          className="border-2 border-dashed border-slate-200 dark:border-slate-700 hover:border-indigo-500 bg-slate-50 dark:bg-slate-800/60 rounded-2xl p-8 text-center cursor-pointer transition-colors group"
+        >
+          <input
+            ref={csvRef}
+            type="file"
+            accept=".csv"
+            onChange={(e) => {
+              setCsvFile(e.target.files?.[0] || null);
+              setResult(null);
+            }}
+            className="hidden"
+          />
+          <FileText className="w-8 h-8 text-slate-400 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 mx-auto mb-2 transition-colors" />
           {csvFile ? (
-            <div><p className="text-sm font-bold text-neutral-900">{csvFile.name}</p><p className="text-[10px] text-neutral-500">{(csvFile.size / 1024).toFixed(1)} KB</p></div>
+            <div>
+              <p className="text-sm font-bold text-slate-900 dark:text-white">{csvFile.name}</p>
+              <p className="text-xs text-slate-500 dark:text-slate-400 font-mono mt-0.5">
+                {(csvFile.size / 1024).toFixed(1)} KB
+              </p>
+            </div>
           ) : (
-            <><p className="text-sm font-semibold text-neutral-600">Click to select CSV</p><p className="text-[10px] text-neutral-400 mt-1">Download the template first for correct columns</p></>
+            <>
+              <p className="text-sm font-semibold text-slate-700 dark:text-slate-300">
+                Click to browse CSV file
+              </p>
+              <p className="text-xs text-slate-400 mt-1">
+                Download the official template first for guaranteed schema match
+              </p>
+            </>
           )}
         </div>
 
         {result && (
-          <div className="bg-neutral-50 border border-neutral-200 rounded-2xl p-4 space-y-2">
-            <div className="flex items-center gap-2 text-emerald-700">
+          <div className="bg-slate-50 dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-700/60 rounded-2xl p-4 space-y-2">
+            <div className="flex items-center gap-2 text-emerald-600 dark:text-emerald-400">
               <CheckCircle2 className="w-4 h-4" />
-              <span className="text-xs font-bold">{result.success} products imported</span>
-              {result.failed > 0 && <span className="text-rose-600 text-[10px] font-bold">({result.failed} failed)</span>}
+              <span className="text-xs font-bold">{result.success} products imported successfully</span>
+              {result.failed > 0 && (
+                <span className="text-rose-600 text-xs font-bold">({result.failed} failed)</span>
+              )}
             </div>
             {result.errors && result.errors.length > 0 && (
-              <div className="space-y-1">
+              <div className="space-y-1 pt-1">
                 <div className="flex items-center gap-1.5 text-rose-600">
                   <AlertTriangle className="w-3.5 h-3.5" />
-                  <span className="text-[10px] font-bold">{result.errors.length} row(s) with errors:</span>
+                  <span className="text-xs font-bold">{result.errors.length} row(s) with errors:</span>
                 </div>
-                <div className="max-h-28 overflow-y-auto">{result.errors.map((e, i) => <p key={i} className="text-[9px] text-rose-500 font-mono pl-5">{e}</p>)}</div>
+                <div className="max-h-28 overflow-y-auto">
+                  {result.errors.map((e, i) => (
+                    <p key={i} className="text-[10px] text-rose-500 font-mono pl-5">
+                      {e}
+                    </p>
+                  ))}
+                </div>
               </div>
             )}
           </div>
         )}
 
         <div className="flex gap-3">
-          <button onClick={downloadCsvTemplate}
-            className="flex-1 py-2.5 border border-neutral-200 hover:bg-neutral-50 text-neutral-700 font-bold text-xs rounded-xl flex items-center justify-center gap-1.5">
+          <button
+            onClick={downloadCsvTemplate}
+            className="flex-1 py-2.5 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 transition-colors"
+          >
             <Download className="w-3.5 h-3.5" /> Template
           </button>
-          <button onClick={handleImport} disabled={!csvFile || loading}
-            className="flex-1 py-2.5 bg-neutral-900 hover:bg-neutral-800 disabled:bg-neutral-200 disabled:text-neutral-400 text-white font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 transition-all active:scale-95">
-            {loading ? <RefreshCw className="w-4 h-4 animate-spin" /> : <UploadCloud className="w-3.5 h-3.5" />}
+          <button
+            onClick={handleImport}
+            disabled={!csvFile || loading}
+            className="flex-1 py-2.5 bg-slate-900 hover:bg-slate-800 dark:bg-indigo-600 dark:hover:bg-indigo-700 disabled:opacity-40 text-white font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 transition-all shadow-xs"
+          >
+            {loading ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <UploadCloud className="w-3.5 h-3.5" />}
             {loading ? 'Importing...' : 'Start Import'}
           </button>
         </div>

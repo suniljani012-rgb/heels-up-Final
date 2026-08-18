@@ -1,6 +1,25 @@
 import React, { useState, useMemo } from 'react';
 import { useToastStore } from '../../store/useToastStore';
-import { Search, Eye, X, Printer, Truck, DollarSign, ChevronLeft, ChevronRight, Check } from 'lucide-react';
+import {
+  Search,
+  Eye,
+  X,
+  Printer,
+  Truck,
+  ChevronLeft,
+  ChevronRight,
+  ShoppingBag,
+  Clock,
+  CheckCircle2,
+  AlertCircle,
+  Package,
+  ExternalLink,
+  MapPin,
+  Phone,
+  Mail,
+  User,
+  CreditCard
+} from 'lucide-react';
 
 interface OrderItem {
   id: any;
@@ -50,27 +69,41 @@ export default function OrdersManager({ orders, token, onRefresh }: OrdersManage
   const [statusFilter, setStatusFilter] = useState('all');
   const [sourceFilter, setSourceFilter] = useState('all');
   const [page, setPage] = useState(0);
-  const itemsPerPage = 15;
+  const itemsPerPage = 12;
 
   // Drawer / Details Modal
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [updatingStatus, setUpdatingStatus] = useState(false);
   const [orderStatusVal, setOrderStatusVal] = useState('');
   const [paymentStatusVal, setPaymentStatusVal] = useState('');
-  
+
   // Tracking parameters
   const [trackingNumber, setTrackingNumber] = useState('');
   const [trackingUrl, setTrackingUrl] = useState('');
   const [courierName, setCourierName] = useState('');
 
+  // Status Counts
+  const counts = useMemo(() => {
+    return {
+      all: orders.length,
+      placed: orders.filter((o) => o.order_status === 'placed').length,
+      confirmed: orders.filter((o) => o.order_status === 'confirmed').length,
+      shipped: orders.filter((o) => o.order_status === 'shipped').length,
+      delivered: orders.filter((o) => o.order_status === 'delivered').length,
+      cancelled: orders.filter((o) => o.order_status === 'cancelled').length,
+    };
+  }, [orders]);
+
   // Filter orders
   const filteredOrders = useMemo(() => {
-    return orders.filter(o => {
+    return orders.filter((o) => {
       const term = searchQuery.toLowerCase();
-      const matchesSearch = o.order_number?.toLowerCase().includes(term) ||
-                            o.customer_name?.toLowerCase().includes(term) ||
-                            o.customer_phone?.toLowerCase().includes(term);
-      
+      const matchesSearch =
+        o.order_number?.toLowerCase().includes(term) ||
+        o.customer_name?.toLowerCase().includes(term) ||
+        o.customer_phone?.toLowerCase().includes(term) ||
+        o.customer_email?.toLowerCase().includes(term);
+
       const matchesStatus = statusFilter === 'all' ? true : o.order_status === statusFilter;
       const matchesSource = sourceFilter === 'all' ? true : o.source === sourceFilter;
 
@@ -104,15 +137,15 @@ export default function OrdersManager({ orders, token, onRefresh }: OrdersManage
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
+          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
           order_status: orderStatusVal,
           payment_status: paymentStatusVal,
           tracking_number: trackingNumber.trim(),
           tracking_url: trackingUrl.trim(),
-          courier_name: courierName.trim()
-        })
+          courier_name: courierName.trim(),
+        }),
       });
       const data = await res.json();
       if (data.success) {
@@ -134,52 +167,56 @@ export default function OrdersManager({ orders, token, onRefresh }: OrdersManage
     const printWindow = window.open('', '_blank');
     if (!printWindow) return;
 
-    const itemsRows = order.items.map(item => `
-      <tr style="border-bottom: 1px solid #f1f5f9; font-size: 11px;">
-        <td style="padding: 10px 0;">
-          <strong>${item.product_name}</strong><br/>
-          <span style="font-size: 9px; color: #64748b;">Size: UK-${item.size} ${item.color ? `&middot; ${item.color}` : ''}</span>
+    const itemsRows = order.items
+      .map(
+        (item) => `
+      <tr style="border-bottom: 1px solid #e2e8f0; font-size: 12px;">
+        <td style="padding: 12px 0;">
+          <strong style="color: #0f172a;">${item.product_name}</strong><br/>
+          <span style="font-size: 10px; color: #64748b;">Size: UK-${item.size} ${item.color ? `&middot; ${item.color}` : ''}</span>
         </td>
-        <td style="padding: 10px 0; text-align: center; font-family: monospace;">${item.quantity}</td>
-        <td style="padding: 10px 0; text-align: right; font-family: monospace;">₹${(item.price / 100).toFixed(2)}</td>
-        <td style="padding: 10px 0; text-align: right; font-family: monospace;">₹${((item.price * item.quantity) / 100).toFixed(2)}</td>
+        <td style="padding: 12px 0; text-align: center; font-family: monospace;">${item.quantity}</td>
+        <td style="padding: 12px 0; text-align: right; font-family: monospace;">₹${(item.price / 100).toFixed(2)}</td>
+        <td style="padding: 12px 0; text-align: right; font-family: monospace; font-weight: bold;">₹${((item.price * item.quantity) / 100).toFixed(2)}</td>
       </tr>
-    `).join('');
+    `
+      )
+      .join('');
 
     printWindow.document.write(`
       <html>
         <head>
           <title>Invoice - #${order.order_number}</title>
           <style>
-            body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif; color: #1e293b; padding: 40px; line-height: 1.5; }
+            body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; color: #0f172a; padding: 40px; line-height: 1.5; }
             .header { display: flex; justify-content: space-between; border-bottom: 2px solid #0f172a; padding-bottom: 20px; }
-            .logo { font-size: 24px; font-weight: 800; text-transform: uppercase; color: #000; letter-spacing: -0.02em; }
+            .logo { font-size: 24px; font-weight: 800; text-transform: uppercase; color: #0f172a; letter-spacing: -0.02em; }
             .invoice-title { text-align: right; }
-            .details { display: grid; grid-template-cols: 1fr 1fr; gap: 40px; margin-top: 40px; font-size: 12px; }
-            .table-container { margin-top: 40px; }
+            .details { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; margin-top: 30px; font-size: 12px; }
+            .table-container { margin-top: 30px; }
             table { width: 100%; border-collapse: collapse; }
-            th { border-bottom: 2px solid #e2e8f0; padding-bottom: 10px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: #64748b; }
-            .totals { margin-top: 30px; margin-left: auto; width: 300px; font-size: 12px; }
-            .totals div { display: flex; justify-content: space-between; padding: 6px 0; }
-            .grand-total { border-top: 2px solid #0f172a; font-weight: 800; font-size: 14px; padding-top: 10px !important; }
-            .footer { margin-top: 80px; text-align: center; font-size: 10px; color: #94a3b8; border-top: 1px solid #e2e8f0; padding-top: 20px; }
+            th { border-bottom: 2px solid #cbd5e1; padding-bottom: 8px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: #475569; }
+            .totals { margin-top: 25px; margin-left: auto; width: 280px; font-size: 12px; }
+            .totals div { display: flex; justify-content: space-between; padding: 5px 0; }
+            .grand-total { border-top: 2px solid #0f172a; font-weight: 800; font-size: 14px; padding-top: 8px !important; }
+            .footer { margin-top: 60px; text-align: center; font-size: 10px; color: #94a3b8; border-top: 1px solid #e2e8f0; padding-top: 20px; }
           </style>
         </head>
         <body>
           <div class="header">
             <div>
               <div class="logo">HeelsUp</div>
-              <div style="font-size: 11px; color: #64748b; margin-top: 5px;">Premium Footwear Co.</div>
+              <div style="font-size: 11px; color: #64748b; margin-top: 4px;">Premium Footwear Co.</div>
             </div>
             <div class="invoice-title">
-              <h2 style="margin: 0; font-weight: 300;">TAX INVOICE</h2>
-              <div style="font-size: 11px; font-family: monospace; color: #64748b; margin-top: 5px;">Invoice Ref: #${order.order_number}</div>
+              <h2 style="margin: 0; font-weight: 700; font-size: 20px;">TAX INVOICE</h2>
+              <div style="font-size: 11px; font-family: monospace; color: #64748b; margin-top: 4px;">Ref: #${order.order_number}</div>
             </div>
           </div>
 
           <div class="details">
             <div>
-              <h4 style="margin: 0 0 10px; text-transform: uppercase; font-size: 11px; color: #64748b;">Billed To:</h4>
+              <h4 style="margin: 0 0 8px; text-transform: uppercase; font-size: 10px; color: #64748b;">Customer Details:</h4>
               <strong>${order.customer_name}</strong><br/>
               Phone: ${order.customer_phone}<br/>
               ${order.customer_email ? `Email: ${order.customer_email}<br/>` : ''}
@@ -188,11 +225,11 @@ export default function OrdersManager({ orders, token, onRefresh }: OrdersManage
               ${order.city || ''}, ${order.state || ''} - ${order.pincode || ''}
             </div>
             <div style="text-align: right;">
-              <h4 style="margin: 0 0 10px; text-transform: uppercase; font-size: 11px; color: #64748b;">Order Info:</h4>
+              <h4 style="margin: 0 0 8px; text-transform: uppercase; font-size: 10px; color: #64748b;">Order Metadata:</h4>
               Date: ${new Date(order.created_at).toLocaleDateString('en-IN')}<br/>
               Payment Method: <span style="text-transform: uppercase;">${order.payment_method}</span><br/>
               Payment Status: <span style="text-transform: uppercase;">${order.payment_status}</span><br/>
-              Delivery Source: <span style="text-transform: uppercase;">${order.source}</span>
+              Order Channel: <span style="text-transform: uppercase;">${order.source}</span>
             </div>
           </div>
 
@@ -200,7 +237,7 @@ export default function OrdersManager({ orders, token, onRefresh }: OrdersManage
             <table>
               <thead>
                 <tr>
-                  <th style="text-align: left;">Description</th>
+                  <th style="text-align: left;">Item Description</th>
                   <th style="text-align: center; width: 60px;">Qty</th>
                   <th style="text-align: right; width: 100px;">Rate</th>
                   <th style="text-align: right; width: 100px;">Amount</th>
@@ -218,15 +255,19 @@ export default function OrdersManager({ orders, token, onRefresh }: OrdersManage
               <span style="font-family: monospace;">₹${(order.subtotal_amount / 100).toFixed(2)}</span>
             </div>
             <div>
-              <span>Shipping Fee:</span>
+              <span>Shipping:</span>
               <span style="font-family: monospace;">₹${(order.shipping_amount / 100).toFixed(2)}</span>
             </div>
-            ${order.discount_amount > 0 ? `
-              <div style="color: #be123c;">
+            ${
+              order.discount_amount > 0
+                ? `
+              <div style="color: #e11d48;">
                 <span>Discounts:</span>
                 <span style="font-family: monospace;">-₹${(order.discount_amount / 100).toFixed(2)}</span>
               </div>
-            ` : ''}
+            `
+                : ''
+            }
             <div class="grand-total">
               <span>Total Payable:</span>
               <span style="font-family: monospace;">₹${(order.total_amount / 100).toFixed(2)}</span>
@@ -234,8 +275,8 @@ export default function OrdersManager({ orders, token, onRefresh }: OrdersManage
           </div>
 
           <div class="footer">
-            Thank you for shopping at HeelsUp. In case of exchanges, visit heelsup.in/returns.<br/>
-            This is a system generated document. No signature required.
+            Thank you for shopping with HeelsUp. For returns or queries, contact support@heelsup.in.<br/>
+            This is a computer generated invoice. No signature required.
           </div>
 
           <script>
@@ -247,140 +288,230 @@ export default function OrdersManager({ orders, token, onRefresh }: OrdersManage
     printWindow.document.close();
   };
 
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case 'delivered':
+        return 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800/50';
+      case 'shipped':
+        return 'bg-indigo-50 text-indigo-700 dark:bg-indigo-950/50 dark:text-indigo-400 border-indigo-200 dark:border-indigo-800/50';
+      case 'confirmed':
+        return 'bg-blue-50 text-blue-700 dark:bg-blue-950/50 dark:text-blue-400 border-blue-200 dark:border-blue-800/50';
+      case 'cancelled':
+        return 'bg-rose-50 text-rose-700 dark:bg-rose-950/50 dark:text-rose-400 border-rose-200 dark:border-rose-800/50';
+      default:
+        return 'bg-amber-50 text-amber-700 dark:bg-amber-950/50 dark:text-amber-400 border-amber-200 dark:border-amber-800/50';
+    }
+  };
+
   return (
-    <div className="space-y-6 text-neutral-900 animate-fade-in relative">
-      <div className="sticky top-0 bg-[#f5f5f4] z-10 -mt-6 pt-6 pb-4 space-y-4">
-        <div>
-          <h1 className="text-3xl font-light text-neutral-900 font-display italic">Billing Orders Registry</h1>
-          <p className="text-xs text-neutral-500">Process and fulfill customer retail logs and transaction manifests</p>
+    <div className="space-y-5 antialiased">
+      {/* Header Overview Card */}
+      <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-5 shadow-xs space-y-4">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h2 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+              <ShoppingBag className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
+              Orders Registry & Fulfillment
+            </h2>
+            <p className="text-xs text-slate-500 dark:text-slate-400">
+              Manage transactions, courier dispatch, invoice printing, and fulfillment lifecycle
+            </p>
+          </div>
+
+          <div className="flex items-center gap-2 text-xs">
+            <span className="px-3 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 font-semibold text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
+              Total: {orders.length}
+            </span>
+          </div>
         </div>
 
-        {/* Filter Row */}
-        <div className="bg-white border border-neutral-200/80 p-4 rounded-2xl flex flex-wrap items-center justify-between gap-4 shadow-md">
-          <div className="flex flex-wrap items-center gap-3 flex-1 min-w-[280px]">
-            <div className="relative flex-1 min-w-[180px]">
-              <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-neutral-500" />
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => { setSearchQuery(e.target.value); setPage(0); }}
-                placeholder="Search order #, customer..."
-                className="w-full bg-neutral-50 border border-neutral-200 rounded-xl pl-9 pr-4 py-2 text-xs text-neutral-900 placeholder-neutral-500 focus:outline-none focus:border-primary/50"
-              />
-            </div>
-            <select
-              value={statusFilter}
-              onChange={(e) => { setStatusFilter(e.target.value); setPage(0); }}
-              className="bg-neutral-50 border border-neutral-200 rounded-xl px-2 py-1.5 text-xs text-neutral-900 focus:outline-none"
-            >
-              <option value="all">All Statuses</option>
-              <option value="placed">Placed</option>
-              <option value="confirmed">Confirmed</option>
-              <option value="shipped">Shipped</option>
-              <option value="delivered">Delivered</option>
-              <option value="cancelled">Cancelled</option>
-            </select>
-            <select
-              value={sourceFilter}
-              onChange={(e) => { setSourceFilter(e.target.value); setPage(0); }}
-              className="bg-neutral-50 border border-neutral-200 rounded-xl px-2 py-1.5 text-xs text-neutral-900 focus:outline-none"
-            >
-              <option value="all">All Channels</option>
-              <option value="web">Web Storefront</option>
-              <option value="pos">In-store POS</option>
-              <option value="whatsapp">WhatsApp Order</option>
-            </select>
-          </div>
-
-          <div className="flex items-center gap-2 text-xs font-mono text-neutral-500">
-            <button
-              disabled={page === 0}
-              onClick={() => setPage(p => p - 1)}
-              className="p-1 hover:bg-neutral-100 rounded border border-neutral-200 disabled:opacity-30"
-            >
-              <ChevronLeft className="w-4 h-4" />
-            </button>
-            <span>{page + 1} / {Math.ceil(filteredOrders.length / itemsPerPage) || 1}</span>
-            <button
-              disabled={(page + 1) * itemsPerPage >= filteredOrders.length}
-              onClick={() => setPage(p => p + 1)}
-              className="p-1 hover:bg-neutral-100 rounded border border-neutral-200 disabled:opacity-30"
-            >
-              <ChevronRight className="w-4 h-4" />
-            </button>
-          </div>
+        {/* Status Filter Tabs */}
+        <div className="flex flex-wrap items-center gap-1.5 pt-2 border-t border-slate-100 dark:border-slate-800">
+          {[
+            { id: 'all', label: 'All Orders', count: counts.all },
+            { id: 'placed', label: 'Placed (Queue)', count: counts.placed },
+            { id: 'confirmed', label: 'Confirmed', count: counts.confirmed },
+            { id: 'shipped', label: 'Shipped', count: counts.shipped },
+            { id: 'delivered', label: 'Delivered', count: counts.delivered },
+            { id: 'cancelled', label: 'Cancelled', count: counts.cancelled },
+          ].map((tab) => {
+            const isActive = statusFilter === tab.id;
+            return (
+              <button
+                key={tab.id}
+                onClick={() => {
+                  setStatusFilter(tab.id);
+                  setPage(0);
+                }}
+                className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors flex items-center gap-1.5 ${
+                  isActive
+                    ? 'bg-slate-900 text-white dark:bg-indigo-600 dark:text-white shadow-xs'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800'
+                }`}
+              >
+                <span>{tab.label}</span>
+                <span
+                  className={`px-1.5 py-0.2 rounded-md text-[10px] ${
+                    isActive
+                      ? 'bg-white/20 text-white'
+                      : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400'
+                  }`}
+                >
+                  {tab.count}
+                </span>
+              </button>
+            );
+          })}
         </div>
       </div>
 
-      {/* Orders Grid Table */}
-      <div className="bg-white border border-neutral-200/80 rounded-3xl overflow-hidden shadow-xl">
+      {/* Search & Channel Filter Bar */}
+      <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-4 shadow-xs flex flex-wrap items-center justify-between gap-3">
+        <div className="flex flex-wrap items-center gap-3 flex-1 min-w-[280px]">
+          <div className="relative flex-1 min-w-[200px]">
+            <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => {
+                setSearchQuery(e.target.value);
+                setPage(0);
+              }}
+              placeholder="Search by order #, customer name, phone, email..."
+              className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700 rounded-xl pl-9 pr-4 py-2 text-xs text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+            />
+          </div>
+
+          <select
+            value={sourceFilter}
+            onChange={(e) => {
+              setSourceFilter(e.target.value);
+              setPage(0);
+            }}
+            className="bg-slate-50 dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-700 dark:text-slate-300 focus:outline-none"
+          >
+            <option value="all">All Channels</option>
+            <option value="web">Web Storefront</option>
+            <option value="pos">In-store POS</option>
+            <option value="whatsapp">WhatsApp Order</option>
+            <option value="instagram">Instagram</option>
+          </select>
+        </div>
+
+        {/* Pagination Controls */}
+        <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
+          <button
+            disabled={page === 0}
+            onClick={() => setPage((p) => p - 1)}
+            className="p-1.5 rounded-lg bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-200/60 dark:border-slate-700 disabled:opacity-30 transition-colors"
+          >
+            <ChevronLeft className="w-4 h-4" />
+          </button>
+          <span className="font-semibold text-slate-700 dark:text-slate-300">
+            Page {page + 1} of {Math.ceil(filteredOrders.length / itemsPerPage) || 1}
+          </span>
+          <button
+            disabled={(page + 1) * itemsPerPage >= filteredOrders.length}
+            onClick={() => setPage((p) => p + 1)}
+            className="p-1.5 rounded-lg bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-200/60 dark:border-slate-700 disabled:opacity-30 transition-colors"
+          >
+            <ChevronRight className="w-4 h-4" />
+          </button>
+        </div>
+      </div>
+
+      {/* Orders Table Grid */}
+      <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl overflow-hidden shadow-xs">
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse text-xs">
             <thead>
-              <tr className="bg-neutral-50 text-neutral-500 border-b border-neutral-200 font-mono">
-                <th className="p-4">Order #</th>
-                <th className="p-4">Date</th>
-                <th className="p-4">Customer</th>
-                <th className="p-4">Total Amount</th>
-                <th className="p-4">Channel</th>
-                <th className="p-4">Order status</th>
-                <th className="p-4">Payment</th>
-                <th className="p-4 text-right">Actions</th>
+              <tr className="bg-slate-50/80 dark:bg-slate-800/60 text-slate-500 dark:text-slate-400 border-b border-slate-200/80 dark:border-slate-800 font-semibold">
+                <th className="py-3 px-4">Order #</th>
+                <th className="py-3 px-4">Date</th>
+                <th className="py-3 px-4">Customer</th>
+                <th className="py-3 px-4">Total Amount</th>
+                <th className="py-3 px-4">Channel</th>
+                <th className="py-3 px-4">Fulfillment Status</th>
+                <th className="py-3 px-4">Payment</th>
+                <th className="py-3 px-4 text-right">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-neutral-100">
+            <tbody className="divide-y divide-slate-100 dark:divide-slate-800/80">
               {paginatedOrders.map((o) => (
-                <tr key={o.id} className="hover:bg-neutral-50/20 transition-colors">
-                  <td className="p-4 font-mono font-bold text-blue-600">#{o.order_number}</td>
-                  <td className="p-4 text-neutral-900 font-mono">{new Date(o.created_at).toLocaleDateString('en-IN')}</td>
-                  <td className="p-4">
-                    <h4 className="font-bold text-neutral-900 text-xs">{o.customer_name}</h4>
-                    <span className="text-[9px] text-neutral-500 font-mono">{o.customer_phone}</span>
+                <tr
+                  key={o.id}
+                  className="hover:bg-slate-50/60 dark:hover:bg-slate-800/40 transition-colors"
+                >
+                  <td className="py-3.5 px-4 font-mono font-bold text-indigo-600 dark:text-indigo-400">
+                    #{o.order_number}
                   </td>
-                  <td className="p-4 font-mono font-bold text-black">₹{(o.total_amount / 100).toFixed(2)}</td>
-                  <td className="p-4">
-                    <span className={`px-2 py-0.5 rounded text-[9px] font-bold uppercase ${o.source === 'pos' ? 'bg-sky-500/10 border border-sky-500/20 text-sky-600' : 'bg-neutral-100 text-neutral-500'}`}>
+                  <td className="py-3.5 px-4 text-slate-600 dark:text-slate-400 font-mono text-[11px]">
+                    {new Date(o.created_at).toLocaleDateString('en-IN', {
+                      day: '2-digit',
+                      month: 'short',
+                      year: 'numeric',
+                    })}
+                  </td>
+                  <td className="py-3.5 px-4">
+                    <div className="min-w-[140px]">
+                      <p className="font-semibold text-slate-900 dark:text-white text-xs">{o.customer_name}</p>
+                      <p className="text-[10px] text-slate-400 font-mono">{o.customer_phone}</p>
+                    </div>
+                  </td>
+                  <td className="py-3.5 px-4 font-bold text-slate-900 dark:text-white font-mono text-xs">
+                    ₹{(o.total_amount / 100).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                  </td>
+                  <td className="py-3.5 px-4">
+                    <span
+                      className={`px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider ${
+                        o.source === 'pos'
+                          ? 'bg-sky-50 text-sky-700 dark:bg-sky-950/60 dark:text-sky-400 border border-sky-200/60 dark:border-sky-800/60'
+                          : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
+                      }`}
+                    >
                       {o.source}
                     </span>
                   </td>
-                  <td className="p-4">
-                    <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider ${
-                      o.order_status === 'delivered' ? 'bg-emerald-500/10 border border-emerald-500/20 text-emerald-700' :
-                      o.order_status === 'cancelled' ? 'bg-rose-500/10 border border-rose-500/20 text-rose-600' :
-                      o.order_status === 'shipped' ? 'bg-indigo-500/10 border border-indigo-500/20 text-indigo-400' :
-                      'bg-amber-500/10 border border-amber-500/20 text-amber-600'
-                    }`}>
+                  <td className="py-3.5 px-4">
+                    <span
+                      className={`inline-block px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border ${getStatusBadge(
+                        o.order_status
+                      )}`}
+                    >
                       {o.order_status}
                     </span>
                   </td>
-                  <td className="p-4 uppercase text-[9px] font-mono font-bold">
-                    <span className={o.payment_status === 'paid' ? 'text-emerald-700' : 'text-amber-500'}>
+                  <td className="py-3.5 px-4 uppercase text-[10px] font-mono font-bold">
+                    <span className={o.payment_status === 'paid' ? 'text-emerald-600' : 'text-amber-500'}>
                       {o.payment_status} &middot; {o.payment_method}
                     </span>
                   </td>
-                  <td className="p-4 text-right">
-                    <div className="flex items-center justify-end gap-2">
+                  <td className="py-3.5 px-4 text-right">
+                    <div className="flex items-center justify-end gap-1.5">
                       <button
                         onClick={() => handleOpenDetails(o)}
-                        className="p-1.5 bg-neutral-100 hover:bg-neutral-200 hover:text-neutral-900 rounded-lg transition-all"
-                        title="View & Edit"
+                        className="p-1.5 rounded-lg text-slate-500 hover:text-indigo-600 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                        title="View & Edit Order Details"
                       >
-                        <Eye className="w-3.5 h-3.5" />
+                        <Eye className="w-4 h-4" />
                       </button>
                       <button
                         onClick={() => handlePrintInvoice(o)}
-                        className="p-1.5 bg-neutral-100 hover:bg-neutral-200 hover:text-neutral-900 rounded-lg transition-all"
+                        className="p-1.5 rounded-lg text-slate-500 hover:text-indigo-600 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
                         title="Print Invoice"
                       >
-                        <Printer className="w-3.5 h-3.5" />
+                        <Printer className="w-4 h-4" />
                       </button>
                     </div>
                   </td>
                 </tr>
               ))}
+
               {paginatedOrders.length === 0 && (
                 <tr>
-                  <td colSpan={8} className="py-24 text-center text-neutral-500 italic font-mono bg-white">No billing manifests match criteria.</td>
+                  <td colSpan={8} className="py-16 text-center text-slate-400 italic">
+                    No orders match the selected filters.
+                  </td>
                 </tr>
               )}
             </tbody>
@@ -388,64 +519,96 @@ export default function OrdersManager({ orders, token, onRefresh }: OrdersManage
         </div>
       </div>
 
-      {/* Details Drawer */}
+      {/* Slide-over Order Details Drawer */}
       {selectedOrder && (
         <div className="fixed inset-0 z-50 flex justify-end">
-          <div onClick={() => setSelectedOrder(null)} className="absolute inset-0 bg-black/60 backdrop-blur-xs"></div>
-          <div className="w-full max-w-xl bg-white border-l border-neutral-200/80 shadow-2xl relative z-10 p-6 flex flex-col justify-between h-full overflow-y-auto">
-            <div className="space-y-6">
-              <div className="flex items-center justify-between border-b border-neutral-200/80 pb-4">
-                <h3 className="text-sm font-bold uppercase tracking-widest text-neutral-900 font-mono">
-                  Modify Manifest: <span className="text-blue-600">#{selectedOrder.order_number}</span>
-                </h3>
-                <button onClick={() => setSelectedOrder(null)} className="p-1 hover:bg-neutral-200 rounded-lg text-neutral-500 hover:text-neutral-900 transition-colors">
+          <div
+            onClick={() => setSelectedOrder(null)}
+            className="absolute inset-0 bg-slate-900/60 backdrop-blur-xs transition-opacity"
+          />
+          <div className="w-full max-w-xl bg-white dark:bg-slate-900 border-l border-slate-200 dark:border-slate-800 shadow-2xl relative z-10 p-6 flex flex-col justify-between h-full overflow-y-auto">
+            <div className="space-y-5">
+              <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-4">
+                <div>
+                  <h3 className="text-base font-bold text-slate-900 dark:text-white">
+                    Order Details #{selectedOrder.order_number}
+                  </h3>
+                  <p className="text-xs text-slate-400">
+                    Placed on {new Date(selectedOrder.created_at).toLocaleString('en-IN')}
+                  </p>
+                </div>
+                <button
+                  onClick={() => setSelectedOrder(null)}
+                  className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                >
                   <X className="w-5 h-5" />
                 </button>
               </div>
 
-              {/* Order items lists */}
-              <div className="space-y-3.5">
-                <h4 className="text-[10px] uppercase tracking-wider font-bold text-neutral-500">Order Items</h4>
-                <div className="space-y-2 max-h-40 overflow-y-auto pr-1">
+              {/* Items List */}
+              <div className="space-y-2.5">
+                <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">
+                  Purchased Items ({selectedOrder.items?.length || 0})
+                </h4>
+                <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
                   {selectedOrder.items?.map((item, idx) => (
-                    <div key={idx} className="flex justify-between items-center p-3 bg-neutral-50 border border-neutral-200 rounded-xl text-xs">
+                    <div
+                      key={idx}
+                      className="flex justify-between items-center p-3 bg-slate-50 dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-700/60 rounded-xl text-xs"
+                    >
                       <div>
-                        <h5 className="font-bold text-neutral-900">{item.product_name}</h5>
-                        <span className="text-[9px] text-neutral-500 font-mono">Size UK-{item.size} {item.color ? `&middot; ${item.color}` : ''} &middot; {item.quantity} units</span>
+                        <p className="font-bold text-slate-900 dark:text-white">{item.product_name}</p>
+                        <p className="text-[10px] text-slate-400 font-mono mt-0.5">
+                          Size UK-{item.size} {item.color ? `• ${item.color}` : ''} • Qty: {item.quantity}
+                        </p>
                       </div>
-                      <span className="font-mono font-bold text-neutral-700">₹{((item.price * item.quantity) / 100).toFixed(2)}</span>
+                      <span className="font-mono font-bold text-slate-900 dark:text-white">
+                        ₹{((item.price * item.quantity) / 100).toFixed(2)}
+                      </span>
                     </div>
                   ))}
                 </div>
               </div>
 
-              {/* Address details */}
-              <div className="bg-neutral-50 border border-neutral-200 rounded-2xl p-4 space-y-3 text-xs leading-relaxed text-neutral-700">
-                <h4 className="text-[10px] uppercase tracking-wider font-bold text-neutral-500 border-b border-neutral-200 pb-2">Customer Address Details</h4>
-                <p>
-                  <strong>Ship To:</strong> {selectedOrder.customer_name}<br/>
-                  <strong>Phone:</strong> {selectedOrder.customer_phone}<br/>
-                  {selectedOrder.customer_email && <><strong>Email:</strong> {selectedOrder.customer_email}<br/></>}
-                  {selectedOrder.address_line1 && <>{selectedOrder.address_line1}<br/></>}
-                  {selectedOrder.address_line2 && <>{selectedOrder.address_line2}<br/></>}
-                  {selectedOrder.city && <>{selectedOrder.city}, {selectedOrder.state || ''} - {selectedOrder.pincode || ''}</>}
-                </p>
+              {/* Customer Address Details Card */}
+              <div className="bg-slate-50 dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-700/60 rounded-xl p-4 space-y-2 text-xs">
+                <h4 className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-slate-700 pb-1.5 flex items-center gap-1.5">
+                  <MapPin className="w-3.5 h-3.5 text-indigo-600" /> Shipping & Customer Details
+                </h4>
+                <div className="space-y-1 text-slate-700 dark:text-slate-300">
+                  <p className="font-bold text-slate-900 dark:text-white">{selectedOrder.customer_name}</p>
+                  <p className="flex items-center gap-1 text-[11px]">
+                    <Phone className="w-3 h-3 text-slate-400" /> {selectedOrder.customer_phone}
+                  </p>
+                  {selectedOrder.customer_email && (
+                    <p className="flex items-center gap-1 text-[11px]">
+                      <Mail className="w-3 h-3 text-slate-400" /> {selectedOrder.customer_email}
+                    </p>
+                  )}
+                  <p className="text-[11px] text-slate-600 dark:text-slate-400 pt-1">
+                    {selectedOrder.address_line1} {selectedOrder.address_line2}
+                    <br />
+                    {selectedOrder.city}, {selectedOrder.state} - {selectedOrder.pincode}
+                  </p>
+                </div>
                 {selectedOrder.notes && (
-                  <div className="mt-2 p-2.5 bg-white border border-neutral-200 rounded-xl text-[11px] text-neutral-500 italic">
+                  <div className="mt-2 p-2 bg-amber-50 dark:bg-amber-950/40 border border-amber-200/60 dark:border-amber-800/50 rounded-lg text-[11px] text-amber-800 dark:text-amber-300 italic">
                     Note: "{selectedOrder.notes}"
                   </div>
                 )}
               </div>
 
-              {/* Update Status Form */}
-              <form onSubmit={handleSaveOrder} className="space-y-5 text-xs">
-                <div className="grid grid-cols-2 gap-4">
+              {/* Status Update Form */}
+              <form onSubmit={handleSaveOrder} className="space-y-4 text-xs">
+                <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-[10px] uppercase tracking-wider font-bold text-neutral-500 mb-1">Order Status</label>
+                    <label className="block text-[10px] uppercase font-bold text-slate-400 dark:text-slate-500 mb-1">
+                      Fulfillment Status
+                    </label>
                     <select
                       value={orderStatusVal}
                       onChange={(e) => setOrderStatusVal(e.target.value)}
-                      className="w-full bg-neutral-50 border border-neutral-200 rounded-xl px-3 py-2 text-neutral-900 focus:outline-none"
+                      className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-indigo-500"
                     >
                       <option value="placed">Placed / In Queue</option>
                       <option value="confirmed">Confirmed / Processing</option>
@@ -455,11 +618,13 @@ export default function OrdersManager({ orders, token, onRefresh }: OrdersManage
                     </select>
                   </div>
                   <div>
-                    <label className="block text-[10px] uppercase tracking-wider font-bold text-neutral-500 mb-1">Payment Status</label>
+                    <label className="block text-[10px] uppercase font-bold text-slate-400 dark:text-slate-500 mb-1">
+                      Payment Status
+                    </label>
                     <select
                       value={paymentStatusVal}
                       onChange={(e) => setPaymentStatusVal(e.target.value)}
-                      className="w-full bg-neutral-50 border border-neutral-200 rounded-xl px-3 py-2 text-neutral-900 focus:outline-none"
+                      className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-indigo-500"
                     >
                       <option value="pending">Pending Payment</option>
                       <option value="paid">Paid / Settled</option>
@@ -468,41 +633,45 @@ export default function OrdersManager({ orders, token, onRefresh }: OrdersManage
                   </div>
                 </div>
 
-                {/* Delivery details */}
-                <div className="bg-neutral-50 border border-neutral-200 rounded-2xl p-4 space-y-4">
-                  <h4 className="text-[10px] uppercase tracking-wider font-bold text-neutral-500 border-b border-neutral-200 pb-2 flex items-center gap-1.5">
-                    <Truck className="w-4 h-4 text-neutral-900" /> Courier Dispatch Registry
+                {/* Courier & Tracking */}
+                <div className="bg-slate-50 dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-700/60 rounded-xl p-3.5 space-y-3">
+                  <h4 className="text-[10px] uppercase font-bold text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-slate-700 pb-1.5 flex items-center gap-1.5">
+                    <Truck className="w-3.5 h-3.5 text-indigo-600" /> Dispatch & AWB Tracking
                   </h4>
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <label className="block text-[9px] uppercase font-mono text-neutral-500 mb-1">Courier Partner</label>
+                      <label className="block text-[9px] uppercase font-mono text-slate-400 mb-1">
+                        Courier Partner
+                      </label>
                       <input
                         type="text"
                         value={courierName}
                         onChange={(e) => setCourierName(e.target.value)}
-                        placeholder="e.g. Delhivery, Bluedart"
-                        className="w-full bg-white border border-neutral-200 rounded-xl px-3 py-2 text-neutral-900 focus:outline-none"
+                        placeholder="e.g. Delhivery, BlueDart"
+                        className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-2.5 py-1.5 text-slate-900 dark:text-white focus:outline-none"
                       />
                     </div>
                     <div>
-                      <label className="block text-[9px] uppercase font-mono text-neutral-500 mb-1">Awb Tracking #</label>
+                      <label className="block text-[9px] uppercase font-mono text-slate-400 mb-1">AWB Number</label>
                       <input
                         type="text"
                         value={trackingNumber}
                         onChange={(e) => setTrackingNumber(e.target.value)}
                         placeholder="e.g. 123456789"
-                        className="w-full bg-white border border-neutral-200 rounded-xl px-3 py-2 text-neutral-900 focus:outline-none font-mono"
+                        className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-2.5 py-1.5 text-slate-900 dark:text-white focus:outline-none font-mono"
                       />
                     </div>
                   </div>
                   <div>
-                    <label className="block text-[9px] uppercase font-mono text-neutral-500 mb-1">Tracking Redirect Url</label>
+                    <label className="block text-[9px] uppercase font-mono text-slate-400 mb-1">
+                      Tracking URL
+                    </label>
                     <input
                       type="url"
                       value={trackingUrl}
                       onChange={(e) => setTrackingUrl(e.target.value)}
                       placeholder="https://delhivery.com/track/..."
-                      className="w-full bg-white border border-neutral-200 rounded-xl px-3 py-2 text-neutral-900 focus:outline-none font-mono"
+                      className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-2.5 py-1.5 text-slate-900 dark:text-white focus:outline-none font-mono text-[11px]"
                     />
                   </div>
                 </div>
@@ -510,9 +679,9 @@ export default function OrdersManager({ orders, token, onRefresh }: OrdersManage
                 <button
                   type="submit"
                   disabled={updatingStatus}
-                  className="w-full py-2.5 bg-neutral-900 hover:bg-neutral-800 text-white font-bold text-xs uppercase tracking-widest rounded-xl transition-all shadow-md active:scale-95 disabled:bg-neutral-100"
+                  className="w-full py-2.5 bg-slate-900 hover:bg-slate-800 dark:bg-indigo-600 dark:hover:bg-indigo-700 text-white font-bold text-xs rounded-xl transition-all shadow-xs disabled:opacity-50"
                 >
-                  {updatingStatus ? 'Syncing...' : 'Save Order Manifest'}
+                  {updatingStatus ? 'Updating...' : 'Save Order Changes'}
                 </button>
               </form>
             </div>

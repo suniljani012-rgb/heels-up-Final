@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useToastStore } from '../../store/useToastStore';
+import { ShieldCheck, Key, Lock, Mail, ArrowLeft, CheckCircle2 } from 'lucide-react';
 
 interface AdminAuthProps {
   onAuthSuccess: (user: { name: string; role: string; email: string; permissions?: string[] }) => void;
@@ -36,7 +37,7 @@ export default function AdminAuth({ onAuthSuccess }: AdminAuthProps) {
       const res = await fetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: emailInput.toLowerCase().trim(), password: passwordInput })
+        body: JSON.stringify({ email: emailInput.toLowerCase().trim(), password: passwordInput }),
       });
       const data = await res.json();
       if (data.success && data.data) {
@@ -76,7 +77,7 @@ export default function AdminAuth({ onAuthSuccess }: AdminAuthProps) {
       const res = await fetch('/api/auth/admin-verify-otp', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ otp: otpInput, session_token: sessionToken })
+        body: JSON.stringify({ otp: otpInput, session_token: sessionToken }),
       });
       const data = await res.json();
       if (data.success && data.data) {
@@ -109,7 +110,7 @@ export default function AdminAuth({ onAuthSuccess }: AdminAuthProps) {
       const res = await fetch('/api/auth/forgot-password', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: resetEmail.toLowerCase().trim() })
+        body: JSON.stringify({ email: resetEmail.toLowerCase().trim() }),
       });
       const data = await res.json();
       if (data.success) {
@@ -140,7 +141,11 @@ export default function AdminAuth({ onAuthSuccess }: AdminAuthProps) {
       const res = await fetch('/api/auth/reset-password', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: resetEmail.toLowerCase().trim(), otp: resetOtpCode, password: resetNewPassword })
+        body: JSON.stringify({
+          email: resetEmail.toLowerCase().trim(),
+          otp: resetOtpCode,
+          password: resetNewPassword,
+        }),
       });
       const data = await res.json();
       if (data.success) {
@@ -157,69 +162,85 @@ export default function AdminAuth({ onAuthSuccess }: AdminAuthProps) {
   };
 
   return (
-    <div className="max-w-md w-full space-y-8 bg-white border border-neutral-200/80 shadow-2xl p-8 rounded-3xl animate-fade-in text-neutral-900">
-      <div className="text-center">
-        <span className="text-2xl font-bold tracking-tight text-neutral-900 font-display">HeelsUp</span>
-        <h2 className="mt-4 text-xl font-light text-neutral-900 italic">Administration Portal Setup</h2>
-        <p className="mt-1.5 text-xs text-neutral-500">Authentication portal gateway verification</p>
+    <div className="max-w-md w-full bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-2xl p-8 rounded-3xl animate-fade-in text-slate-900 dark:text-white">
+      {/* Header */}
+      <div className="text-center space-y-2">
+        <div className="w-12 h-12 rounded-2xl bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 flex items-center justify-center mx-auto shadow-xs">
+          <ShieldCheck className="w-6 h-6" />
+        </div>
+        <h2 className="text-xl font-bold tracking-tight text-slate-900 dark:text-white">
+          HeelsUp Administration
+        </h2>
+        <p className="text-xs text-slate-500 dark:text-slate-400">
+          Secure identity verification & governance console
+        </p>
       </div>
 
       {resetStep === 'login' && !otpRequired && (
-        <form className="mt-8 space-y-6" onSubmit={handleLogin}>
-          <div className="rounded-md space-y-4">
+        <form className="mt-7 space-y-4" onSubmit={handleLogin}>
+          <div className="space-y-3">
             <div>
-              <label className="block text-[10px] font-bold text-neutral-500 uppercase tracking-widest mb-1.5">Staff Email Address</label>
-              <input
-                type="email"
-                required
-                value={emailInput}
-                onChange={(e) => setEmailInput(e.target.value)}
-                placeholder="support@heelsup.in"
-                className="appearance-none relative block w-full px-3.5 py-2.5 bg-neutral-50 border border-neutral-200 placeholder-neutral-600 text-neutral-900 rounded-xl focus:outline-none focus:border-primary/50 text-xs transition-all"
-              />
+              <label className="block text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-1">
+                Staff Email Address
+              </label>
+              <div className="relative">
+                <Mail className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                <input
+                  type="email"
+                  required
+                  value={emailInput}
+                  onChange={(e) => setEmailInput(e.target.value)}
+                  placeholder="admin@heelsup.in"
+                  className="w-full pl-9 pr-3.5 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700 placeholder-slate-400 text-slate-900 dark:text-white rounded-xl focus:outline-none focus:ring-1 focus:ring-indigo-500 text-xs transition-all font-medium"
+                />
+              </div>
             </div>
+
             <div>
-              <label className="block text-[10px] font-bold text-neutral-500 uppercase tracking-widest mb-1.5">Access Password</label>
-              <input
-                type="password"
-                required
-                value={passwordInput}
-                onChange={(e) => setPasswordInput(e.target.value)}
-                placeholder="••••••••••••"
-                className="appearance-none relative block w-full px-3.5 py-2.5 bg-neutral-50 border border-neutral-200 placeholder-neutral-600 text-neutral-900 rounded-xl focus:outline-none focus:border-primary/50 text-xs transition-all"
-              />
+              <label className="block text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-1">
+                Access Password
+              </label>
+              <div className="relative">
+                <Lock className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                <input
+                  type="password"
+                  required
+                  value={passwordInput}
+                  onChange={(e) => setPasswordInput(e.target.value)}
+                  placeholder="••••••••••••"
+                  className="w-full pl-9 pr-3.5 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700 placeholder-slate-400 text-slate-900 dark:text-white rounded-xl focus:outline-none focus:ring-1 focus:ring-indigo-500 text-xs transition-all font-mono"
+                />
+              </div>
             </div>
           </div>
 
-          <div className="flex items-center justify-between">
-            <div className="text-xs">
-              <button
-                type="button"
-                onClick={() => setResetStep('forgot_email')}
-                className="font-medium text-neutral-900 hover:underline transition-colors"
-              >
-                Forgot access credentials?
-              </button>
-            </div>
-          </div>
-
-          <div>
+          <div className="flex items-center justify-end">
             <button
-              type="submit"
-              disabled={loggingIn}
-              className="group relative w-full flex justify-center py-2.5 px-4 border border-transparent text-xs font-bold uppercase tracking-wider rounded-xl text-white bg-neutral-900 hover:bg-neutral-200 focus:outline-none transition-all shadow-md active:scale-95 disabled:bg-neutral-200"
+              type="button"
+              onClick={() => setResetStep('forgot_email')}
+              className="text-xs text-indigo-600 dark:text-indigo-400 hover:underline transition-colors"
             >
-              {loggingIn ? 'Validating...' : 'Secure Sign In'}
+              Forgot password?
             </button>
           </div>
+
+          <button
+            type="submit"
+            disabled={loggingIn}
+            className="w-full py-2.5 px-4 text-xs font-bold uppercase tracking-wider rounded-xl text-white bg-slate-900 hover:bg-slate-800 dark:bg-indigo-600 dark:hover:bg-indigo-700 transition-all shadow-xs active:scale-[0.98] disabled:opacity-50"
+          >
+            {loggingIn ? 'Authenticating...' : 'Sign In to Portal'}
+          </button>
         </form>
       )}
 
       {otpRequired && (
-        <form className="mt-8 space-y-6" onSubmit={handleOtpVerify}>
-          <div className="rounded-md space-y-4">
+        <form className="mt-7 space-y-4" onSubmit={handleOtpVerify}>
+          <div className="space-y-3">
             <div>
-              <label className="block text-[10px] font-bold text-neutral-500 uppercase tracking-widest mb-1.5">Two-Factor Passcode (OTP)</label>
+              <label className="block text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-1 text-center">
+                Two-Factor Security Code (OTP)
+              </label>
               <input
                 type="text"
                 required
@@ -227,36 +248,39 @@ export default function AdminAuth({ onAuthSuccess }: AdminAuthProps) {
                 value={otpInput}
                 onChange={(e) => setOtpInput(e.target.value)}
                 placeholder="123456"
-                className="appearance-none relative block w-full px-3.5 py-2.5 bg-neutral-50 border border-neutral-200 placeholder-neutral-605 text-neutral-900 rounded-xl focus:outline-none focus:border-primary/50 text-xs font-mono text-center tracking-widest transition-all"
+                className="w-full py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white rounded-xl focus:outline-none focus:ring-1 focus:ring-indigo-500 text-sm font-mono text-center tracking-widest font-bold"
               />
             </div>
           </div>
 
-          <div>
-            <button
-              type="submit"
-              disabled={loggingIn}
-              className="group relative w-full flex justify-center py-2.5 px-4 border border-transparent text-xs font-bold uppercase tracking-wider rounded-xl text-white bg-neutral-900 hover:bg-neutral-200 focus:outline-none transition-all shadow-md active:scale-95 disabled:bg-neutral-200"
-            >
-              {loggingIn ? 'Verifying...' : 'Verify Passcode'}
-            </button>
-          </div>
+          <button
+            type="submit"
+            disabled={loggingIn}
+            className="w-full py-2.5 px-4 text-xs font-bold uppercase tracking-wider rounded-xl text-white bg-slate-900 hover:bg-slate-800 dark:bg-indigo-600 dark:hover:bg-indigo-700 transition-all shadow-xs active:scale-[0.98] disabled:opacity-50"
+          >
+            {loggingIn ? 'Verifying...' : 'Confirm Passcode'}
+          </button>
         </form>
       )}
 
       {resetStep === 'forgot_email' && (
-        <form className="mt-8 space-y-6" onSubmit={handleForgotSubmit}>
-          <div className="rounded-md space-y-4">
+        <form className="mt-7 space-y-4" onSubmit={handleForgotSubmit}>
+          <div className="space-y-3">
             <div>
-              <label className="block text-[10px] font-bold text-neutral-500 uppercase tracking-widest mb-1.5">Registered Staff Email</label>
-              <input
-                type="email"
-                required
-                value={resetEmail}
-                onChange={(e) => setResetEmail(e.target.value)}
-                placeholder="support@heelsup.in"
-                className="appearance-none relative block w-full px-3.5 py-2.5 bg-neutral-50 border border-neutral-200 placeholder-neutral-600 text-neutral-900 rounded-xl focus:outline-none focus:border-primary/50 text-xs transition-all"
-              />
+              <label className="block text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-1">
+                Registered Staff Email
+              </label>
+              <div className="relative">
+                <Mail className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                <input
+                  type="email"
+                  required
+                  value={resetEmail}
+                  onChange={(e) => setResetEmail(e.target.value)}
+                  placeholder="admin@heelsup.in"
+                  className="w-full pl-9 pr-3.5 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 placeholder-slate-400 text-slate-900 dark:text-white rounded-xl focus:outline-none focus:ring-1 focus:ring-indigo-500 text-xs"
+                />
+              </div>
             </div>
           </div>
 
@@ -264,71 +288,73 @@ export default function AdminAuth({ onAuthSuccess }: AdminAuthProps) {
             <button
               type="button"
               onClick={() => setResetStep('login')}
-              className="text-xs font-medium text-neutral-500 hover:text-neutral-900"
+              className="text-xs text-slate-500 hover:text-slate-800 dark:hover:text-white flex items-center gap-1"
             >
-              Back to Sign In
+              <ArrowLeft className="w-3.5 h-3.5" /> Back to Login
             </button>
           </div>
 
-          <div>
-            <button
-              type="submit"
-              disabled={resettingPassword}
-              className="group relative w-full flex justify-center py-2.5 px-4 border border-transparent text-xs font-bold uppercase tracking-wider rounded-xl text-white bg-neutral-900 hover:bg-neutral-200 focus:outline-none transition-all shadow-md active:scale-95 disabled:bg-neutral-200"
-            >
-              {resettingPassword ? 'Generating OTP...' : 'Send Recovery OTP'}
-            </button>
-          </div>
+          <button
+            type="submit"
+            disabled={resettingPassword}
+            className="w-full py-2.5 px-4 text-xs font-bold uppercase tracking-wider rounded-xl text-white bg-slate-900 hover:bg-slate-800 dark:bg-indigo-600 dark:hover:bg-indigo-700 transition-all shadow-xs active:scale-[0.98] disabled:opacity-50"
+          >
+            {resettingPassword ? 'Sending OTP...' : 'Send Recovery Passcode'}
+          </button>
         </form>
       )}
 
       {resetStep === 'reset_otp' && (
-        <form className="mt-8 space-y-6" onSubmit={handleResetSubmit}>
-          <div className="rounded-md space-y-4">
+        <form className="mt-7 space-y-4" onSubmit={handleResetSubmit}>
+          <div className="space-y-3">
             <div>
-              <label className="block text-[10px] font-bold text-neutral-500 uppercase tracking-widest mb-1.5">OTP Recovery Code</label>
+              <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">
+                OTP Passcode
+              </label>
               <input
                 type="text"
                 required
                 value={resetOtpCode}
                 onChange={(e) => setResetOtpCode(e.target.value)}
                 placeholder="123456"
-                className="appearance-none relative block w-full px-3.5 py-2.5 bg-neutral-50 border border-neutral-200 placeholder-neutral-600 text-neutral-900 rounded-xl focus:outline-none focus:border-primary/50 text-xs text-center font-mono tracking-widest"
+                className="w-full py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white rounded-xl focus:outline-none focus:ring-1 focus:ring-indigo-500 text-xs text-center font-mono tracking-widest font-bold"
               />
             </div>
             <div>
-              <label className="block text-[10px] font-bold text-neutral-500 uppercase tracking-widest mb-1.5">New Password</label>
+              <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">
+                New Password
+              </label>
               <input
                 type="password"
                 required
                 value={resetNewPassword}
                 onChange={(e) => setResetNewPassword(e.target.value)}
                 placeholder="••••••••••••"
-                className="appearance-none relative block w-full px-3.5 py-2.5 bg-neutral-50 border border-neutral-200 placeholder-neutral-600 text-neutral-900 rounded-xl focus:outline-none focus:border-primary/50 text-xs"
+                className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white rounded-xl focus:outline-none focus:ring-1 focus:ring-indigo-500 text-xs"
               />
             </div>
             <div>
-              <label className="block text-[10px] font-bold text-neutral-500 uppercase tracking-widest mb-1.5">Confirm New Password</label>
+              <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">
+                Confirm Password
+              </label>
               <input
                 type="password"
                 required
                 value={resetConfirmPassword}
                 onChange={(e) => setResetConfirmPassword(e.target.value)}
                 placeholder="••••••••••••"
-                className="appearance-none relative block w-full px-3.5 py-2.5 bg-neutral-50 border border-neutral-200 placeholder-neutral-600 text-neutral-900 rounded-xl focus:outline-none focus:border-primary/50 text-xs"
+                className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white rounded-xl focus:outline-none focus:ring-1 focus:ring-indigo-500 text-xs"
               />
             </div>
           </div>
 
-          <div>
-            <button
-              type="submit"
-              disabled={resettingPassword}
-              className="group relative w-full flex justify-center py-2.5 px-4 border border-transparent text-xs font-bold uppercase tracking-wider rounded-xl text-white bg-neutral-900 hover:bg-neutral-200 focus:outline-none transition-all shadow-md active:scale-95 disabled:bg-neutral-200"
-            >
-              {resettingPassword ? 'Updating...' : 'Update Password'}
-            </button>
-          </div>
+          <button
+            type="submit"
+            disabled={resettingPassword}
+            className="w-full py-2.5 px-4 text-xs font-bold uppercase tracking-wider rounded-xl text-white bg-slate-900 hover:bg-slate-800 dark:bg-indigo-600 dark:hover:bg-indigo-700 transition-all shadow-xs active:scale-[0.98] disabled:opacity-50"
+          >
+            {resettingPassword ? 'Updating...' : 'Set New Password'}
+          </button>
         </form>
       )}
     </div>

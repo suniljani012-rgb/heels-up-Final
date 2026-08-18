@@ -1,6 +1,20 @@
 // frontend/src/pages/admin/products/ProductList.tsx
 import React, { useEffect, useRef, useState } from 'react';
-import { Search, Plus, Trash2, Edit3, ChevronLeft, ChevronRight, Download, FileText, AlertTriangle, Info } from 'lucide-react';
+import {
+  Search,
+  Plus,
+  Trash2,
+  Edit3,
+  ChevronLeft,
+  ChevronRight,
+  Download,
+  FileText,
+  AlertTriangle,
+  Info,
+  Package,
+  CheckCircle2,
+  Tag
+} from 'lucide-react';
 import { useToastStore } from '../../../store/useToastStore';
 import HeicImage from '../../../components/HeicImage';
 import { deleteProduct, downloadCsvTemplate } from './productApi';
@@ -17,23 +31,46 @@ interface ProductListProps {
   onChanged: () => void;
 }
 
-export default function ProductList({ categories, token, onAdd, onEdit, onOpenBulk, onChanged }: ProductListProps) {
+export default function ProductList({
+  categories,
+  token,
+  onAdd,
+  onEdit,
+  onDetail,
+  onOpenBulk,
+  onChanged
+}: ProductListProps) {
   const showToast = useToastStore((state) => state.showToast);
-  const { data, pagination, loading, error, reload, goToPage, setSearch, setCategory } = useProducts({ token, pageSize: 12 });
+  const { data, pagination, loading, error, reload, goToPage, setSearch, setCategory } = useProducts({
+    token,
+    pageSize: 12
+  });
   const searchRef = useRef<HTMLInputElement>(null);
   const [searchText, setSearchText] = useState('');
   const [categorySel, setCategorySel] = useState('');
 
-  useEffect(() => { searchRef.current?.focus(); }, []);
+  useEffect(() => {
+    searchRef.current?.focus();
+  }, []);
 
-  const handleSearch = (q: string) => { setSearchText(q); setSearch(q); };
-  const handleCategory = (c: string) => { setCategorySel(c); setCategory(c); };
+  const handleSearch = (q: string) => {
+    setSearchText(q);
+    setSearch(q);
+  };
+  const handleCategory = (c: string) => {
+    setCategorySel(c);
+    setCategory(c);
+  };
 
   const handleDelete = async (p: AdminProduct) => {
     if (!window.confirm(`Delete "${p.name}" permanently?`)) return;
     try {
       const result = await deleteProduct(token, p.id);
-      showToast('success', 'Deleted', result.soft_deleted ? 'Product deactivated (has order history).' : 'Product removed successfully.');
+      showToast(
+        'success',
+        'Deleted',
+        result.soft_deleted ? 'Product deactivated (has order history).' : 'Product removed successfully.'
+      );
       reload();
       onChanged();
     } catch (err: any) {
@@ -47,136 +84,210 @@ export default function ProductList({ categories, token, onAdd, onEdit, onOpenBu
   };
 
   return (
-    <div className="space-y-6 text-neutral-900 animate-fade-in">
-      <div className="sticky top-0 bg-[#f5f5f4] z-10 -mt-6 pt-6 pb-4 space-y-4">
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          <div>
-            <h1 className="text-3xl font-light text-neutral-900 font-display italic">Products Catalog</h1>
-            <p className="text-xs text-neutral-500">Manage product styles with color, material, sizing and pricing</p>
-          </div>
-          <div className="flex items-center gap-2">
-            <button onClick={handleTemplate}
-              className="px-3 py-2 border border-neutral-200 hover:bg-neutral-50 text-neutral-700 font-bold text-xs rounded-xl flex items-center gap-1.5 transition-all">
-              <Download className="w-3.5 h-3.5" /> CSV Template
-            </button>
-            <button onClick={onOpenBulk}
-              className="px-3 py-2 border border-neutral-200 hover:bg-neutral-50 text-neutral-700 font-bold text-xs rounded-xl flex items-center gap-1.5 transition-all">
-              <FileText className="w-3.5 h-3.5" /> Bulk Import
-            </button>
-            <button onClick={onAdd}
-              className="px-4 py-2 bg-neutral-900 hover:bg-neutral-800 text-white font-bold text-xs uppercase tracking-wider rounded-xl flex items-center gap-1.5 shadow-lg active:scale-95 transition-all">
-              <Plus className="w-4 h-4" /> Add Product
-            </button>
-          </div>
+    <div className="space-y-5 antialiased">
+      {/* Top Header Card */}
+      <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-5 shadow-xs flex flex-wrap items-center justify-between gap-4">
+        <div>
+          <h2 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+            <Package className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
+            Products Catalog
+          </h2>
+          <p className="text-xs text-slate-500 dark:text-slate-400">
+            Manage product styles with color variants, size grids, inventory, and pricing
+          </p>
         </div>
 
-        <div className="bg-white border border-neutral-200 p-4 rounded-2xl flex flex-wrap items-center justify-between gap-4 shadow-sm">
-          <div className="flex flex-wrap items-center gap-3 flex-1 min-w-[280px]">
-            <div className="relative flex-1 min-w-[200px]">
-              <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400" />
-              <input ref={searchRef} type="text" value={searchText} placeholder="Search by name, SKU..."
-                onChange={e => handleSearch(e.target.value)}
-                className="w-full bg-neutral-50 border border-neutral-200 rounded-xl pl-9 pr-4 py-2 text-xs text-neutral-900 placeholder-neutral-400 focus:outline-none" />
-            </div>
-            <select value={categorySel} onChange={e => handleCategory(e.target.value)}
-              className="bg-neutral-50 border border-neutral-200 rounded-xl px-3 py-2 text-xs text-neutral-900 focus:outline-none">
-              <option value="">All Categories</option>
-              {categories.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
-            </select>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={handleTemplate}
+            className="px-3 py-2 border border-slate-200/80 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 font-semibold text-xs rounded-xl flex items-center gap-1.5 transition-colors"
+          >
+            <Download className="w-3.5 h-3.5" /> CSV Template
+          </button>
+          <button
+            onClick={onOpenBulk}
+            className="px-3 py-2 border border-slate-200/80 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 font-semibold text-xs rounded-xl flex items-center gap-1.5 transition-colors"
+          >
+            <FileText className="w-3.5 h-3.5" /> Bulk Import
+          </button>
+          <button
+            onClick={onAdd}
+            className="px-4 py-2 bg-slate-900 hover:bg-slate-800 dark:bg-indigo-600 dark:hover:bg-indigo-700 text-white font-bold text-xs rounded-xl flex items-center gap-1.5 shadow-xs transition-colors"
+          >
+            <Plus className="w-4 h-4" /> Add Product
+          </button>
+        </div>
+      </div>
+
+      {/* Filter & Pagination Card */}
+      <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-4 shadow-xs flex flex-wrap items-center justify-between gap-3">
+        <div className="flex flex-wrap items-center gap-3 flex-1 min-w-[280px]">
+          <div className="relative flex-1 min-w-[200px]">
+            <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+            <input
+              ref={searchRef}
+              type="text"
+              value={searchText}
+              placeholder="Search products by title, SKU..."
+              onChange={(e) => handleSearch(e.target.value)}
+              className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700 rounded-xl pl-9 pr-4 py-2 text-xs text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+            />
           </div>
-          <div className="flex items-center gap-2 text-xs font-mono text-neutral-500">
-            <span className="text-neutral-400">{pagination.total} products</span>
-            <button disabled={pagination.page <= 1 || loading} onClick={() => goToPage(pagination.page - 1)}
-              className="p-1.5 hover:bg-neutral-100 rounded-lg border border-neutral-200 disabled:opacity-30">
-              <ChevronLeft className="w-3.5 h-3.5" />
-            </button>
-            <span>{pagination.page} / {Math.max(pagination.pages, 1)}</span>
-            <button disabled={pagination.page >= pagination.pages || loading} onClick={() => goToPage(pagination.page + 1)}
-              className="p-1.5 hover:bg-neutral-100 rounded-lg border border-neutral-200 disabled:opacity-30">
-              <ChevronRight className="w-3.5 h-3.5" />
-            </button>
-          </div>
+
+          <select
+            value={categorySel}
+            onChange={(e) => handleCategory(e.target.value)}
+            className="bg-slate-50 dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-700 dark:text-slate-300 focus:outline-none"
+          >
+            <option value="">All Categories</option>
+            {categories.map((c) => (
+              <option key={c.id} value={c.name}>
+                {c.name}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
+          <span className="font-medium text-slate-700 dark:text-slate-300">
+            {pagination.total} total items
+          </span>
+          <button
+            disabled={pagination.page <= 1 || loading}
+            onClick={() => goToPage(pagination.page - 1)}
+            className="p-1.5 rounded-lg bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-200/60 dark:border-slate-700 disabled:opacity-30 transition-colors"
+          >
+            <ChevronLeft className="w-3.5 h-3.5" />
+          </button>
+          <span className="font-semibold text-slate-700 dark:text-slate-300">
+            {pagination.page} / {Math.max(pagination.pages, 1)}
+          </span>
+          <button
+            disabled={pagination.page >= pagination.pages || loading}
+            onClick={() => goToPage(pagination.page + 1)}
+            className="p-1.5 rounded-lg bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-200/60 dark:border-slate-700 disabled:opacity-30 transition-colors"
+          >
+            <ChevronRight className="w-3.5 h-3.5" />
+          </button>
         </div>
       </div>
 
       {error && (
-        <div className="bg-rose-50 border border-rose-200 text-rose-700 rounded-2xl p-4 flex items-center gap-2 text-xs">
+        <div className="bg-rose-50 dark:bg-rose-950/40 border border-rose-200/60 dark:border-rose-800/50 text-rose-700 dark:text-rose-400 rounded-xl p-4 flex items-center gap-2 text-xs">
           <AlertTriangle className="w-4 h-4" /> {error}
         </div>
       )}
 
-      <div className="bg-white border border-neutral-200 rounded-3xl overflow-hidden shadow-sm">
+      {/* Table Card */}
+      <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl overflow-hidden shadow-xs">
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse text-xs">
             <thead>
-              <tr className="bg-neutral-50 text-neutral-500 border-b border-neutral-200 font-mono uppercase tracking-widest text-[10px]">
-                <th className="p-4 w-14">Image</th>
-                <th className="p-4">Style & Variant Name</th>
-                <th className="p-4">SKU</th>
-                <th className="p-4">Category</th>
-                <th className="p-4">Price</th>
-                <th className="p-4">Stock</th>
-                <th className="p-4">Status</th>
-                <th className="p-4 text-right">Actions</th>
+              <tr className="bg-slate-50/80 dark:bg-slate-800/60 text-slate-500 dark:text-slate-400 border-b border-slate-200/80 dark:border-slate-800 font-semibold uppercase text-[10px] tracking-wider">
+                <th className="p-3.5 w-14">Image</th>
+                <th className="p-3.5">Style & Variant Name</th>
+                <th className="p-3.5">SKU</th>
+                <th className="p-3.5">Category</th>
+                <th className="p-3.5">Price</th>
+                <th className="p-3.5">Stock</th>
+                <th className="p-3.5">Status</th>
+                <th className="p-3.5 text-right">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-neutral-100">
-              {data.map(p => (
-                <tr key={p.id} className="hover:bg-neutral-50 transition-colors">
-                  <td className="p-4">
+            <tbody className="divide-y divide-slate-100 dark:divide-slate-800/80">
+              {data.map((p) => (
+                <tr key={p.id} className="hover:bg-slate-50/60 dark:hover:bg-slate-800/40 transition-colors">
+                  <td className="p-3.5">
                     {p.images && p.images.length > 0 ? (
-                      <div className="w-10 h-10 bg-neutral-100 rounded-lg overflow-hidden border border-neutral-200 flex items-center justify-center">
+                      <div className="w-10 h-10 bg-slate-100 dark:bg-slate-800 rounded-lg overflow-hidden border border-slate-200/60 dark:border-slate-700 flex items-center justify-center">
                         <HeicImage src={p.images[0]} alt={p.name} className="w-full h-full object-contain" />
                       </div>
                     ) : (
-                      <div className="w-10 h-10 bg-neutral-100 rounded-lg flex items-center justify-center text-neutral-400 font-bold font-mono text-[8px]">N/A</div>
+                      <div className="w-10 h-10 bg-slate-100 dark:bg-slate-800 rounded-lg flex items-center justify-center text-slate-400 font-bold font-mono text-[9px]">
+                        N/A
+                      </div>
                     )}
                   </td>
-                  <td className="p-4">
-                    <h4 className="font-semibold text-neutral-900">{p.name}</h4>
-                    <span className="text-[9px] text-neutral-400 uppercase tracking-widest font-mono block mt-0.5">
-                      {p.brand || 'HeelsUp'}{p.color ? ` · ${p.color}` : ''}
+                  <td className="p-3.5">
+                    <h4 className="font-semibold text-slate-900 dark:text-white">{p.name}</h4>
+                    <span className="text-[10px] text-slate-400 uppercase tracking-wider font-mono block mt-0.5">
+                      {p.brand || 'HeelsUp'}
+                      {p.color ? ` • ${p.color}` : ''}
                     </span>
                   </td>
-                  <td className="p-4 font-mono text-neutral-700 font-semibold">{p.sku}</td>
-                  <td className="p-4 text-neutral-500">{p.category}</td>
-                  <td className="p-4 font-mono font-bold text-neutral-900">
+                  <td className="p-3.5 font-mono text-slate-700 dark:text-slate-300 font-semibold">{p.sku}</td>
+                  <td className="p-3.5 text-slate-500 dark:text-slate-400">{p.category}</td>
+                  <td className="p-3.5 font-mono font-bold text-slate-900 dark:text-white">
                     ₹{(p.price / 100).toFixed(0)}
-                    {p.original_price && <span className="text-[10px] text-neutral-400 line-through ml-2">₹{(p.original_price / 100).toFixed(0)}</span>}
+                    {p.original_price && (
+                      <span className="text-[10px] text-slate-400 line-through ml-2">
+                        ₹{(p.original_price / 100).toFixed(0)}
+                      </span>
+                    )}
                   </td>
-                  <td className="p-4 font-mono">
-                    <span className={`px-2 py-0.5 rounded-lg font-bold text-[10px] ${p.stock <= 5 ? 'bg-rose-50 border border-rose-200 text-rose-600' : 'bg-emerald-50 border border-emerald-200 text-emerald-700'}`}>
+                  <td className="p-3.5 font-mono">
+                    <span
+                      className={`px-2 py-0.5 rounded-md font-bold text-[10px] ${
+                        p.stock <= 5
+                          ? 'bg-rose-50 text-rose-700 dark:bg-rose-950/60 dark:text-rose-400 border border-rose-200/60 dark:border-rose-800/60'
+                          : 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-400 border border-emerald-200/60 dark:border-emerald-800/60'
+                      }`}
+                    >
                       {p.stock} units
                     </span>
                   </td>
-                  <td className="p-4">
-                    <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold uppercase ${p.active ? 'bg-emerald-50 border border-emerald-200 text-emerald-700' : 'bg-neutral-100 border border-neutral-200 text-neutral-500'}`}>
+                  <td className="p-3.5">
+                    <span
+                      className={`px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider border ${
+                        p.active
+                          ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-400 border-emerald-200/60 dark:border-emerald-800/60'
+                          : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400 border-slate-200 dark:border-slate-700'
+                      }`}
+                    >
                       {p.active ? 'Active' : 'Draft'}
                     </span>
                   </td>
-                  <td className="p-4 text-right">
-                    <div className="flex items-center justify-end gap-2">
-                      <button onClick={() => onEdit(p)}
-                        className="p-1.5 bg-neutral-100 hover:bg-neutral-200 text-neutral-600 hover:text-neutral-900 rounded-lg transition-all">
+                  <td className="p-3.5 text-right">
+                    <div className="flex items-center justify-end gap-1.5">
+                      <button
+                        onClick={() => onEdit(p)}
+                        className="p-1.5 rounded-lg text-slate-500 hover:text-indigo-600 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                        title="Edit Product"
+                      >
                         <Edit3 className="w-3.5 h-3.5" />
                       </button>
-                      <button onClick={() => onDetail(p)}
-                        className="p-1.5 bg-neutral-100 hover:bg-neutral-200 text-neutral-600 hover:text-neutral-900 rounded-lg transition-all">
+                      <button
+                        onClick={() => onDetail(p)}
+                        className="p-1.5 rounded-lg text-slate-500 hover:text-indigo-600 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                        title="Product Details"
+                      >
                         <Info className="w-3.5 h-3.5" />
                       </button>
-                      <button onClick={() => handleDelete(p)}
-                        className="p-1.5 bg-neutral-100 hover:bg-rose-50 text-neutral-500 hover:text-rose-600 rounded-lg transition-all">
+                      <button
+                        onClick={() => handleDelete(p)}
+                        className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors"
+                        title="Delete Product"
+                      >
                         <Trash2 className="w-3.5 h-3.5" />
                       </button>
                     </div>
                   </td>
                 </tr>
               ))}
+
               {data.length === 0 && !loading && (
-                <tr><td colSpan={8} className="py-24 text-center text-neutral-400 italic font-mono">No products match the filter.</td></tr>
+                <tr>
+                  <td colSpan={8} className="py-20 text-center text-slate-400 italic">
+                    No products match the filter.
+                  </td>
+                </tr>
               )}
               {loading && (
-                <tr><td colSpan={8} className="py-24 text-center text-neutral-400 italic font-mono">Loading products...</td></tr>
+                <tr>
+                  <td colSpan={8} className="py-20 text-center text-slate-400 italic">
+                    Loading products...
+                  </td>
+                </tr>
               )}
             </tbody>
           </table>

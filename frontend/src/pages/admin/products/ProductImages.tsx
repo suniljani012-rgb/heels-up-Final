@@ -38,7 +38,7 @@ export default function ProductImages({ images, onChange, token }: ProductImages
           setStatus(step);
         }
       });
-      const added: ManagedImage[] = result.urls.map(url => ({ url, alt: '' }));
+      const added: ManagedImage[] = result.urls.map((url) => ({ url, alt: '' }));
       onChange([...images, ...added]);
       showToast('success', 'Images Uploaded', `${added.length} image(s) uploaded.`);
     } catch (err: any) {
@@ -63,39 +63,53 @@ export default function ProductImages({ images, onChange, token }: ProductImages
       <div className="grid grid-cols-4 gap-3">
         {images.map((img, idx) => (
           <div key={`${img.url}-${idx}`} className="space-y-1">
-            <div className="aspect-square bg-neutral-50 border border-neutral-200 rounded-xl relative flex items-center justify-center group overflow-hidden">
+            <div className="aspect-square bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl relative flex items-center justify-center group overflow-hidden">
               <HeicImage src={img.url} alt={img.alt || ''} className="w-full h-full object-contain" />
-              <button type="button" onClick={() => removeImage(idx)}
-                className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex items-center justify-center text-white rounded-xl transition-opacity">
+              <button
+                type="button"
+                onClick={() => removeImage(idx)}
+                className="absolute inset-0 bg-slate-900/60 opacity-0 group-hover:opacity-100 flex items-center justify-center text-white rounded-xl transition-opacity"
+              >
                 <Trash2 className="w-4 h-4" />
               </button>
             </div>
             <input
               type="text"
               value={img.alt}
-              onChange={e => updateAlt(idx, e.target.value)}
+              onChange={(e) => updateAlt(idx, e.target.value)}
               placeholder="Alt text"
-              className="w-full bg-neutral-50 border border-neutral-200 rounded-lg px-2 py-1 text-[9px] text-neutral-700 placeholder-neutral-400 focus:outline-none"
+              className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700 rounded-lg px-2 py-1 text-[10px] text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none"
             />
           </div>
         ))}
 
-        <label className="aspect-square bg-neutral-50 hover:bg-neutral-100 border border-dashed border-neutral-300 rounded-xl flex flex-col items-center justify-center cursor-pointer text-neutral-400 hover:text-neutral-700 transition-colors">
-          <input type="file" multiple accept="image/*,.heic,.heif" onChange={handleUpload} className="hidden" disabled={uploading} />
+        <label className="aspect-square bg-slate-50 dark:bg-slate-800/40 hover:bg-slate-100 dark:hover:bg-slate-800 border border-dashed border-slate-300 dark:border-slate-700 hover:border-indigo-500 rounded-xl flex flex-col items-center justify-center cursor-pointer text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">
+          <input
+            type="file"
+            multiple
+            accept="image/*,.heic,.heif"
+            onChange={handleUpload}
+            className="hidden"
+            disabled={uploading}
+          />
           {uploading ? (
             <>
-              <RefreshCw className="w-5 h-5 animate-spin mb-1" />
-              <span className="text-[8px] font-bold font-mono text-center px-1 leading-tight">{status || 'Working...'}</span>
+              <RefreshCw className="w-5 h-5 animate-spin mb-1 text-indigo-600 dark:text-indigo-400" />
+              <span className="text-[9px] font-bold font-mono text-center px-1 leading-tight text-indigo-600 dark:text-indigo-400">
+                {status || 'Working...'}
+              </span>
             </>
           ) : (
             <>
               <UploadCloud className="w-5 h-5 mb-1" />
-              <span className="text-[9px] font-bold font-mono">Upload</span>
+              <span className="text-[10px] font-bold font-mono uppercase">Upload</span>
             </>
           )}
         </label>
       </div>
-      <p className="text-[9px] text-neutral-400">Supports JPG, PNG, WEBP, AVIF, HEIC + more. First image is the cover photo. Images are compressed automatically.</p>
+      <p className="text-[10px] text-slate-400">
+        Supports JPG, PNG, WEBP, AVIF, HEIC. First image is the cover photo. Automated compression to WebP.
+      </p>
     </div>
   );
 }

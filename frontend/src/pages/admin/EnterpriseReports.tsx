@@ -1,7 +1,18 @@
 import { useToastStore } from '../../store/useToastStore';
 import { useState, useMemo } from 'react';
-import { Download, RefreshCw, Activity, Info, Minus, X, Tag } from 'lucide-react';
-import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, Cell } from 'recharts';
+import { Download, RefreshCw, Activity, Info, Tag, BarChart3, TrendingUp, Calendar } from 'lucide-react';
+import {
+  AreaChart,
+  Area,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  BarChart,
+  Bar,
+  Cell,
+} from 'recharts';
 
 interface EnterpriseReportsProps {
   orders: any[];
@@ -20,21 +31,16 @@ export default function EnterpriseReports({ orders, products }: EnterpriseReport
   const [loading, setLoading] = useState(false);
   const [compiledData, setCompiledData] = useState<any[]>([]);
 
-  // NEW: AdminLTE Chart States (Interactivity: Collapse and Visibility)
-  const [collapsedRevenueGrowthTrend, setCollapsedRevenueGrowthTrend] = useState(false);
-  const [visibleRevenueGrowthTrend, setVisibleRevenueGrowthTrend] = useState(true);
-  const [collapsedTopCategoryShare, setCollapsedTopCategoryShare] = useState(false);
-  const [visibleTopCategoryShare, setVisibleTopCategoryShare] = useState(true);
-
   // 1. Calculate General Aggregates
   const stats = useMemo(() => {
     let totalSales = 0;
     let totalOrders = 0;
     let totalQty = 0;
     let cancellations = 0;
-    
-    orders.forEach(o => {
-      const isPlacedBetween = o.created_at?.split('T')[0] >= dateFrom && o.created_at?.split('T')[0] <= dateTo;
+
+    orders.forEach((o) => {
+      const isPlacedBetween =
+        o.created_at?.split('T')[0] >= dateFrom && o.created_at?.split('T')[0] <= dateTo;
       if (isPlacedBetween) {
         totalOrders++;
         if (o.order_status !== 'cancelled') {
@@ -42,7 +48,6 @@ export default function EnterpriseReports({ orders, products }: EnterpriseReport
         } else {
           cancellations++;
         }
-        // Count total qty
         if (o.items) {
           o.items.forEach((it: any) => {
             totalQty += it.quantity || 0;
@@ -51,7 +56,7 @@ export default function EnterpriseReports({ orders, products }: EnterpriseReport
       }
     });
 
-    const avgOrder = totalOrders > 0 ? (totalSales / (totalOrders - cancellations || 1)) : 0;
+    const avgOrder = totalOrders > 0 ? totalSales / (totalOrders - cancellations || 1) : 0;
     const cancelRate = totalOrders > 0 ? (cancellations / totalOrders) * 100 : 0;
 
     return {
@@ -59,7 +64,7 @@ export default function EnterpriseReports({ orders, products }: EnterpriseReport
       totalOrders,
       totalQty,
       avgOrder,
-      cancelRate
+      cancelRate,
     };
   }, [orders, dateFrom, dateTo]);
 
@@ -68,9 +73,15 @@ export default function EnterpriseReports({ orders, products }: EnterpriseReport
     setLoading(true);
     try {
       if (reportType === 'sales') {
-        // Daily Sales Grouping
-        const groups: { [key: string]: { ordersCount: number; grossRevenue: number; netRevenue: number; itemsCount: number } } = {};
-        orders.forEach(o => {
+        const groups: {
+          [key: string]: {
+            ordersCount: number;
+            grossRevenue: number;
+            netRevenue: number;
+            itemsCount: number;
+          };
+        } = {};
+        orders.forEach((o) => {
           const dateStr = o.created_at?.split('T')[0] || 'Unknown';
           if (dateStr >= dateFrom && dateStr <= dateTo) {
             if (!groups[dateStr]) {
@@ -88,32 +99,32 @@ export default function EnterpriseReports({ orders, products }: EnterpriseReport
             }
           }
         });
-        const arr = Object.entries(groups).map(([date, g]) => ({
-          Date: date,
-          Orders: g.ordersCount,
-          'Gross (₹)': g.grossRevenue.toFixed(2),
-          'Net Sales (₹)': g.netRevenue.toFixed(2),
-          'Items Shipped': g.itemsCount
-        })).sort((a, b) => a.Date.localeCompare(b.Date));
+        const arr = Object.entries(groups)
+          .map(([date, g]) => ({
+            Date: date,
+            Orders: g.ordersCount,
+            'Gross (₹)': g.grossRevenue.toFixed(2),
+            'Net Sales (₹)': g.netRevenue.toFixed(2),
+            'Items Shipped': g.itemsCount,
+          }))
+          .sort((a, b) => a.Date.localeCompare(b.Date));
         setCompiledData(arr);
         showToast('success', 'Report Generated', `Compiled sales report with ${arr.length} daily logs.`);
       } else if (reportType === 'inventory') {
-        // Product stock breakdown
-        const arr = products.map(p => ({
+        const arr = products.map((p) => ({
           SKU: p.sku,
           Name: p.name,
           Category: p.category,
           'Stock Count': p.stock,
           'Price (₹)': (p.price / 100).toFixed(2),
           'Asset Value (₹)': ((p.price * p.stock) / 100).toFixed(2),
-          Status: p.stock === 0 ? 'OUT_OF_STOCK' : p.stock < 5 ? 'LOW_STOCK' : 'HEALTHY'
+          Status: p.stock === 0 ? 'OUT_OF_STOCK' : p.stock < 5 ? 'LOW_STOCK' : 'HEALTHY',
         }));
         setCompiledData(arr);
-        showToast('success', 'Report Generated', `Compiled stock assets with ${arr.length} styles entries.`);
+        showToast('success', 'Report Generated', `Compiled stock assets with ${arr.length} catalog styles.`);
       } else {
-        // Return Requests Log
         setCompiledData([]);
-        showToast('info', 'Report Generated', 'Exchanges analytics loaded successfully.');
+        showToast('info', 'Report Generated', 'Exchanges analytics loaded.');
       }
     } catch {
       showToast('error', 'Compilation Failure', 'Unable to calculate reporting bounds.');
@@ -122,89 +133,34 @@ export default function EnterpriseReports({ orders, products }: EnterpriseReport
     }
   };
 
-  // 3. SVG Line Chart: Revenue Trend (Today, YTD)
-  const lineChartData = useMemo(() => {
-    const dailyData: { [key: string]: number } = {};
-    orders.forEach(o => {
-      const dateStr = o.created_at?.split('T')[0];
-      if (dateStr && dateStr >= dateFrom && dateStr <= dateTo && o.order_status !== 'cancelled') {
-        dailyData[dateStr] = (dailyData[dateStr] || 0) + o.total_amount;
-      }
-    });
-
-    const dates = Object.keys(dailyData).sort();
-    if (dates.length === 0) return { path: '', points: [], area: '' };
-
-    const maxRev = Math.max(...Object.values(dailyData), 100);
-    const width = 500;
-    const height = 140;
-    const padding = 20;
-
-    const points = dates.map((d, i) => {
-      const x = padding + (i / (dates.length - 1 || 1)) * (width - 2 * padding);
-      const y = height - padding - (dailyData[d] / maxRev) * (height - 2 * padding);
-      return { x, y, date: d, value: dailyData[d] };
-    });
-
-    const path = points.reduce((acc, p, i) => {
-      return i === 0 ? `M ${p.x} ${p.y}` : `${acc} L ${p.x} ${p.y}`;
-    }, '');
-
-    const area = points.length > 0 
-      ? `${path} L ${points[points.length - 1].x} ${height - padding} L ${points[0].x} ${height - padding} Z` 
-      : '';
-
-    return { path, points, area };
-  }, [orders, dateFrom, dateTo]);
-
-  // 4. SVG Bar Chart: Category Share of inventory
-  const categoryBarData = useMemo(() => {
-    const counts: { [key: string]: number } = {};
-    products.forEach(p => {
-      counts[p.category] = (counts[p.category] || 0) + 1;
-    });
-
-    const categoriesList = Object.keys(counts).slice(0, 5); // top 5
-    if (categoriesList.length === 0) return [];
-
-    const maxCount = Math.max(...Object.values(counts), 1);
-    const chartHeight = 110;
-    const barWidth = 35;
-    const gap = 30;
-
-    return categoriesList.map((cat, i) => {
-      const count = counts[cat];
-      const height = (count / maxCount) * chartHeight;
-      const x = 40 + i * (barWidth + gap);
-      const y = 130 - height;
-      return { x, y, height, label: cat, value: count };
-    });
-  }, [products]);
-
-  // NEW: Recharts Data configurations
+  // Recharts Data configurations
   const rechartsDailyData = useMemo(() => {
     const dailyData: { [key: string]: number } = {};
-    orders.forEach(o => {
+    orders.forEach((o) => {
       const dateStr = o.created_at?.split('T')[0];
       if (dateStr && dateStr >= dateFrom && dateStr <= dateTo && o.order_status !== 'cancelled') {
         dailyData[dateStr] = (dailyData[dateStr] || 0) + o.total_amount;
       }
     });
-    return Object.keys(dailyData).sort().map(d => ({
-      date: d,
-      Revenue: dailyData[d] / 100
-    }));
+    return Object.keys(dailyData)
+      .sort()
+      .map((d) => ({
+        date: d,
+        Revenue: dailyData[d],
+      }));
   }, [orders, dateFrom, dateTo]);
 
   const rechartsBarData = useMemo(() => {
     const counts: { [key: string]: number } = {};
-    products.forEach(p => {
+    products.forEach((p) => {
       counts[p.category] = (counts[p.category] || 0) + 1;
     });
-    return Object.keys(counts).slice(0, 5).map(cat => ({
-      name: cat,
-      Products: counts[cat]
-    }));
+    return Object.keys(counts)
+      .slice(0, 5)
+      .map((cat) => ({
+        name: cat,
+        Products: counts[cat],
+      }));
   }, [products]);
 
   // CSV Exporter
@@ -213,9 +169,9 @@ export default function EnterpriseReports({ orders, products }: EnterpriseReport
     const headers = Object.keys(compiledData[0]);
     const csvContent = [
       headers.join(','),
-      ...compiledData.map(row => 
-        headers.map(header => `"${String(row[header]).replace(/"/g, '""')}"`).join(',')
-      )
+      ...compiledData.map((row) =>
+        headers.map((header) => `"${String(row[header]).replace(/"/g, '""')}"`).join(',')
+      ),
     ].join('\n');
 
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
@@ -229,239 +185,252 @@ export default function EnterpriseReports({ orders, products }: EnterpriseReport
   };
 
   return (
-    <div className="space-y-6 animate-fade-in">
-      <div className="sticky top-0 bg-[#f5f5f4] z-10 -mt-6 pt-6 pb-4 space-y-4">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white border border-neutral-200/80 p-5 rounded-2xl shadow-md">
-          <div className="space-y-1">
-            <h1 className="text-3xl font-light text-neutral-900 font-display italic">Enterprise Reports</h1>
-            <p className="text-xs text-neutral-500">Export sales, stock value and cancelled logs.</p>
-          </div>
-          <div className="flex flex-wrap items-center gap-3">
+    <div className="space-y-5 antialiased">
+      {/* Top Header Card with Filters */}
+      <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 p-5 rounded-2xl shadow-xs flex flex-wrap items-center justify-between gap-4">
+        <div>
+          <h2 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+            <BarChart3 className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
+            Enterprise Analytics & Financial Reports
+          </h2>
+          <p className="text-xs text-slate-500 dark:text-slate-400">
+            Export gross revenue metrics, inventory asset valuations, and sales velocity logs
+          </p>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2.5">
           <select
             value={reportType}
-            onChange={e => {
+            onChange={(e) => {
               setReportType(e.target.value as any);
               setCompiledData([]);
             }}
-            className="bg-neutral-50 border border-neutral-200 rounded-xl px-3 py-2 text-xs text-neutral-900 focus:outline-none"
+            className="bg-slate-50 dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700 rounded-xl px-3 py-2 text-xs font-semibold text-slate-900 dark:text-white focus:outline-none"
           >
             <option value="sales">Sales Volume Report</option>
             <option value="inventory">Inventory Asset Summary</option>
           </select>
-          <div className="flex items-center gap-2 text-xs text-neutral-500">
+
+          <div className="flex items-center gap-1.5 text-xs text-slate-500">
             <input
               type="date"
               value={dateFrom}
-              onChange={e => setDateFrom(e.target.value)}
-              className="bg-neutral-50 border border-neutral-200 rounded-xl px-3 py-1.5 text-neutral-900"
+              onChange={(e) => setDateFrom(e.target.value)}
+              className="bg-slate-50 dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700 rounded-xl px-2.5 py-1.5 text-xs text-slate-900 dark:text-white font-mono"
             />
             <span>to</span>
             <input
               type="date"
               value={dateTo}
-              onChange={e => setDateTo(e.target.value)}
-              className="bg-neutral-50 border border-neutral-200 rounded-xl px-3 py-1.5 text-neutral-900"
+              onChange={(e) => setDateTo(e.target.value)}
+              className="bg-slate-50 dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700 rounded-xl px-2.5 py-1.5 text-xs text-slate-900 dark:text-white font-mono"
             />
           </div>
+
           <button
             onClick={handleCompileReport}
-            className="px-4 py-2 bg-neutral-900 hover:bg-neutral-100 text-white font-bold rounded-xl text-xs flex items-center gap-1.5 transition-colors"
+            className="px-4 py-2 bg-slate-900 hover:bg-slate-800 dark:bg-indigo-600 dark:hover:bg-indigo-700 text-white font-bold rounded-xl text-xs flex items-center gap-1.5 transition-colors shadow-xs"
           >
             Generate Report
           </button>
         </div>
       </div>
-    </div>
 
       {/* Aggregate Cards Grid */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-white border border-neutral-200/80 p-4 rounded-xl">
-          <span className="block text-[8px] font-bold text-neutral-500 uppercase tracking-wider">Gross Revenues</span>
-          <span className="block text-base font-bold font-mono text-neutral-900 mt-1">₹{stats.totalSales.toLocaleString('en-IN')}</span>
-          <span className="text-[7px] text-emerald-500 font-bold uppercase mt-1 block">Active sales</span>
+        <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 p-4 rounded-2xl shadow-xs">
+          <span className="block text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
+            Gross Revenue
+          </span>
+          <span className="block text-xl font-bold font-mono text-slate-900 dark:text-white mt-1">
+            ₹{stats.totalSales.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+          </span>
+          <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold mt-0.5 block">
+            Completed order turnover
+          </span>
         </div>
-        <div className="bg-white border border-neutral-200/80 p-4 rounded-xl">
-          <span className="block text-[8px] font-bold text-neutral-500 uppercase tracking-wider">Orders count</span>
-          <span className="block text-base font-bold font-mono text-neutral-900 mt-1">{stats.totalOrders} orders</span>
-          <span className="text-[7px] text-neutral-500 font-semibold mt-1 block">YTD transactions</span>
+
+        <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 p-4 rounded-2xl shadow-xs">
+          <span className="block text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
+            Total Orders
+          </span>
+          <span className="block text-xl font-bold font-mono text-slate-900 dark:text-white mt-1">
+            {stats.totalOrders}
+          </span>
+          <span className="text-[10px] text-slate-400 mt-0.5 block">In selected time window</span>
         </div>
-        <div className="bg-white border border-neutral-200/80 p-4 rounded-xl">
-          <span className="block text-[8px] font-bold text-neutral-500 uppercase tracking-wider">Average Order</span>
-          <span className="block text-base font-bold font-mono text-neutral-700 mt-1">₹{stats.avgOrder.toFixed(2)}</span>
-          <span className="text-[7px] text-neutral-700 font-semibold mt-1 block">Ticket size</span>
+
+        <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 p-4 rounded-2xl shadow-xs">
+          <span className="block text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
+            Average Ticket Size (AOV)
+          </span>
+          <span className="block text-xl font-bold font-mono text-slate-900 dark:text-white mt-1">
+            ₹{stats.avgOrder.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+          </span>
+          <span className="text-[10px] text-indigo-600 dark:text-indigo-400 font-semibold mt-0.5 block">
+            Per fulfilled basket
+          </span>
         </div>
-        <div className="bg-white border border-neutral-200/80 p-4 rounded-xl">
-          <span className="block text-[8px] font-bold text-neutral-500 uppercase tracking-wider">Cancellation Rate</span>
-          <span className="block text-base font-bold font-mono text-rose-500 mt-1">{stats.cancelRate.toFixed(1)}%</span>
-          <span className="text-[7px] text-rose-500/80 font-semibold mt-1 block">Bounced orders</span>
+
+        <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 p-4 rounded-2xl shadow-xs">
+          <span className="block text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
+            Cancellation Rate
+          </span>
+          <span className="block text-xl font-bold font-mono text-rose-600 dark:text-rose-400 mt-1">
+            {stats.cancelRate.toFixed(1)}%
+          </span>
+          <span className="text-[10px] text-rose-600/80 font-semibold mt-0.5 block">Bounced / RTO orders</span>
         </div>
       </div>
 
-      {/* Charts Visualization Column */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        {/* Sales trend SVG area chart */}
-        <div className={visibleRevenueGrowthTrend ? "lg:col-span-8 card card-outline card-warning bg-white border border-neutral-200/80 border-t-[3px] border-t-amber-500 rounded-lg shadow-md overflow-hidden flex flex-col" : "hidden"}>
-          <div className="card-header border-b border-neutral-200/80 px-4 py-2.5 flex justify-between items-center bg-neutral-50">
-            <h3 className="card-title text-[9px] font-bold text-neutral-900 uppercase tracking-wider flex items-center gap-1.5 font-sans">
-              <Activity className="w-4 h-4 text-amber-500" />
-              Revenue Growth Trend (Inclusive GST)
+      {/* Visual Charts Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
+        {/* Sales trend area chart */}
+        <div className="lg:col-span-8 bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-5 shadow-xs space-y-3">
+          <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+            <h3 className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-1.5">
+              <TrendingUp className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+              Daily Revenue Trajectory
             </h3>
-            <div className="card-tools flex items-center gap-2">
-              <button 
-                onClick={() => setCollapsedRevenueGrowthTrend(!collapsedRevenueGrowthTrend)}
-                className="text-neutral-500 hover:text-neutral-900 p-1 hover:bg-neutral-100 rounded transition-colors"
-                title="Collapse"
-              >
-                <Minus className="w-3.5 h-3.5" />
-              </button>
-              <button 
-                onClick={() => setVisibleRevenueGrowthTrend(false)}
-                className="text-neutral-500 hover:text-neutral-900 p-1 hover:bg-neutral-100 rounded transition-colors"
-                title="Close"
-              >
-                <X className="w-3.5 h-3.5" />
-              </button>
-            </div>
+            <span className="text-[10px] font-mono text-slate-400">Timeframe: {dateFrom} to {dateTo}</span>
           </div>
-          
-          <div className={`card-body p-5 space-y-4 ${collapsedRevenueGrowthTrend ? 'hidden' : ''}`}>
-            <div className="h-48 relative bg-white border border-neutral-200 rounded-xl p-3">
-              {rechartsDailyData.length === 0 ? (
-                <div className="h-full flex items-center justify-center text-xs text-neutral-500">No sales transactions in target timeframe.</div>
-              ) : (
-                <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={rechartsDailyData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                    <defs>
-                      <linearGradient id="colorReportRevenue" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#ec4899" stopOpacity={0.4}/>
-                        <stop offset="95%" stopColor="#ec4899" stopOpacity={0.0}/>
-                      </linearGradient>
-                    </defs>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
-                    <XAxis dataKey="date" stroke="#888888" fontSize={9} tickLine={false} axisLine={false} />
-                    <YAxis stroke="#888888" fontSize={9} tickLine={false} axisLine={false} tickFormatter={(val) => `₹${val >= 1000 ? `${(val/1000).toFixed(0)}k` : val}`} />
-                    <Tooltip
-                      contentStyle={{
-                        backgroundColor: '#ffffff',
-                        borderRadius: '12px',
-                        color: '#000000',
-                        border: '1px solid #e5e5e5',
-                        fontSize: '10px',
-                        fontFamily: 'Aptos, sans-serif'
-                      }}
-                      itemStyle={{ color: '#000000' }}
-                      labelStyle={{ color: '#000000', fontWeight: 'bold' }}
-                      formatter={(value: any) => [`₹${value.toLocaleString('en-IN')}`, 'Revenue']}
-                    />
-                    <Area type="monotone" dataKey="Revenue" stroke="#db2777" strokeWidth={2} fillOpacity={1} fill="url(#colorReportRevenue)" />
-                  </AreaChart>
-                </ResponsiveContainer>
-              )}
-            </div>
+
+          <div className="h-56 relative pt-2">
+            {rechartsDailyData.length === 0 ? (
+              <div className="h-full flex items-center justify-center text-xs text-slate-400 italic">
+                No revenue transactions recorded in target timeframe.
+              </div>
+            ) : (
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={rechartsDailyData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+                  <defs>
+                    <linearGradient id="colorReportRevenue" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#4f46e5" stopOpacity={0.3} />
+                      <stop offset="95%" stopColor="#4f46e5" stopOpacity={0.0} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(148, 163, 184, 0.15)" />
+                  <XAxis dataKey="date" stroke="#94a3b8" fontSize={10} tickLine={false} axisLine={false} />
+                  <YAxis
+                    stroke="#94a3b8"
+                    fontSize={10}
+                    tickLine={false}
+                    axisLine={false}
+                    tickFormatter={(val) => `₹${val >= 1000 ? `${(val / 1000).toFixed(0)}k` : val}`}
+                  />
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: 'rgba(15, 23, 42, 0.95)',
+                      borderRadius: '12px',
+                      color: '#ffffff',
+                      border: '1px solid rgba(255,255,255,0.1)',
+                      fontSize: '11px',
+                    }}
+                    formatter={(value: any) => [`₹${value.toLocaleString('en-IN')}`, 'Revenue']}
+                  />
+                  <Area
+                    type="monotone"
+                    dataKey="Revenue"
+                    stroke="#4f46e5"
+                    strokeWidth={2}
+                    fillOpacity={1}
+                    fill="url(#colorReportRevenue)"
+                  />
+                </AreaChart>
+              </ResponsiveContainer>
+            )}
           </div>
         </div>
 
         {/* Category distribution bar chart */}
-        <div className={visibleTopCategoryShare ? "lg:col-span-4 card card-outline card-success bg-white border border-neutral-200/80 border-t-[3px] border-t-emerald-500 rounded-lg shadow-md overflow-hidden flex flex-col" : "hidden"}>
-          <div className="card-header border-b border-neutral-200/80 px-4 py-2.5 flex justify-between items-center bg-neutral-50">
-            <h3 className="card-title text-[9px] font-bold text-neutral-900 uppercase tracking-wider flex items-center gap-1.5 font-sans">
-              <Tag className="w-4 h-4 text-emerald-500" />
-              Top Category Share
+        <div className="lg:col-span-4 bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-5 shadow-xs space-y-3">
+          <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+            <h3 className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-1.5">
+              <Tag className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+              Category Inventory Share
             </h3>
-            <div className="card-tools flex items-center gap-2">
-              <button 
-                onClick={() => setCollapsedTopCategoryShare(!collapsedTopCategoryShare)}
-                className="text-neutral-500 hover:text-neutral-900 p-1 hover:bg-neutral-100 rounded transition-colors"
-                title="Collapse"
-              >
-                <Minus className="w-3.5 h-3.5" />
-              </button>
-              <button 
-                onClick={() => setVisibleTopCategoryShare(false)}
-                className="text-neutral-500 hover:text-neutral-900 p-1 hover:bg-neutral-100 rounded transition-colors"
-                title="Close"
-              >
-                <X className="w-3.5 h-3.5" />
-              </button>
-            </div>
           </div>
-          
-          <div className={`card-body p-5 space-y-4 ${collapsedTopCategoryShare ? 'hidden' : ''}`}>
-            <div className="h-44 bg-white border border-neutral-200 rounded-xl p-3 relative">
-              {rechartsBarData.length === 0 ? (
-                <div className="h-full flex items-center justify-center text-xs text-neutral-500">No product inventory cataloged.</div>
-              ) : (
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={rechartsBarData} margin={{ top: 10, right: 10, left: -25, bottom: 0 }}>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
-                    <XAxis dataKey="name" stroke="#888888" fontSize={9} tickLine={false} axisLine={false} />
-                    <YAxis stroke="#888888" fontSize={9} tickLine={false} axisLine={false} />
-                    <Tooltip
-                      contentStyle={{
-                        backgroundColor: '#ffffff',
-                        borderRadius: '8px',
-                        color: '#000000',
-                        border: '1px solid #e5e5e5',
-                        fontSize: '10px',
-                        fontFamily: 'Aptos, sans-serif'
-                      }}
-                      itemStyle={{ color: '#000000' }}
-                      labelStyle={{ color: '#000000', fontWeight: 'bold' }}
-                    />
-                    <Bar dataKey="Products" radius={[4, 4, 0, 0]}>
-                      {rechartsBarData.map((entry, index) => {
-                        const COLORS = ['#10b981', '#3b82f6', '#f59e0b', '#ec4899', '#8b5cf6'];
-                        return <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />;
-                      })}
-                    </Bar>
-                  </BarChart>
-                </ResponsiveContainer>
-              )}
-            </div>
+
+          <div className="h-56 relative pt-2">
+            {rechartsBarData.length === 0 ? (
+              <div className="h-full flex items-center justify-center text-xs text-slate-400 italic">
+                No product styles cataloged.
+              </div>
+            ) : (
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={rechartsBarData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(148, 163, 184, 0.15)" />
+                  <XAxis dataKey="name" stroke="#94a3b8" fontSize={9} tickLine={false} axisLine={false} />
+                  <YAxis stroke="#94a3b8" fontSize={10} tickLine={false} axisLine={false} />
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: 'rgba(15, 23, 42, 0.95)',
+                      borderRadius: '12px',
+                      color: '#ffffff',
+                      border: '1px solid rgba(255,255,255,0.1)',
+                      fontSize: '11px',
+                    }}
+                  />
+                  <Bar dataKey="Products" radius={[6, 6, 0, 0]}>
+                    {rechartsBarData.map((entry, index) => {
+                      const COLORS = ['#4f46e5', '#06b6d4', '#10b981', '#f59e0b', '#ec4899'];
+                      return <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />;
+                    })}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            )}
           </div>
         </div>
       </div>
 
-      {/* TABULAR REPORT DATA */}
-      <div className="bg-white border border-neutral-200/80 rounded-2xl overflow-hidden shadow-md">
-        <div className="flex justify-between items-center p-4 bg-neutral-50/80 border-b border-neutral-200/80">
-          <span className="text-[9px] font-bold text-neutral-500 uppercase tracking-wider">
+      {/* Compiled Dataset Table Card */}
+      <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl overflow-hidden shadow-xs">
+        <div className="flex justify-between items-center p-4 bg-slate-50/80 dark:bg-slate-800/60 border-b border-slate-200/80 dark:border-slate-800">
+          <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
             Compiled Dataset ({compiledData.length} records)
           </span>
           {compiledData.length > 0 && (
             <button
               onClick={exportCsv}
-              className="px-3 py-1.5 border border-neutral-200 hover:bg-neutral-200 text-[10px] text-neutral-900 rounded-lg flex items-center gap-1.5 transition-all"
+              className="px-3 py-1.5 bg-slate-900 hover:bg-slate-800 dark:bg-indigo-600 dark:hover:bg-indigo-700 text-white text-xs font-bold rounded-xl flex items-center gap-1.5 transition-colors shadow-xs"
             >
-              <Download className="w-3.5 h-3.5" /> Export Dataset to CSV
+              <Download className="w-3.5 h-3.5" /> Export Dataset (CSV)
             </button>
           )}
         </div>
 
         {loading ? (
-          <div className="py-24 text-center text-xs text-neutral-500 flex items-center justify-center gap-2">
-            <RefreshCw className="w-4 h-4 animate-spin text-amber-500" /> Aggregating records...
+          <div className="py-20 text-center text-xs text-slate-400 flex items-center justify-center gap-2">
+            <RefreshCw className="w-4 h-4 animate-spin text-indigo-600" /> Aggregating records...
           </div>
         ) : compiledData.length === 0 ? (
-          <div className="py-24 text-center text-xs text-neutral-500 flex flex-col items-center gap-2 border border-dashed border-neutral-200 m-4 rounded-xl">
-            <Info className="w-5 h-5 text-neutral-600" />
+          <div className="py-20 text-center text-xs text-slate-400 flex flex-col items-center gap-2">
+            <Info className="w-5 h-5 text-slate-400" />
             No report dataset compiled yet. Click "Generate Report" above.
           </div>
         ) : (
-          <div className="overflow-x-auto max-h-[40vh]">
+          <div className="overflow-x-auto max-h-[45vh]">
             <table className="w-full text-xs text-left border-collapse font-mono">
               <thead>
-                <tr className="bg-neutral-50 text-neutral-500 border-b border-neutral-200/80">
-                  {Object.keys(compiledData[0] || {}).map(k => (
-                    <th key={k} className="p-3 font-bold uppercase tracking-wider">{k}</th>
+                <tr className="bg-slate-50/80 dark:bg-slate-800/60 text-slate-500 dark:text-slate-400 border-b border-slate-200/80 dark:border-slate-800">
+                  {Object.keys(compiledData[0] || {}).map((k) => (
+                    <th key={k} className="p-3 font-semibold uppercase tracking-wider">
+                      {k}
+                    </th>
                   ))}
                 </tr>
               </thead>
-              <tbody className="divide-y divide-neutral-100">
+              <tbody className="divide-y divide-slate-100 dark:divide-slate-800/80 font-sans">
                 {compiledData.map((row, idx) => (
-                  <tr key={idx} className="hover:bg-neutral-50/25 transition-colors text-neutral-900">
-                    {Object.keys(row).map(k => (
-                      <td key={k} className="p-3 max-w-xs truncate">{String(row[k] ?? '0')}</td>
+                  <tr
+                    key={idx}
+                    className="hover:bg-slate-50/60 dark:hover:bg-slate-800/40 transition-colors text-slate-900 dark:text-white text-xs"
+                  >
+                    {Object.keys(row).map((k) => (
+                      <td key={k} className="p-3 max-w-xs truncate font-mono">
+                        {String(row[k] ?? '0')}
+                      </td>
                     ))}
                   </tr>
                 ))}

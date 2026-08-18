@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useToastStore } from '../../store/useToastStore';
-import { Plus, Edit3, Trash2, X, Search } from 'lucide-react';
+import { Plus, Edit3, Trash2, X, Search, FileText, Globe, ExternalLink } from 'lucide-react';
 
 interface PageConfig {
   id: number;
@@ -19,7 +19,7 @@ interface PagesManagerProps {
 export default function PagesManager({ pages, token, onRefresh }: PagesManagerProps) {
   const showToast = useToastStore((state) => state.showToast);
   const [searchQuery, setSearchQuery] = useState('');
-  
+
   // Drawer state
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [editingPage, setEditingPage] = useState<PageConfig | null>(null);
@@ -31,7 +31,11 @@ export default function PagesManager({ pages, token, onRefresh }: PagesManagerPr
   const [pageActive, setPageActive] = useState(true);
 
   // Filter pages
-  const filtered = pages.filter(p => p.title.toLowerCase().includes(searchQuery.toLowerCase()));
+  const filtered = pages.filter(
+    (p) =>
+      p.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      p.slug.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   // Open add
   const handleOpenAdd = () => {
@@ -65,7 +69,7 @@ export default function PagesManager({ pages, token, onRefresh }: PagesManagerPr
       title: pageTitle.trim(),
       slug: pageSlug.trim().toLowerCase(),
       content: pageContent.trim(),
-      active: pageActive
+      active: pageActive,
     };
 
     try {
@@ -76,9 +80,9 @@ export default function PagesManager({ pages, token, onRefresh }: PagesManagerPr
         method,
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
+          Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify(payload)
+        body: JSON.stringify(payload),
       });
       const data = await res.json();
       if (data.success) {
@@ -95,11 +99,16 @@ export default function PagesManager({ pages, token, onRefresh }: PagesManagerPr
 
   // Delete page
   const handleDelete = async (id: number) => {
-    if (!window.confirm('Are you sure you want to delete this static page? Storefront links to this slug will return 404.')) return;
+    if (
+      !window.confirm(
+        'Are you sure you want to delete this static page? Storefront links to this slug will return 404.'
+      )
+    )
+      return;
     try {
       const res = await fetch(`/api/admin/pages/${id}`, {
         method: 'DELETE',
-        headers: { 'Authorization': `Bearer ${token}` }
+        headers: { Authorization: `Bearer ${token}` },
       });
       const data = await res.json();
       if (data.success) {
@@ -114,71 +123,99 @@ export default function PagesManager({ pages, token, onRefresh }: PagesManagerPr
   };
 
   return (
-    <div className="space-y-6 text-neutral-900 animate-fade-in relative">
-      <div className="sticky top-0 bg-[#f5f5f4] z-10 -mt-6 pt-6 pb-4 space-y-4">
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          <div>
-            <h1 className="text-3xl font-light text-neutral-900 font-display italic">Static Pages</h1>
-            <p className="text-xs text-neutral-500">Configure storefront content like privacy policy, sizing guides, and terms</p>
-          </div>
-          <button
-            onClick={handleOpenAdd}
-            className="px-4 py-2 bg-neutral-900 hover:bg-neutral-800 text-white font-bold text-xs uppercase tracking-wider rounded-xl flex items-center gap-1.5 shadow-lg active:scale-95 transition-all"
-          >
-            <Plus className="w-4 h-4" /> Add Static Page
-          </button>
+    <div className="space-y-5 antialiased">
+      {/* Top Header Card */}
+      <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-5 shadow-xs flex flex-wrap items-center justify-between gap-4">
+        <div>
+          <h2 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+            <FileText className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
+            Static Pages & Legal CMS
+          </h2>
+          <p className="text-xs text-slate-500 dark:text-slate-400">
+            Publish storefront policy documents, terms of service, sizing guidelines, and about pages
+          </p>
         </div>
 
-        {/* Filter Row */}
-        <div className="bg-white border border-neutral-200/80 p-4 rounded-2xl flex items-center justify-between gap-4 shadow-md">
-          <div className="relative flex-1 max-w-md">
-            <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-neutral-500" />
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search pages..."
-              className="w-full bg-neutral-50 border border-neutral-200 rounded-xl pl-9 pr-4 py-2 text-xs text-neutral-900 placeholder-neutral-500 focus:outline-none focus:border-primary/50"
-            />
-          </div>
+        <button
+          onClick={handleOpenAdd}
+          className="px-4 py-2 bg-slate-900 hover:bg-slate-800 dark:bg-indigo-600 dark:hover:bg-indigo-700 text-white font-bold text-xs rounded-xl flex items-center gap-1.5 shadow-xs transition-colors"
+        >
+          <Plus className="w-4 h-4" /> Add Static Page
+        </button>
+      </div>
+
+      {/* Filter Row */}
+      <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-4 shadow-xs flex items-center justify-between gap-3">
+        <div className="relative flex-1 max-w-md">
+          <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search pages by title or slug..."
+            className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700 rounded-xl pl-9 pr-4 py-2 text-xs text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+          />
         </div>
+
+        <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">
+          {filtered.length} published pages
+        </span>
       </div>
 
       {/* Grid List */}
-      <div className="bg-white border border-neutral-200/80 rounded-3xl overflow-hidden shadow-xl">
+      <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl overflow-hidden shadow-xs">
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse text-xs">
             <thead>
-              <tr className="bg-neutral-50 text-neutral-500 border-b border-neutral-200 font-mono">
-                <th className="p-4">Page Title</th>
-                <th className="p-4">Url Slug</th>
-                <th className="p-4">Content Size</th>
-                <th className="p-4">Status</th>
-                <th className="p-4 text-right">Actions</th>
+              <tr className="bg-slate-50/80 dark:bg-slate-800/60 text-slate-500 dark:text-slate-400 border-b border-slate-200/80 dark:border-slate-800 font-semibold uppercase text-[10px] tracking-wider">
+                <th className="p-3.5">Page Title</th>
+                <th className="p-3.5">Slug URL</th>
+                <th className="p-3.5">Content Preview</th>
+                <th className="p-3.5">Status</th>
+                <th className="p-3.5 text-right">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-neutral-100">
+            <tbody className="divide-y divide-slate-100 dark:divide-slate-800/80">
               {filtered.map((p) => (
-                <tr key={p.id} className="hover:bg-neutral-50/20 transition-colors">
-                  <td className="p-4 font-bold text-neutral-900 text-xs">{p.title}</td>
-                  <td className="p-4 font-mono text-neutral-500">/{p.slug}</td>
-                  <td className="p-4 text-neutral-500 font-mono">{p.content?.length || 0} characters</td>
-                  <td className="p-4">
-                    <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider ${p.active ? 'bg-emerald-500/10 border border-emerald-500/20 text-emerald-700' : 'bg-neutral-100 text-neutral-500'}`}>
-                      {p.active ? 'Active' : 'Draft'}
+                <tr
+                  key={p.id}
+                  className="hover:bg-slate-50/60 dark:hover:bg-slate-800/40 transition-colors"
+                >
+                  <td className="p-3.5 font-semibold text-slate-900 dark:text-white text-xs">
+                    {p.title}
+                  </td>
+                  <td className="p-3.5">
+                    <span className="px-2.5 py-1 rounded-md bg-slate-100 dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 font-mono text-[11px] font-bold border border-slate-200 dark:border-slate-700">
+                      /{p.slug}
                     </span>
                   </td>
-                  <td className="p-4 text-right">
-                    <div className="flex items-center justify-end gap-2">
+                  <td className="p-3.5 text-slate-500 dark:text-slate-400 max-w-sm truncate text-xs font-mono">
+                    {p.content ? p.content.substring(0, 80) + '...' : '—'}
+                  </td>
+                  <td className="p-3.5">
+                    <span
+                      className={`inline-block px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border ${
+                        p.active
+                          ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-400 border-emerald-200/60 dark:border-emerald-800/60'
+                          : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400 border-slate-200 dark:border-slate-700'
+                      }`}
+                    >
+                      {p.active ? 'Published' : 'Draft'}
+                    </span>
+                  </td>
+                  <td className="p-3.5 text-right">
+                    <div className="flex items-center justify-end gap-1.5">
                       <button
                         onClick={() => handleOpenEdit(p)}
-                        className="p-1.5 bg-neutral-100 hover:bg-neutral-200 hover:text-neutral-900 rounded-lg transition-all"
+                        className="p-1.5 rounded-lg text-slate-500 hover:text-indigo-600 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                        title="Edit Page"
                       >
                         <Edit3 className="w-3.5 h-3.5" />
                       </button>
                       <button
                         onClick={() => handleDelete(p.id)}
-                        className="p-1.5 bg-neutral-100 hover:bg-rose-50 hover:bg-rose-100 hover:text-rose-600 rounded-lg transition-all"
+                        className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors"
+                        title="Delete Page"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
                       </button>
@@ -186,9 +223,12 @@ export default function PagesManager({ pages, token, onRefresh }: PagesManagerPr
                   </td>
                 </tr>
               ))}
+
               {filtered.length === 0 && (
                 <tr>
-                  <td colSpan={5} className="py-24 text-center text-neutral-500 italic font-mono bg-white">No static pages match criteria.</td>
+                  <td colSpan={5} className="py-20 text-center text-slate-400 italic">
+                    No CMS pages found matching criteria.
+                  </td>
                 </tr>
               )}
             </tbody>
@@ -196,80 +236,99 @@ export default function PagesManager({ pages, token, onRefresh }: PagesManagerPr
         </div>
       </div>
 
-      {/* Drawer */}
+      {/* Slide-over Drawer */}
       {drawerOpen && (
         <div className="fixed inset-0 z-50 flex justify-end">
-          <div onClick={() => setDrawerOpen(false)} className="absolute inset-0 bg-black/60 backdrop-blur-xs"></div>
-          <div className="w-full max-w-2xl bg-white border-l border-neutral-200/80 shadow-2xl relative z-10 p-6 flex flex-col justify-between h-full overflow-y-auto">
-            <div className="space-y-6">
-              <div className="flex items-center justify-between border-b border-neutral-200/80 pb-4">
-                <h3 className="text-sm font-bold uppercase tracking-widest text-neutral-900 font-mono">
+          <div
+            onClick={() => setDrawerOpen(false)}
+            className="absolute inset-0 bg-slate-900/60 backdrop-blur-xs transition-opacity"
+          />
+          <div className="w-full max-w-lg bg-white dark:bg-slate-900 border-l border-slate-200 dark:border-slate-800 shadow-2xl relative z-10 p-6 flex flex-col justify-between h-full overflow-y-auto">
+            <div className="space-y-5">
+              <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-4">
+                <h3 className="text-base font-bold text-slate-900 dark:text-white">
                   {editingPage ? 'Modify Static Page' : 'Create Static Page'}
                 </h3>
-                <button onClick={() => setDrawerOpen(false)} className="p-1 hover:bg-neutral-200 rounded-lg text-neutral-500 hover:text-neutral-900 transition-colors">
+                <button
+                  onClick={() => setDrawerOpen(false)}
+                  className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800"
+                >
                   <X className="w-5 h-5" />
                 </button>
               </div>
 
-              <form onSubmit={handleSubmit} className="space-y-5 text-xs">
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-[10px] uppercase tracking-wider font-bold text-neutral-500 mb-1">Page Title</label>
-                    <input
-                      type="text"
-                      required
-                      value={pageTitle}
-                      onChange={(e) => {
-                        setPageTitle(e.target.value);
-                        if (!editingPage) setPageSlug(e.target.value.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, ''));
-                      }}
-                      placeholder="e.g. Terms of Service"
-                      className="w-full bg-neutral-50 border border-neutral-200 rounded-xl px-3 py-2 text-neutral-900 focus:outline-none"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-[10px] uppercase tracking-wider font-bold text-neutral-500 mb-1">URL Slug</label>
-                    <input
-                      type="text"
-                      required
-                      value={pageSlug}
-                      onChange={(e) => setPageSlug(e.target.value)}
-                      placeholder="e.g. terms"
-                      className="w-full bg-neutral-50 border border-neutral-200 rounded-xl px-3 py-2 text-neutral-900 focus:outline-none font-mono"
-                    />
-                  </div>
+              <form onSubmit={handleSubmit} className="space-y-4 text-xs">
+                <div>
+                  <label className="block text-[10px] uppercase font-bold text-slate-400 dark:text-slate-500 mb-1">
+                    Page Headline
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={pageTitle}
+                    onChange={(e) => {
+                      setPageTitle(e.target.value);
+                      if (!editingPage) {
+                        setPageSlug(
+                          e.target.value
+                            .toLowerCase()
+                            .replace(/[^a-z0-9]+/g, '-')
+                            .replace(/(^-|-$)/g, '')
+                        );
+                      }
+                    }}
+                    placeholder="e.g. Return & Exchange Policy"
+                    className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                  />
                 </div>
 
                 <div>
-                  <label className="block text-[10px] uppercase tracking-wider font-bold text-neutral-500 mb-1">HTML Content</label>
+                  <label className="block text-[10px] uppercase font-bold text-slate-400 dark:text-slate-500 mb-1">
+                    URL Slug
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={pageSlug}
+                    onChange={(e) => setPageSlug(e.target.value)}
+                    placeholder="e.g. return-exchange-policy"
+                    className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-slate-900 dark:text-white focus:outline-none font-mono text-xs"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[10px] uppercase font-bold text-slate-400 dark:text-slate-500 mb-1">
+                    Page Body Content (Markdown / HTML Supported)
+                  </label>
                   <textarea
                     rows={12}
                     required
                     value={pageContent}
                     onChange={(e) => setPageContent(e.target.value)}
-                    placeholder="<h1>Terms of Service</h1><p>Welcome to HeelsUp...</p>"
-                    className="w-full bg-neutral-50 border border-neutral-200 rounded-xl p-4 text-neutral-900 focus:outline-none font-mono leading-relaxed"
+                    placeholder="## Policy Overview&#10;&#10;Explain terms, customer guidelines, contact info..."
+                    className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-3 text-slate-900 dark:text-white focus:outline-none font-mono text-xs leading-relaxed"
                   />
                 </div>
 
-                <div>
-                  <label className="relative inline-flex items-center cursor-pointer">
+                <div className="pt-1">
+                  <label className="flex items-center gap-2 cursor-pointer">
                     <input
                       type="checkbox"
                       checked={pageActive}
                       onChange={(e) => setPageActive(e.target.checked)}
-                      className="sr-only peer"
+                      className="w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500"
                     />
-                    <div className="w-8 h-4 bg-neutral-100 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-neutral-500 after:border-neutral-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-white"></div>
-                    <span className="ml-2 text-neutral-500 text-[10px] font-bold">Publish Page (Make Public)</span>
+                    <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                      Page Published & Live on Storefront
+                    </span>
                   </label>
                 </div>
 
                 <button
                   type="submit"
-                  className="w-full py-2.5 bg-neutral-900 hover:bg-neutral-800 text-white font-bold text-xs uppercase tracking-widest rounded-xl transition-all shadow-md active:scale-95"
+                  className="w-full py-2.5 bg-slate-900 hover:bg-slate-800 dark:bg-indigo-600 dark:hover:bg-indigo-700 text-white font-bold text-xs rounded-xl transition-all shadow-xs"
                 >
-                  Save Static Page
+                  Save Page Content
                 </button>
               </form>
             </div>
