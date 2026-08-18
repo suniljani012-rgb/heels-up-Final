@@ -34,24 +34,50 @@ export async function posRouter(request, env) {
     const path = url.pathname.replace('/api/admin/pos', '').replace('/api/pos', '') || '/';
     const method = request.method;
 
-    // POST /api/pos/initiate-payment — initiate Razorpay payment for POS
-    if (path === '/initiate-payment' && method === 'POST') {
+    // POST /api/pos/initiate-payment or /api/pos/create-upi-link — initiate Razorpay UPI payment for POS
+    if ((path === '/initiate-payment' || path === '/create-upi-link' || path === '/create-link') && method === 'POST') {
         const { user, error: authError } = await requireAdmin(request, env);
         if (authError) return authError;
         try {
             const body = await request.json();
-            const amountPaise = Math.round(parseFloat(body.amount) * 100);
+            const rawAmt = parseFloat(body.amount || (body.amount_paise ? body.amount_paise / 100 : 0) || body.total_amount || 0);
+            const amountPaise = Math.round(rawAmt * 100);
             if (!amountPaise || amountPaise <= 0) return error('Invalid amount');
 
-            const rzpKeyId = String(await getSetting(env, "razorpay_key_id", env.RAZORPAY_KEY_ID || "")).trim();
-            const rzpKeySecret = String(await getSetting(env, "razorpay_key_secret", env.RAZORPAY_KEY_SECRET || "")).trim();
-            if (!rzpKeyId || !rzpKeySecret) return error("Payment gateway not configured. Contact admin.", 503);
+            const custName = (body.customer_name || 'POS Walk-in').trim();
+            const custPhone = (body.customer_phone || '').trim();
+            const receipt = `POS-${Date.now().toString().slice(-6)}`;
 
-            const basicAuth = btoa(`${rzpKeyId}:${rzpKeySecret}`);
+            const linkRes = await razorpay.createPaymentLink(env, {
+                amount: amountPaise,
+                currency: 'INR',
+                description: `HEELSUP In-Store POS Bill #${receipt}`,
+                customer: {
+                    name: custName,
+                    contact: custPhone.length >= 10 ? `+91${custPhone.slice(-10)}` : undefined
+                },
+                notify: { sms: Boolean(custPhone), email: false }
+            });
+
+            if (linkRes && linkRes.short_url) {
+                return ok({
+                    success: true,
+                    payment_link: linkRes.short_url,
+                    payment_link_id: linkRes.id,
+                    amount_paise: amountPaise,
+                    receipt
+                });
+            }
+
+            // Fallback to Razorpay order
+            const { keyId, keySecret } = await getRazorpayCredentials(env);
+            if (!keyId || !keySecret) return error("Payment gateway not configured. Check Razorpay Keys in Settings.", 503);
+
+            const basicAuth = btoa(`${keyId}:${keySecret}`);
             const rzpRes = await fetch("https://api.razorpay.com/v1/orders", {
                 method: "POST",
                 headers: { Authorization: `Basic ${basicAuth}`, "content-type": "application/json" },
-                body: JSON.stringify({ amount: amountPaise, currency: "INR", receipt: `POS-${Date.now()}` })
+                body: JSON.stringify({ amount: amountPaise, currency: "INR", receipt })
             });
             if (!rzpRes.ok) {
                 const t = await rzpRes.text();
@@ -59,21 +85,32 @@ export async function posRouter(request, env) {
             }
             const rzpOrder = await rzpRes.json();
             return ok({
-                key: rzpKeyId,
-                razorpayOrder: rzpOrder
+                success: true,
+                key: keyId,
+                razorpayOrder: rzpOrder,
+                receipt
             });
         } catch (e) {
             console.error('POS initiate payment error:', e);
-            return serverError('Failed to initiate POS payment');
+            return serverError('Failed to initiate POS payment: ' + e.message);
         }
     }
 
-    // POST /api/pos/sale — create POS/offline sale
-    if (path === '/sale' && method === 'POST') {
+    // POST /api/pos/sale or /api/pos/create-sale — create POS/offline sale
+    if ((path === '/sale' || path === '/create-sale' || path === '/') && method === 'POST') {
         const { user, error: authError } = await requireAdmin(request, env);
         if (authError) return authError;
         try {
-            const { customer_name, customer_phone, items, payment_method, discount, notes, created_at, sales_channel } = await request.json();
+            const body = await request.json();
+            const customer_name = (body.customer_name || 'Walk-in Customer').trim();
+            const customer_phone = body.customer_phone ? String(body.customer_phone).trim() : null;
+            const items = body.items || [];
+            const payment_method = body.payment_method || 'Cash';
+            const discountAmt = parseFloat(body.discount || body.discount_amount || 0) || 0;
+            const notes = body.notes || 'In-Store POS Sale';
+            const created_at = body.created_at;
+            const sales_channel = body.sales_channel || body.source || 'POS';
+
             if (!items || items.length === 0) return error('No items in sale');
 
             // Validate stock availability for all items first
@@ -209,7 +246,12 @@ export async function posRouter(request, env) {
 
             return new Response(JSON.stringify({
                 success: true,
-                message: 'POS sale recorded',
+                message: 'POS sale recorded successfully',
+                data: {
+                    order_number: saleNumber,
+                    id: saleId,
+                    total_amount: total
+                },
                 order: {
                     order_number: saleNumber,
                     id: saleId,

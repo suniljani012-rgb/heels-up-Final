@@ -188,17 +188,20 @@ export default function PosTerminal({ products, onOrderCreated }: PosTerminalPro
   const discountAmountRupees = Math.min(subtotalRupees, Math.max(0, discountRupees || 0));
   const grandTotalRupees = Math.max(0, subtotalRupees - discountAmountRupees);
 
+  // UPI QR Modal state
+  const [upiPaymentData, setUpiPaymentData] = useState<{
+    link: string;
+    amount: number;
+    receipt: string;
+  } | null>(null);
+
   const cashGivenNum = parseFloat(cashGiven) || 0;
   const changeDueRupees = Math.max(0, cashGivenNum - grandTotalRupees);
 
-  // Complete Sale
-  const handleCheckout = async () => {
-    if (cart.length === 0) {
-      showToast('error', 'Empty Cart', 'Please add items before billing.');
-      return;
-    }
-
+  // Record Final Sale in Database & Print
+  const recordFinalSale = async (methodOverride?: string) => {
     setIsSubmitting(true);
+    const finalMethod = methodOverride || paymentMethod;
 
     const payload = {
       customer_name: customerName.trim() || 'Walk-in Customer',
@@ -207,7 +210,7 @@ export default function PosTerminal({ products, onOrderCreated }: PosTerminalPro
       subtotal_amount: subtotalRupees,
       discount_amount: discountAmountRupees,
       total_amount: grandTotalRupees,
-      payment_method: paymentMethod,
+      payment_method: finalMethod.toUpperCase(),
       source: 'in-store',
       order_status: 'delivered',
       notes: 'In-Store POS Sale',
@@ -218,6 +221,7 @@ export default function PosTerminal({ products, onOrderCreated }: PosTerminalPro
         color: item.color || '',
         quantity: item.qty,
         price: item.unitPricePaise,
+        unit_price: Math.round(item.unitPricePaise / 100),
       })),
     };
 
@@ -234,10 +238,10 @@ export default function PosTerminal({ products, onOrderCreated }: PosTerminalPro
 
       const data = await res.json();
       if (data.success) {
-        showToast('success', 'Bill Created!', `Receipt #${data.data?.order_number || ''}`);
+        showToast('success', 'Sale Completed! 🧾', `Receipt #${data.data?.order_number || data.order?.order_number || ''}`);
         setPrintedOrder({
           ...payload,
-          order_number: data.data?.order_number || `POS-${Date.now().toString().slice(-6)}`,
+          order_number: data.data?.order_number || data.order?.order_number || `POS-${Date.now().toString().slice(-6)}`,
           created_at: new Date().toISOString(),
         });
         setCart([]);
@@ -245,15 +249,69 @@ export default function PosTerminal({ products, onOrderCreated }: PosTerminalPro
         setCustomerPhone('');
         setDiscountRupees(0);
         setCashGiven('');
+        setUpiPaymentData(null);
         onOrderCreated();
       } else {
-        showToast('error', 'Sale Failed', data.error || 'Could not record sale.');
+        showToast('error', 'Sale Recording Failed', data.error || 'Could not record sale in database.');
       }
     } catch {
-      showToast('error', 'Error', 'Failed to connect to billing server.');
+      showToast('error', 'Network Error', 'Failed to connect to billing server.');
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  // Complete Sale or Open UPI QR
+  const handleCheckout = async () => {
+    if (cart.length === 0) {
+      showToast('error', 'Empty Cart', 'Please add items before billing.');
+      return;
+    }
+
+    // If UPI selected, generate live dynamic Razorpay payment link & QR
+    if (paymentMethod === 'upi') {
+      setIsSubmitting(true);
+      try {
+        const token = localStorage.getItem('heelsup_token');
+        const res = await fetch('/api/admin/pos/create-upi-link', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            amount: grandTotalRupees,
+            customer_name: customerName.trim() || 'POS Walk-in',
+            customer_phone: customerPhone.trim() || '8302419219',
+          }),
+        });
+
+        const data = await res.json();
+        if (data.success && data.payment_link) {
+          setUpiPaymentData({
+            link: data.payment_link,
+            amount: grandTotalRupees,
+            receipt: data.receipt || `POS-${Date.now().toString().slice(-6)}`,
+          });
+          showToast('success', 'UPI QR & Link Generated 📲', `Payment Link ready for ₹${grandTotalRupees}`);
+          return;
+        } else {
+          // If credentials missing, allow direct confirm
+          showToast('warning', 'Direct UPI Mode', data.error || 'Opening direct UPI receipt.');
+          await recordFinalSale('UPI');
+          return;
+        }
+      } catch (e: any) {
+        showToast('error', 'UPI Error', e.message || 'Failed to generate UPI QR');
+        await recordFinalSale('UPI');
+        return;
+      } finally {
+        setIsSubmitting(false);
+      }
+    }
+
+    // Cash or Card sale
+    await recordFinalSale();
   };
 
   return (
@@ -575,6 +633,74 @@ export default function PosTerminal({ products, onOrderCreated }: PosTerminalPro
           </Button>
         </div>
       </div>
+
+      {/* ── RAZORPAY DYNAMIC UPI QR POPUP MODAL ───────────────────────── */}
+      <Dialog open={!!upiPaymentData} onOpenChange={(open) => !open && setUpiPaymentData(null)}>
+        {upiPaymentData && (
+          <DialogContent className="sm:max-w-sm bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 rounded-2xl">
+            <div className="text-center space-y-3">
+              <div className="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-200 dark:border-indigo-800 text-indigo-600 dark:text-indigo-400">
+                <Smartphone className="w-6 h-6" />
+              </div>
+
+              <div>
+                <h3 className="text-base font-bold text-slate-900 dark:text-white">Scan UPI QR to Pay</h3>
+                <p className="text-xs text-slate-500">Bill #{upiPaymentData.receipt}</p>
+              </div>
+
+              {/* QR Code Container */}
+              <div className="p-3 bg-white rounded-2xl border-2 border-indigo-600 inline-block shadow-md">
+                <img
+                  src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(upiPaymentData.link)}`}
+                  alt="Razorpay UPI QR Code"
+                  className="w-44 h-44 mx-auto rounded-lg"
+                />
+              </div>
+
+              <div className="bg-slate-50 dark:bg-slate-800/60 p-2.5 rounded-xl border border-slate-100 dark:border-slate-800">
+                <p className="text-xs text-slate-500">Amount Due</p>
+                <p className="text-2xl font-black font-mono text-emerald-600 dark:text-emerald-400">
+                  ₹{upiPaymentData.amount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                </p>
+                <p className="text-[10px] text-slate-400 mt-0.5">Google Pay • PhonePe • Paytm • BHIM UPI</p>
+              </div>
+
+              <div className="flex flex-col gap-2 pt-1">
+                {/* 1-Click WhatsApp Share */}
+                {customerPhone && (
+                  <a
+                    href={`https://wa.me/91${customerPhone.replace(/\D/g, '').slice(-10)}?text=${encodeURIComponent(
+                      `Hello ${customerName || 'Customer'}! Here is your HeelsUp retail store bill payment link of ₹${upiPaymentData.amount}: ${upiPaymentData.link}`
+                    )}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="w-full h-8 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold flex items-center justify-center gap-1.5 transition-all shadow-xs"
+                  >
+                    <span>💬 Send Payment Link on WhatsApp</span>
+                  </a>
+                )}
+
+                {/* Confirm Payment & Print Bill */}
+                <Button
+                  onClick={() => recordFinalSale('UPI')}
+                  disabled={isSubmitting}
+                  className="w-full h-9 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold shadow-md"
+                >
+                  {isSubmitting ? 'Recording Bill...' : '✓ Payment Received — Print Bill'}
+                </Button>
+
+                <Button
+                  variant="outline"
+                  onClick={() => setUpiPaymentData(null)}
+                  className="w-full h-8 text-xs font-bold text-slate-500 border-slate-200 dark:border-slate-700"
+                >
+                  Cancel
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        )}
+      </Dialog>
 
       {/* ── SIMPLE RECEIPT MODAL ────────────────────────────────────── */}
       <Dialog open={!!printedOrder} onOpenChange={(open) => !open && setPrintedOrder(null)}>
