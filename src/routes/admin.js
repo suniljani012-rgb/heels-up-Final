@@ -220,7 +220,7 @@ export async function adminRouter(request, env, ctx) {
     // Fetches live Delhivery client wallet balance & billing details directly from Delhivery API
     if (path === '/api/admin/delhivery/wallet' || path === '/delhivery/wallet') {
         try {
-            let token = env.DELHIVERY_API_TOKEN || '';
+            let token = env.DELHIVERY_API_TOKEN || '499d77e55a4a2627bc1b7ecd5d65f4340af38760';
             try {
                 const settingRow = await env.DB.prepare("SELECT value FROM settings WHERE key = 'delhivery_api_token'").first();
                 if (settingRow && settingRow.value) token = settingRow.value.trim();
@@ -280,6 +280,127 @@ export async function adminRouter(request, env, ctx) {
             return ok(liveWallet);
         } catch (e) {
             return ok({ connected: false, wallet_balance: 0, billing_mode: 'PREPAID_WALLET' });
+        }
+    }
+
+    // ── /api/admin/delhivery/create-shipment ──────────────────────
+    if (path === '/api/admin/delhivery/create-shipment' && request.method === 'POST') {
+        try {
+            const body = await request.json();
+            const { order_id } = body;
+            if (!order_id) return badRequest('Order ID is required');
+
+            // 1. Get order details
+            const order = await env.DB.prepare("SELECT * FROM orders WHERE id = ?").bind(order_id).first();
+            if (!order) return badRequest('Order not found');
+
+            let token = env.DELHIVERY_API_TOKEN || '499d77e55a4a2627bc1b7ecd5d65f4340af38760';
+            try {
+                const settingRow = await env.DB.prepare("SELECT value FROM settings WHERE key = 'delhivery_api_token'").first();
+                if (settingRow && settingRow.value) token = settingRow.value.trim();
+            } catch {}
+
+            if (!token) {
+                return badRequest('Delhivery API Token is not configured in Settings');
+            }
+
+            const totalPaise = Number(order.total_amount) || 0;
+            const isCOD = (order.payment_method || '').toLowerCase().includes('cod') || (order.cod_outstanding_amount && order.cod_outstanding_amount > 0);
+            const collectAmountRs = isCOD 
+                ? (order.cod_outstanding_amount ? Math.round(order.cod_outstanding_amount / 100) : Math.round((totalPaise * 0.90) / 100))
+                : 0;
+
+            // 2. Prepare Delhivery Shipment JSON
+            const shipmentPayload = {
+                shipments: [
+                    {
+                        name: order.customer_name || 'Valued Customer',
+                        add: `${order.address_line1 || ''} ${order.address_line2 || ''}`.trim() || 'Jaipur',
+                        pin: String(order.pincode || '302001'),
+                        city: order.city || 'Jaipur',
+                        state: order.state || 'Rajasthan',
+                        country: 'India',
+                        phone: order.customer_phone || '7891470935',
+                        order: order.order_number,
+                        payment_mode: isCOD ? 'COD' : 'Pre-paid',
+                        return_pin: '',
+                        return_city: '',
+                        return_phone: '',
+                        return_add: '',
+                        return_state: '',
+                        return_country: '',
+                        products_desc: 'Footwear Heels Package',
+                        hsn_code: '6403',
+                        cod_amount: String(collectAmountRs),
+                        order_date: order.created_at || new Date().toISOString(),
+                        total_amount: String(Math.round(totalPaise / 100)),
+                        seller_add: 'Jaipur, Rajasthan',
+                        seller_name: 'HeelsUp Jaipur',
+                        seller_inv: order.order_number,
+                        quantity: '1',
+                        waybill: '',
+                        shipment_width: 25,
+                        shipment_height: 12,
+                        weight: 0.85,
+                        seller_gst_tin: '',
+                        shipping_mode: 'Surface',
+                        address_type: 'home'
+                    }
+                ],
+                pickup_location: {
+                    name: 'HeelsUp Jaipur Warehouse',
+                    add: 'Shop 12, Fashion Street, Jaipur',
+                    city: 'Jaipur',
+                    pin_code: '302001',
+                    country: 'India',
+                    phone: '7891470935'
+                }
+            };
+
+            const formData = new URLSearchParams();
+            formData.append('format', 'json');
+            formData.append('data', JSON.stringify(shipmentPayload));
+
+            const delhiveryRes = await fetch('https://track.delhivery.com/api/cmu/create.json', {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Token ${token}`,
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'Accept': 'application/json'
+                },
+                body: formData.toString()
+            });
+
+            const result = await delhiveryRes.json();
+
+            let generatedAwb = '';
+            if (result && result.packages && result.packages.length > 0 && result.packages[0].waybill) {
+                generatedAwb = result.packages[0].waybill;
+            } else if (result && result.upload_wbn) {
+                generatedAwb = result.upload_wbn;
+            }
+
+            if (generatedAwb) {
+                const trackingUrl = `https://track.delhivery.com/tracking?w=${generatedAwb}`;
+                await env.DB.prepare(`
+                    UPDATE orders 
+                    SET tracking_number = ?, tracking_url = ?, courier_name = 'Delhivery Surface Express', order_status = 'confirmed', updated_at = ?
+                    WHERE id = ?
+                `).bind(generatedAwb, trackingUrl, new Date().toISOString(), order_id).run();
+
+                return ok({
+                    success: true,
+                    tracking_number: generatedAwb,
+                    tracking_url: trackingUrl,
+                    message: `Shipment successfully created on Delhivery with AWB ${generatedAwb}`
+                });
+            } else {
+                const errorMsg = result?.error || result?.remarks?.[0] || result?.packages?.[0]?.remarks?.[0] || JSON.stringify(result);
+                return badRequest(`Delhivery API Error: ${errorMsg}`);
+            }
+        } catch (e) {
+            console.error('Delhivery create-shipment error:', e);
+            return serverError(`Failed to book Delhivery shipment: ${e.message}`);
         }
     }
 

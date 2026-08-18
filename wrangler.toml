@@ -16,6 +16,13 @@ R2_PUBLIC_URL = "https://media.heelsup.in"
 INFOBIP_API_BASE_URL = "eegg4r.api.infobip.com"
 GOOGLE_PLACES_API_KEY = "AIzaSyAQbbdffk0mJeUEgZIwzU7ySh9fdTsMT0o"
 GOOGLE_PLACE_ID = ""
+DELHIVERY_API_TOKEN = "499d77e55a4a2627bc1b7ecd5d65f4340af38760"
+DELHIVERY_CLIENT_ID = "ucp-service-cli"
+DELHIVERY_CLIENT_SECRET = "UOITGG84TFHDR9DK5JWTUR3VI2CCB7IT"
+DELHIVERY_AUTH_URL = "https://ucp-auth.delhivery.com/holyknight"
+DELHIVERY_REALM = "ucp-BBCFR97RC427"
+DELHIVERY_CLIENT_CMS = "cms::client::34cff185-e695-4546-ae25-a17e0fabff1d"
+DELHIVERY_MCP_URL = "https://mcp-client.delhivery.com/mcp"
 
 [[d1_databases]]
 binding = "DB"

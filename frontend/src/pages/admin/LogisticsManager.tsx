@@ -190,14 +190,19 @@ export default function LogisticsManager({ orders = [], token, onRefresh }: Logi
         ? (o.cod_outstanding_amount ? Math.round(o.cod_outstanding_amount / 100) : Math.round(totalRs * 0.90))
         : 0;
 
-      const awb = o.tracking_number || `DEL-${o.order_number?.replace('HU-', '') || Math.floor(100000000 + Math.random() * 900000000)}`;
-      const courier = o.courier_name || 'Delhivery Surface Express';
+      const awb = o.tracking_number || '';
+      const courier = o.courier_name || (awb ? 'Delhivery Surface Express' : 'Unassigned');
 
       let status: ShipmentRecord['status'] = 'manifested';
-      if (o.order_status === 'delivered' || o.order_status === 'Completed') status = 'delivered';
-      else if (o.order_status === 'shipped') status = 'in_transit';
-      else if (o.order_status === 'confirmed') status = 'manifested';
-      else if (o.order_status === 'cancelled') status = 'cancelled';
+      if (!awb) {
+        status = 'manifested'; // Awaiting booking
+      } else if (o.order_status === 'delivered' || o.order_status === 'Completed') {
+        status = 'delivered';
+      } else if (o.order_status === 'shipped') {
+        status = 'in_transit';
+      } else if (o.order_status === 'cancelled') {
+        status = 'cancelled';
+      }
 
       const itemsSummary = (o.items || [])
         .map((it: any) => `${it.quantity || 1}x ${it.product_name || 'Heels'} (${it.size || '7'})`)
@@ -215,7 +220,7 @@ export default function LogisticsManager({ orders = [], token, onRefresh }: Logi
         address: `${o.address_line1 || ''} ${o.address_line2 || ''}`.trim(),
         courier_name: courier,
         tracking_number: awb,
-        tracking_url: o.tracking_url || `https://track.delhivery.com/tracking?w=${awb}`,
+        tracking_url: o.tracking_url || (awb ? `https://track.delhivery.com/tracking?w=${awb}` : ''),
         items_summary: itemsSummary,
         is_cod: isCOD,
         collect_cash_amount: balanceToCollect,
@@ -631,6 +636,35 @@ export default function LogisticsManager({ orders = [], token, onRefresh }: Logi
     printWin.document.close();
   };
 
+  const [bookingShipmentId, setBookingShipmentId] = useState<number | null>(null);
+
+  const handleAutoBookDelhivery = async (orderId: number) => {
+    try {
+      setBookingShipmentId(orderId);
+      const res = await fetch('/api/admin/delhivery/create-shipment', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ order_id: orderId }),
+      });
+
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        showToast('error', 'Delhivery API Error', data.error || data.message || 'Failed to book on Delhivery API');
+        return;
+      }
+
+      showToast('success', 'Shipment Booked on Delhivery', `Assigned AWB: ${data.tracking_number}`);
+      onRefresh();
+    } catch (e: any) {
+      showToast('error', 'Network Error', e.message || 'Network error connecting to Delhivery API');
+    } finally {
+      setBookingShipmentId(null);
+    }
+  };
+
   return (
     <div className="space-y-3.5 antialiased font-sans">
       {/* ── 1. DELHIVERY WALLET & FINANCIAL RECONCILIATION STRIP ─────── */}
@@ -902,9 +936,15 @@ export default function LogisticsManager({ orders = [], token, onRefresh }: Logi
 
                     {/* AWB */}
                     <TableCell className="py-2.5">
-                      <span className="font-mono text-xs font-bold text-indigo-600 dark:text-indigo-400">
-                        {s.tracking_number}
-                      </span>
+                      {s.tracking_number ? (
+                        <span className="font-mono text-xs font-bold text-indigo-600 dark:text-indigo-400">
+                          {s.tracking_number}
+                        </span>
+                      ) : (
+                        <span className="text-[11px] font-medium text-amber-600 dark:text-amber-400 italic">
+                          Not Booked on Delhivery Yet
+                        </span>
+                      )}
                     </TableCell>
 
                     {/* Doorstep Cash */}
@@ -996,16 +1036,22 @@ export default function LogisticsManager({ orders = [], token, onRefresh }: Logi
                   {/* AWB & Order */}
                   <TableCell className="py-2.5">
                     <div>
-                      <a
-                        href={s.tracking_url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        onClick={(e) => e.stopPropagation()}
-                        className="font-mono text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-1"
-                      >
-                        {s.tracking_number}
-                        <ExternalLink className="w-2.5 h-2.5 opacity-60" />
-                      </a>
+                      {s.tracking_number ? (
+                        <a
+                          href={s.tracking_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          onClick={(e) => e.stopPropagation()}
+                          className="font-mono text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-1"
+                        >
+                          {s.tracking_number}
+                          <ExternalLink className="w-2.5 h-2.5 opacity-60" />
+                        </a>
+                      ) : (
+                        <span className="text-[11px] font-semibold text-amber-600 dark:text-amber-400 flex items-center gap-1">
+                          Awaiting Delhivery Booking
+                        </span>
+                      )}
                       <p className="text-[10px] text-slate-500 font-mono mt-0.5">
                         Order #{s.order_number}
                       </p>
@@ -1078,27 +1124,40 @@ export default function LogisticsManager({ orders = [], token, onRefresh }: Logi
                   {/* Actions */}
                   <TableCell className="text-right py-2.5" onClick={(e) => e.stopPropagation()}>
                     <div className="flex items-center justify-end gap-1">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => handlePrintShippingLabel(s)}
-                        title="Print 4x6 Delhivery Barcode Label"
-                        className="h-7 px-2 text-xs font-bold bg-slate-50 hover:bg-slate-100"
-                      >
-                        <Printer className="w-3.5 h-3.5 mr-1 text-slate-700" />
-                        Print
-                      </Button>
-
-                      {s.customer_phone && (
-                        <a
-                          href={`https://wa.me/91${s.customer_phone.replace(/[^0-9]/g, '')}?text=Hi%20${encodeURIComponent(s.customer_name)},%20your%20HeelsUp%20parcel%20is%20dispatched%20via%20Delhivery.%20Tracking%20AWB:%20${s.tracking_number}.%20Track%20live:%20${encodeURIComponent(s.tracking_url || '')}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          title="WhatsApp Tracking Alert"
-                          className="h-7 px-2 rounded-md bg-emerald-600 hover:bg-emerald-500 text-white flex items-center justify-center"
+                      {!s.tracking_number ? (
+                        <Button
+                          size="sm"
+                          onClick={() => handleAutoBookDelhivery(s.order_id)}
+                          disabled={bookingShipmentId === s.order_id}
+                          className="h-7 px-2.5 text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs"
                         >
-                          <MessageSquare className="w-3.5 h-3.5" />
-                        </a>
+                          {bookingShipmentId === s.order_id ? 'Booking...' : '🚀 Book Delhivery'}
+                        </Button>
+                      ) : (
+                        <>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handlePrintShippingLabel(s)}
+                            title="Print 4x6 Delhivery Barcode Label"
+                            className="h-7 px-2 text-xs font-bold bg-slate-50 hover:bg-slate-100"
+                          >
+                            <Printer className="w-3.5 h-3.5 mr-1 text-slate-700" />
+                            Print
+                          </Button>
+
+                          {s.customer_phone && (
+                            <a
+                              href={`https://wa.me/91${s.customer_phone.replace(/[^0-9]/g, '')}?text=Hi%20${encodeURIComponent(s.customer_name)},%20your%20HeelsUp%20parcel%20is%20dispatched%20via%20Delhivery.%20Tracking%20AWB:%20${s.tracking_number}.%20Track%20live:%20${encodeURIComponent(s.tracking_url || '')}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              title="WhatsApp Tracking Alert"
+                              className="h-7 px-2 rounded-md bg-emerald-600 hover:bg-emerald-500 text-white flex items-center justify-center"
+                            >
+                              <MessageSquare className="w-3.5 h-3.5" />
+                            </a>
+                          )}
+                        </>
                       )}
                     </div>
                   </TableCell>
