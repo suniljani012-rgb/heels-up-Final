@@ -173,38 +173,57 @@ export const razorpay = {
     const rawContact = String(customer.contact || '').replace(/\D/g, '');
     const cleanPhone = rawContact.length >= 10 ? rawContact.slice(-10) : '';
 
-    const payload = {
-      amount: Math.round(Number(amount)), // in paise
-      currency: currency || 'INR',
-      accept_partial: false,
-      description: description || 'HEELSUP Footwear Order Payment',
-      notify: {
-        sms: false,
-        email: false
-      },
-      reminder_enable: false,
-      notes: notes || {}
+    const buildPayload = (withNotify = true) => {
+      const p = {
+        amount: Math.round(Number(amount)), // in paise
+        currency: currency || 'INR',
+        accept_partial: false,
+        description: description || 'HEELSUP Footwear Order Payment',
+        notify: {
+          sms: withNotify && Boolean(cleanPhone),
+          email: withNotify && Boolean(customer.email && customer.email.includes('@')),
+          whatsapp: withNotify && Boolean(cleanPhone)
+        },
+        reminder_enable: withNotify,
+        notes: notes || {}
+      };
+
+      if (cleanPhone || (customer.name && customer.name.trim())) {
+        p.customer = {
+          name: customer.name ? customer.name.trim() : 'Customer',
+          contact: cleanPhone ? `+91${cleanPhone}` : undefined,
+          email: customer.email && customer.email.includes('@') ? customer.email.trim() : undefined
+        };
+      }
+      return p;
     };
 
-    if (cleanPhone || (customer.name && customer.name.trim())) {
-      payload.customer = {
-        name: customer.name ? customer.name.trim() : 'Customer',
-        contact: cleanPhone ? `+91${cleanPhone}` : undefined,
-        email: customer.email && customer.email.includes('@') ? customer.email.trim() : undefined
-      };
-    }
-
     try {
-      const res = await fetch('https://api.razorpay.com/v1/payment_links', {
+      // 1. First attempt with official Razorpay WhatsApp + SMS notification enabled
+      let res = await fetch('https://api.razorpay.com/v1/payment_links', {
         method: 'POST',
         headers: {
           'Authorization': `Basic ${credentials}`,
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(payload)
+        body: JSON.stringify(buildPayload(true))
       });
 
-      const data = await res.json().catch(() => null);
+      let data = await res.json().catch(() => null);
+
+      // 2. If first attempt fails (e.g. notification add-on not enabled for merchant), retry without notify
+      if (!res.ok || !data || (!data.short_url && !data.id)) {
+        res = await fetch('https://api.razorpay.com/v1/payment_links', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Basic ${credentials}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(buildPayload(false))
+        });
+        data = await res.json().catch(() => null);
+      }
+
       if (res.ok && data && (data.short_url || data.id)) {
         return {
           success: true,

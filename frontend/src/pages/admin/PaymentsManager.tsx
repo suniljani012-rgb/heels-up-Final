@@ -92,7 +92,7 @@ export default function PaymentsManager({ payments = [], orders = [], token, onR
   const [linkOrderNum, setLinkOrderNum] = useState('');
   const [generatedLinkUrl, setGeneratedLinkUrl] = useState('');
   const [linkError, setLinkError] = useState('');
-  const [autoOpenWhatsApp, setAutoOpenWhatsApp] = useState(true);
+  const [autoOpenWhatsApp, setAutoOpenWhatsApp] = useState(false);
   const [linkCreating, setLinkCreating] = useState(false);
   const [refunding, setRefunding] = useState(false);
 
@@ -124,10 +124,10 @@ export default function PaymentsManager({ payments = [], orders = [], token, onR
         const cleanDigits = (linkCustPhone || '').replace(/\D/g, '');
         const targetPhone = cleanDigits.length >= 10 ? cleanDigits.slice(-10) : '';
         const greeting = linkCustName.trim() ? `Hello ${linkCustName.trim()}!` : 'Hello!';
-        const waMsg = `${greeting} 👡✨\n\nYour payment link of ₹${linkAmountRs} for your Heelsup order is ready.\n\n💳 Pay securely via UPI / Cards:\n${pLink}\n\nThank you for choosing Heelsup, Jodhpur!`;
+        const waMsg = `${greeting} 👡✨\n\nYour payment link of ₹${linkAmountRs} for your Heelsup order is ready.\n\n💳 Pay securely online via UPI / Cards / Netbanking:\n${pLink}\n\nThank you for choosing Heelsup, Jodhpur!`;
         const waUrl = targetPhone 
-          ? `https://api.whatsapp.com/send?phone=91${targetPhone}&text=${encodeURIComponent(waMsg)}`
-          : `https://api.whatsapp.com/send?text=${encodeURIComponent(waMsg)}`;
+          ? `https://wa.me/91${targetPhone}?text=${encodeURIComponent(waMsg)}`
+          : `https://wa.me/?text=${encodeURIComponent(waMsg)}`;
 
         if (autoOpenWhatsApp && targetPhone) {
           try {
@@ -1090,14 +1090,25 @@ export default function PaymentsManager({ payments = [], orders = [], token, onR
                     </Button>
                   </div>
 
-                  <a
-                    href={`https://api.whatsapp.com/send?${linkCustPhone ? `phone=91${linkCustPhone.replace(/\D/g, '').slice(-10)}&` : ''}text=${encodeURIComponent(`${linkCustName.trim() ? `Hello ${linkCustName.trim()}!` : 'Hello!'} 👡✨\n\nYour payment link of ₹${linkAmountRs} for your Heelsup order is ready.\n\n💳 Pay securely online via UPI / Cards:\n${generatedLinkUrl}\n\nThank you for choosing Heelsup, Jodhpur!`)}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="w-full py-2.5 px-3 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-xs transition-colors"
-                  >
-                    <span>💬 Open WhatsApp & Send to Customer</span>
-                  </a>
+                  {(() => {
+                    const cleanDigits = (linkCustPhone || '').replace(/\D/g, '');
+                    const targetPhone = cleanDigits.length >= 10 ? cleanDigits.slice(-10) : '';
+                    const waMessage = `${linkCustName.trim() ? `Hello ${linkCustName.trim()}!` : 'Hello!'} 👡✨\n\nYour payment link of ₹${linkAmountRs} for your Heelsup order is ready.\n\n💳 Pay securely online via UPI / Cards / Netbanking:\n${generatedLinkUrl}\n\nThank you for choosing Heelsup, Jodhpur!`;
+                    const waHref = targetPhone 
+                      ? `https://wa.me/91${targetPhone}?text=${encodeURIComponent(waMessage)}`
+                      : `https://wa.me/?text=${encodeURIComponent(waMessage)}`;
+
+                    return (
+                      <a
+                        href={waHref}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="w-full py-2.5 px-3 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-xs transition-colors"
+                      >
+                        <span>💬 {targetPhone ? `Open WhatsApp & Send to +91 ${targetPhone}` : 'Open WhatsApp & Share Link'}</span>
+                      </a>
+                    );
+                  })()}
                 </div>
               )}
             </div>
