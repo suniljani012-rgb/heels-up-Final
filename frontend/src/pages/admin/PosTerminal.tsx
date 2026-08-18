@@ -315,9 +315,9 @@ export default function PosTerminal({ products, onOrderCreated }: PosTerminalPro
   };
 
   return (
-    <div className="h-[calc(100vh-5.5rem)] flex flex-col md:flex-row gap-3 antialiased select-none font-sans overflow-hidden text-slate-900 dark:text-slate-100">
+    <div className="min-h-[calc(100vh-5.5rem)] md:h-[calc(100vh-5.5rem)] flex flex-col md:flex-row gap-3 antialiased select-none font-sans overflow-visible md:overflow-hidden text-slate-900 dark:text-slate-100 pb-24 md:pb-0">
       {/* ── LEFT: PRODUCT CATALOG (Simple & Clean) ──────────────────── */}
-      <div className="flex-1 flex flex-col bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-xs">
+      <div className="flex-1 flex flex-col bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-xs min-h-[360px] md:min-h-0">
         {/* Search & Category Bar */}
         <div className="p-3 border-b border-slate-200 dark:border-slate-800 space-y-2.5 bg-slate-50/50 dark:bg-slate-800/30">
           {/* Search Box */}
