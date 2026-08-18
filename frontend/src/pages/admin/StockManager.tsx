@@ -106,7 +106,7 @@ export default function StockManager({ products, token, onRefresh }: StockManage
         tags: product.tags || [],
         show_mrp: product.show_mrp !== undefined ? product.show_mrp : true,
         meta_title: product.meta_title || '',
-        meta_desc: product.meta_desc || '',
+        meta_description: product.meta_description || '',
         size_stock: updatedSizeStock
       };
 

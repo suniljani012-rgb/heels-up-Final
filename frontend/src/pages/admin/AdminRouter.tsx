@@ -1,6 +1,6 @@
 import React from 'react';
 import DashboardView from './DashboardView';
-import ProductsManager from './ProductsManager';
+import ProductsManager from './products/ProductsManager';
 import StockManager from './StockManager';
 import OrdersManager from './OrdersManager';
 import CategoriesManager from './CategoriesManager';

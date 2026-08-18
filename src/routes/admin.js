@@ -34,6 +34,7 @@ import { notificationsAdminRouter } from './notifications-admin.js';
 import { analyticsRouter, dashboardStatsRouter } from './analytics.js';
 import { uploadRouter } from './upload.js';
 import { posRouter } from './pos.js';
+import { adminProductsRouter } from './admin-products.js';
 
 // ── Helper: rewrite request URL pathname ────────────────────
 function rewritePath(request, newPathname) {
@@ -96,9 +97,14 @@ export async function adminRouter(request, env, ctx) {
         return ordersRouter(req, env);
     }
 
-    // ── /api/admin/products/* → /api/products/* ───────────────
+    // ── /api/admin/products/* → comprehensive admin router ──
+    // The new router returns `null` for unmatched sub-paths, in which
+    // case we fall back to the legacy rewrite so existing behavior
+    // (size-stock PUT, mrp-visibility, etc.) is preserved.
     if (path.startsWith('/api/admin/products')) {
         const sub = path.replace('/api/admin/products', '') || '/';
+        const adminRes = await adminProductsRouter(request, env, ctx);
+        if (adminRes) return adminRes;
         const req = rewritePath(request, '/api/products' + sub);
         return productsRouter(req, env);
     }

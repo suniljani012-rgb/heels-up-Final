@@ -28,6 +28,15 @@ export default function Admin() {
     return null;
   });
 
+  // ── Auth guard ─────────────────────────────────────────────
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-[#f5f5f4] flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8 font-sans relative text-neutral-900">
+        <AdminAuth onAuthSuccess={setUser} />
+      </div>
+    );
+  }
+
   // Active Panel Navigation Tab
   const [activeTab, setActiveTab] = useState<ActiveTab>(() => {
     return (localStorage.getItem('admin_active_tab') as ActiveTab) || 'dashboard';
@@ -266,7 +275,6 @@ export default function Admin() {
     );
   }
 
-  return (
   return (
     <div className="flex h-screen overflow-hidden bg-[#F4F7FE] dark:bg-[#0B1437] text-slate-800 font-sans relative">
       {showOrderBanner && (
