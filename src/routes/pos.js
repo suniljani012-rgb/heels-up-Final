@@ -1,6 +1,7 @@
 // worker/src/routes/pos.js
 import { requireAdmin } from '../middleware/auth.js';
 import { ok, list, created, error, serverError } from '../utils/response.js';
+import { razorpay } from '../utils/razorpay.js';
 
 async function getSetting(env, key, fallback = '') {
     try {
@@ -54,9 +55,9 @@ export async function posRouter(request, env) {
                 description: `HEELSUP In-Store POS Bill #${receipt}`,
                 customer: {
                     name: custName,
-                    contact: custPhone.length >= 10 ? `+91${custPhone.slice(-10)}` : undefined
+                    contact: custPhone.length >= 10 ? custPhone.slice(-10) : undefined
                 },
-                notify: { sms: Boolean(custPhone), email: false }
+                notes: { receipt, source: 'pos_terminal' }
             });
 
             if (linkRes && linkRes.short_url) {
@@ -69,26 +70,25 @@ export async function posRouter(request, env) {
                 });
             }
 
-            // Fallback to Razorpay order
-            const { keyId, keySecret } = await getRazorpayCredentials(env);
-            if (!keyId || !keySecret) return error("Payment gateway not configured. Check Razorpay Keys in Settings.", 503);
-
-            const basicAuth = btoa(`${keyId}:${keySecret}`);
-            const rzpRes = await fetch("https://api.razorpay.com/v1/orders", {
-                method: "POST",
-                headers: { Authorization: `Basic ${basicAuth}`, "content-type": "application/json" },
-                body: JSON.stringify({ amount: amountPaise, currency: "INR", receipt })
+            // Fallback to Razorpay order creation
+            const rzpOrder = await razorpay.createOrder(env, {
+                amount: amountPaise,
+                currency: 'INR',
+                receipt,
+                notes: { receipt, source: 'pos_terminal' }
             });
-            if (!rzpRes.ok) {
-                const t = await rzpRes.text();
-                return error("Payment gateway error: " + t, 502);
+
+            if (rzpOrder && rzpOrder.id) {
+                return ok({
+                    success: true,
+                    razorpayOrder: rzpOrder,
+                    receipt
+                });
             }
-            const rzpOrder = await rzpRes.json();
+
             return ok({
-                success: true,
-                key: keyId,
-                razorpayOrder: rzpOrder,
-                receipt
+                success: false,
+                error: linkRes?.error || 'Could not generate Razorpay payment link. Check API keys in Settings.'
             });
         } catch (e) {
             console.error('POS initiate payment error:', e);
@@ -191,56 +191,62 @@ export async function posRouter(request, env) {
             const saleRes = await env.DB.prepare(`
                 INSERT INTO offline_sales (
                     sale_number, customer_name, customer_phone, items_json,
-                    subtotal, discount, total, payment_method, notes,
-                    created_by, created_at, sales_channel
+                    subtotal, discount, total, payment_method, sales_channel, notes,
+                    created_by, created_at
                 ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             `).bind(
                 saleNumber, customer_name || 'Walk-in', customer_phone || null, itemsJson,
-                subtotal, discountAmt, total, payment_method || 'Cash', notes || null,
-                user.id, finalCreatedAt, channel
+                subtotal, discountAmt, total, payment_method || 'Cash', channel, notes || null,
+                user ? user.id : null, finalCreatedAt
             ).run();
 
             const saleId = saleRes.meta?.last_row_id;
 
             // Insert items and adjust stock
             for (const item of processedItems) {
-                await env.DB.prepare(`
-                    INSERT INTO offline_sale_items (
-                        sale_id, product_id, product_code, product_name, color, size, quantity, unit_price, total_price
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-                `).bind(
-                    saleId, item.product_id, item.product_code, item.product_name,
-                    item.color, item.size, item.quantity, item.unit_price, item.total_price
-                ).run();
-
-                // Deduct size-specific stock if available
-                if (item.size) {
-                    const row = await env.DB.prepare(
-                        "SELECT stock FROM product_size_stock WHERE product_id=? AND size_label=?"
-                    ).bind(item.product_id, item.size).first();
-                    if (row) {
-                        const newStock = Math.max(0, (row.stock || 0) - item.quantity);
-                        await env.DB.prepare(
-                            "UPDATE product_size_stock SET stock=?, updated_at=datetime('now') WHERE product_id=? AND size_label=?"
-                        ).bind(newStock, item.product_id, item.size).run();
-                    }
+                try {
+                    await env.DB.prepare(`
+                        INSERT INTO offline_sale_items (
+                            sale_id, product_id, product_code, product_name, color, size, quantity, unit_price, total_price
+                        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    `).bind(
+                        saleId, item.product_id, item.product_code, item.product_name,
+                        item.color, item.size, item.quantity, item.unit_price, item.total_price
+                    ).run();
+                } catch (itemErr) {
+                    console.warn('Offline sale item insert non-critical error:', itemErr);
                 }
 
-                // Deduct global stock
-                const prod = await env.DB.prepare("SELECT stock, name FROM products WHERE id=?").bind(item.product_id).first();
-                const beforeStock = prod ? prod.stock : 0;
-                const afterStock = Math.max(0, beforeStock - item.quantity);
-
-                await env.DB.prepare(
-                    "UPDATE products SET stock=?, sold_count=COALESCE(sold_count,0)+?, updated_at=datetime('now') WHERE id=?"
-                ).bind(afterStock, item.quantity, item.product_id).run();
-
-                // Log inventory change
+                // Deduct size-specific stock if available
                 try {
+                    if (item.size) {
+                        const row = await env.DB.prepare(
+                            "SELECT stock FROM product_size_stock WHERE product_id=? AND size_label=?"
+                        ).bind(item.product_id, item.size).first();
+                        if (row) {
+                            const newStock = Math.max(0, (row.stock || 0) - item.quantity);
+                            await env.DB.prepare(
+                                "UPDATE product_size_stock SET stock=?, updated_at=datetime('now') WHERE product_id=? AND size_label=?"
+                            ).bind(newStock, item.product_id, item.size).run();
+                        }
+                    }
+
+                    // Deduct global stock
+                    const prod = await env.DB.prepare("SELECT stock, name FROM products WHERE id=?").bind(item.product_id).first();
+                    const beforeStock = prod ? prod.stock : 0;
+                    const afterStock = Math.max(0, beforeStock - item.quantity);
+
+                    await env.DB.prepare(
+                        "UPDATE products SET stock=?, sold_count=COALESCE(sold_count,0)+?, updated_at=datetime('now') WHERE id=?"
+                    ).bind(afterStock, item.quantity, item.product_id).run();
+
+                    // Log inventory change
                     await env.DB.prepare(
                         "INSERT INTO inventory_log (product_id, product_name, change_type, quantity_before, quantity_change, quantity_after, reason, created_at) VALUES (?, ?, 'sale', ?, ?, ?, ?, datetime('now'))"
                     ).bind(item.product_id, prod ? prod.name : 'Unknown Product', beforeStock, -item.quantity, afterStock, `POS sale: Bill ${saleNumber}`).run();
-                } catch (_) { /* log non-critical */ }
+                } catch (stockErr) {
+                    console.warn('Stock adjustment non-critical error:', stockErr);
+                }
             }
 
             return new Response(JSON.stringify({

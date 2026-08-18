@@ -207,11 +207,15 @@ export default function PosTerminal({ products, onOrderCreated }: PosTerminalPro
       customer_name: customerName.trim() || 'Walk-in Customer',
       customer_phone: customerPhone.trim() || '9999999999',
       customer_email: 'pos-customer@heelsup.in',
+      subtotal: subtotalRupees,
       subtotal_amount: subtotalRupees,
+      discount: discountAmountRupees,
       discount_amount: discountAmountRupees,
+      total: grandTotalRupees,
       total_amount: grandTotalRupees,
       payment_method: finalMethod.toUpperCase(),
-      source: 'in-store',
+      sales_channel: 'POS',
+      source: 'POS',
       order_status: 'delivered',
       notes: 'In-Store POS Sale',
       items: cart.map((item) => ({
@@ -220,8 +224,10 @@ export default function PosTerminal({ products, onOrderCreated }: PosTerminalPro
         size: item.size,
         color: item.color || '',
         quantity: item.qty,
+        qty: item.qty,
         price: item.unitPricePaise,
         unit_price: Math.round(item.unitPricePaise / 100),
+        total_price: Math.round((item.unitPricePaise * item.qty) / 100),
       })),
     };
 
