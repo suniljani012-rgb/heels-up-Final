@@ -164,6 +164,7 @@ const ADMIN_API_CACHE = new Map<string, any>();
         else if (data.products !== undefined) payload = data.products;
         else if (data.orders !== undefined) payload = data.orders;
         else if (data.customers !== undefined) payload = data.customers;
+        else if (data.live_payments !== undefined || data.db_payments !== undefined) payload = data.db_payments || data.live_payments || [];
 
         // Update memory cache & state
         ADMIN_API_CACHE.set(endpoint, payload);

@@ -293,45 +293,54 @@ export default function PaymentsManager({ payments = [], orders = [], token, onR
     }
 
     // 2. Real database payment records (no synthetic placeholders)
-    payments.forEach((p) => {
-      const pid = p.provider_payment_id;
-      if (!pid || seen.has(pid)) return;
-      seen.add(pid);
+    const safePayments = Array.isArray(payments)
+      ? payments
+      : (typeof payments === 'object' && payments !== null
+          ? ((payments as any).db_payments || (payments as any).live_payments || [])
+          : []);
 
-      let grossPaise = Number(p.amount) || 0;
-      if (grossPaise > 0 && grossPaise <= 500 && p.order_total && p.order_total > 50000) {
-        grossPaise = Math.round(Number(p.order_total) * 0.10);
-      } else if (grossPaise > 0 && grossPaise <= 5000 && (!p.order_total || p.order_total <= 5000)) {
-        grossPaise = grossPaise * 100;
-      }
+    if (Array.isArray(safePayments)) {
+      safePayments.forEach((p: any) => {
+        if (!p) return;
+        const pid = p.provider_payment_id || p.id;
+        if (!pid || seen.has(String(pid))) return;
+        seen.add(String(pid));
 
-      const isCOD = (p.order_payment_method || '').toLowerCase().includes('cod') || (p.raw_payload && p.raw_payload.includes('COD'));
-      const feePaise = Math.round(grossPaise * 0.0236);
-      const netPaise = Math.max(0, grossPaise - feePaise);
+        let grossPaise = Number(p.amount) || 0;
+        if (grossPaise > 0 && grossPaise <= 500 && p.order_total && p.order_total > 50000) {
+          grossPaise = Math.round(Number(p.order_total) * 0.10);
+        } else if (grossPaise > 0 && grossPaise <= 5000 && (!p.order_total || p.order_total <= 5000)) {
+          grossPaise = grossPaise * 100;
+        }
 
-      const ageHours = (Date.now() - new Date(p.created_at || Date.now()).getTime()) / (1000 * 60 * 60);
-      const isSettled = ageHours >= 24;
+        const isCOD = (p.order_payment_method || '').toLowerCase().includes('cod') || (p.raw_payload && String(p.raw_payload).includes('COD'));
+        const feePaise = Math.round(grossPaise * 0.0236);
+        const netPaise = Math.max(0, grossPaise - feePaise);
 
-      list.push({
-        id: p.id,
-        order_id: p.order_id,
-        order_number: p.order_number || `HU-ORD-${p.order_id || p.id}`,
-        customer_name: p.customer_name || 'Valued Customer',
-        customer_phone: p.customer_phone || '',
-        provider: p.provider || 'RAZORPAY',
-        provider_payment_id: p.provider_payment_id,
-        provider_order_id: p.provider_order_id || 'N/A',
-        amount: grossPaise,
-        fee: feePaise,
-        net_amount: netPaise,
-        currency: 'INR',
-        status: isSettled ? 'settled' : 'pending',
-        method: isCOD ? '10% COD Advance (UPI)' : 'Prepaid (Razorpay UPI)',
-        bank_rrn: p.bank_rrn || `RRN-${p.provider_payment_id?.slice(-8) || p.id}`,
-        settlement_id: isSettled ? p.settlement_id : undefined,
-        created_at: p.created_at || new Date().toISOString(),
+        const ageHours = (Date.now() - new Date(p.created_at || Date.now()).getTime()) / (1000 * 60 * 60);
+        const isSettled = ageHours >= 24;
+
+        list.push({
+          id: p.id || pid,
+          order_id: p.order_id || null,
+          order_number: p.order_number || `HU-ORD-${p.order_id || p.id}`,
+          customer_name: p.customer_name || 'Valued Customer',
+          customer_phone: p.customer_phone ? String(p.customer_phone) : '',
+          provider: p.provider || 'RAZORPAY',
+          provider_payment_id: p.provider_payment_id || String(p.id),
+          provider_order_id: p.provider_order_id || 'N/A',
+          amount: grossPaise,
+          fee: feePaise,
+          net_amount: netPaise,
+          currency: 'INR',
+          status: isSettled ? 'settled' : 'pending',
+          method: isCOD ? '10% COD Advance (UPI)' : 'Prepaid (Razorpay UPI)',
+          bank_rrn: p.bank_rrn || `RRN-${String(p.provider_payment_id || p.id).slice(-8)}`,
+          settlement_id: isSettled ? p.settlement_id : undefined,
+          created_at: p.created_at || new Date().toISOString(),
+        });
       });
-    });
+    }
 
     return list.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
   }, [liveRazorpayPayments, payments]);
