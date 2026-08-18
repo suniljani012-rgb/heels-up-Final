@@ -54,6 +54,22 @@ interface PaymentsManagerProps {
   onRefresh: () => void;
 }
 
+// Safe date formatting helper to prevent any Invalid Date runtime exceptions
+function safeFormatDate(dStr?: string | number) {
+  try {
+    if (!dStr) return { date: 'Today', time: '--', full: 'Recent' };
+    const d = typeof dStr === 'number' ? new Date(dStr * 1000) : new Date(dStr);
+    if (isNaN(d.getTime())) return { date: 'Recent', time: '--', full: 'Recent' };
+    return {
+      date: d.toLocaleDateString('en-IN', { month: 'short', day: 'numeric', year: 'numeric' }),
+      time: d.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }),
+      full: d.toLocaleString('en-IN')
+    };
+  } catch {
+    return { date: 'Recent', time: '--', full: 'Recent' };
+  }
+}
+
 export default function PaymentsManager({ payments = [], orders = [], token, onRefresh }: PaymentsManagerProps) {
   const showToast = useToastStore((state) => state.showToast);
   const [searchQuery, setSearchQuery] = useState('');
@@ -169,6 +185,8 @@ export default function PaymentsManager({ payments = [], orders = [], token, onR
       const data = await res.json();
       if (data && data.live_payments && Array.isArray(data.live_payments)) {
         setLiveRazorpayPayments(data.live_payments);
+      } else if (Array.isArray(data)) {
+        setLiveRazorpayPayments(data);
       }
     } catch (e) {
       console.warn('Live Razorpay fetch error:', e);
@@ -219,9 +237,9 @@ export default function PaymentsManager({ payments = [], orders = [], token, onR
     const seen = new Set<string>();
 
     // 1. Direct real transactions from Razorpay API
-    if (liveRazorpayPayments && liveRazorpayPayments.length > 0) {
+    if (liveRazorpayPayments && Array.isArray(liveRazorpayPayments) && liveRazorpayPayments.length > 0) {
       liveRazorpayPayments.forEach((rp: any) => {
-        if (!rp.id || seen.has(rp.id)) return;
+        if (!rp || !rp.id || seen.has(rp.id)) return;
         seen.add(rp.id);
 
         const grossPaise = Number(rp.amount) || 0;
@@ -237,18 +255,26 @@ export default function PaymentsManager({ payments = [], orders = [], token, onR
 
         // Extract Order ID or clean Order Number
         let orderDisplay = rp.order_id || 'N/A (Payment Link)';
-        if (rp.description && rp.description.includes('Order')) {
+        if (rp.description && typeof rp.description === 'string' && rp.description.includes('Order')) {
           orderDisplay = rp.description.replace(/^Order\s*#?/, '').trim();
-        } else if (rp.notes?.order_number) {
+        } else if (rp.notes && typeof rp.notes === 'object' && !Array.isArray(rp.notes) && rp.notes.order_number) {
           orderDisplay = rp.notes.order_number;
         }
+
+        const custName = (rp.notes && typeof rp.notes === 'object' && !Array.isArray(rp.notes) && rp.notes.customer_name)
+          ? rp.notes.customer_name
+          : rp.email || 'Online Customer';
+
+        const custPhone = rp.contact
+          ? String(rp.contact)
+          : (rp.notes && typeof rp.notes === 'object' && !Array.isArray(rp.notes) && rp.notes.customer_phone) || '';
 
         list.push({
           id: rp.id,
           order_id: rp.order_id || null,
           order_number: orderDisplay,
-          customer_name: rp.notes?.customer_name || rp.email || 'Online Customer',
-          customer_phone: rp.contact ? String(rp.contact) : (rp.notes?.customer_phone || ''),
+          customer_name: custName,
+          customer_phone: custPhone,
           provider: 'RAZORPAY',
           provider_payment_id: rp.id,
           provider_order_id: rp.order_id || 'N/A (Payment Link)',
@@ -256,11 +282,11 @@ export default function PaymentsManager({ payments = [], orders = [], token, onR
           fee: feePaise,
           net_amount: netPaise,
           currency: rp.currency || 'INR',
-          status: isCaptured ? 'settled' : rp.status,
+          status: isCaptured ? 'settled' : (rp.status || 'pending'),
           method: channel.trim(),
           bank_rrn: rp.acquirer_data?.rrn || rp.acquirer_data?.bank_transaction_id || rp.acquirer_data?.upi_transaction_id || '--',
           settlement_id: rp.settlement_id || undefined,
-          created_at: rp.created_at ? new Date(rp.created_at * 1000).toISOString() : new Date().toISOString(),
+          created_at: rp.created_at ? (typeof rp.created_at === 'number' ? new Date(rp.created_at * 1000).toISOString() : String(rp.created_at)) : new Date().toISOString(),
         });
       });
       return list.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
@@ -714,15 +740,7 @@ export default function PaymentsManager({ payments = [], orders = [], token, onR
           </TableHeader>
           <TableBody>
             {paginatedPayments.map((p) => {
-              const timeFormatted = new Date(p.created_at).toLocaleTimeString('en-IN', {
-                hour: '2-digit',
-                minute: '2-digit',
-              });
-              const dateFormatted = new Date(p.created_at).toLocaleDateString('en-IN', {
-                month: 'short',
-                day: 'numeric',
-                year: 'numeric',
-              });
+              const dt = safeFormatDate(p.created_at);
 
               return (
                 <TableRow
@@ -733,8 +751,8 @@ export default function PaymentsManager({ payments = [], orders = [], token, onR
                   {/* Date */}
                   <TableCell className="py-2.5">
                     <div>
-                      <p className="font-mono text-xs font-bold text-slate-900 dark:text-white">{dateFormatted}</p>
-                      <p className="text-[10px] text-slate-400 font-mono mt-0.5">{timeFormatted}</p>
+                      <p className="font-mono text-xs font-bold text-slate-900 dark:text-white">{dt.date}</p>
+                      <p className="text-[10px] text-slate-400 font-mono mt-0.5">{dt.time}</p>
                     </div>
                   </TableCell>
 
@@ -894,7 +912,7 @@ export default function PaymentsManager({ payments = [], orders = [], token, onR
               </div>
               <div className="flex justify-between text-xs">
                 <span className="text-slate-400">Transaction Date</span>
-                <span className="font-mono text-slate-700 dark:text-slate-300">{new Date(selectedPayment.created_at).toLocaleString('en-IN')}</span>
+                <span className="font-mono text-slate-700 dark:text-slate-300">{safeFormatDate(selectedPayment.created_at).full}</span>
               </div>
             </div>
 
