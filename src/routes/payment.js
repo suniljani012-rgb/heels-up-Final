@@ -132,25 +132,93 @@ export async function paymentRouter(request, env) {
   }
 
   // ── POST /api/payment/webhook ────────────────────────────
-  if (method === 'POST' && path === '/webhook') {
+  if (method === 'POST' && (path === '/webhook' || path === '/api/payment/webhook')) {
     const signature = request.headers.get('x-razorpay-signature');
     const rawBody = await request.text();
 
     const isValid = await razorpay.verifyWebhook(env, rawBody, signature);
     if (!isValid) return err('Invalid webhook signature', 400);
 
-    const event = JSON.parse(rawBody);
+    let event;
+    try {
+      event = JSON.parse(rawBody);
+    } catch {
+      return err('Invalid JSON webhook body', 400);
+    }
 
-    if (event.event === 'payment.failed') {
-      const rzpOrderId = event.payload?.payment?.entity?.order_id;
+    const eventType = event.event;
+    const paymentEntity = event.payload?.payment?.entity;
+    const orderEntity = event.payload?.order?.entity;
+    const refundEntity = event.payload?.refund?.entity;
+
+    // 1. Payment Captured or Order Paid (Auto-confirms order if browser closed early)
+    if (eventType === 'payment.captured' || eventType === 'order.paid') {
+      const rzpOrderId = paymentEntity?.order_id || orderEntity?.id;
+      const rzpPaymentId = paymentEntity?.id;
+
+      if (rzpOrderId) {
+        const existingOrder = await env.DB.prepare(
+          "SELECT id FROM orders WHERE razorpay_order_id = ?"
+        ).bind(rzpOrderId).first();
+
+        if (existingOrder) {
+          await env.DB.prepare(
+            "UPDATE orders SET payment_status='paid', order_status=CASE WHEN order_status='pending' THEN 'confirmed' ELSE order_status END, razorpay_payment_id=COALESCE(razorpay_payment_id, ?), updated_at=datetime('now') WHERE id = ?"
+          ).bind(rzpPaymentId || '', existingOrder.id).run();
+        } else {
+          // Check KV draft if customer completed payment but tab closed before verify POST
+          const pendingStr = await kvGet(env, `pending_order:${rzpOrderId}`);
+          if (pendingStr) {
+            const pending = JSON.parse(pendingStr);
+            const createdRes = await createOrderRecord(env, {
+              userId: pending.userId,
+              customer: pending.customer,
+              items: pending.items,
+              deliveryMethod: pending.deliveryMethod,
+              notes: pending.notes,
+              paymentMethod: pending.paymentMethod,
+              paymentStatus: "paid",
+              orderStatus: "confirmed",
+              couponCode: pending.couponCode,
+              discountAmount: pending.discountAmount,
+              orderNumber: pending.orderNumber
+            });
+
+            if (createdRes.ok) {
+              const orderId = createdRes.order.id;
+              const paidAt = new Date().toISOString();
+              await env.DB.prepare(
+                "UPDATE orders SET payment_status='paid', order_status='confirmed', razorpay_order_id=?, razorpay_payment_id=?, paid_at=?, updated_at=? WHERE id=?"
+              ).bind(rzpOrderId, rzpPaymentId || '', paidAt, paidAt, orderId).run();
+              await kvDelete(env, `pending_order:${rzpOrderId}`);
+            }
+          }
+        }
+      }
+    }
+    // 2. Payment Failed
+    else if (eventType === 'payment.failed') {
+      const rzpOrderId = paymentEntity?.order_id;
       if (rzpOrderId) {
         await env.DB.prepare(
-          "UPDATE orders SET payment_status='failed', order_status='cancelled', updated_at=datetime('now') WHERE razorpay_order_id = ?"
+          "UPDATE orders SET payment_status='failed', order_status=CASE WHEN order_status='pending' THEN 'cancelled' ELSE order_status END, updated_at=datetime('now') WHERE razorpay_order_id = ?"
         ).bind(rzpOrderId).run();
       }
     }
+    // 3. Refund Processed / Refund Created
+    else if (eventType === 'refund.processed' || eventType === 'refund.created') {
+      const rzpPaymentId = refundEntity?.payment_id;
+      if (rzpPaymentId) {
+        await env.DB.prepare(
+          "UPDATE orders SET payment_status='refunded', updated_at=datetime('now') WHERE razorpay_payment_id = ?"
+        ).bind(rzpPaymentId).run();
+        await env.DB.prepare(
+          "UPDATE payments SET status='refunded' WHERE provider_payment_id = ?"
+        ).bind(rzpPaymentId).run();
+      }
+    }
 
-    return ok({ received: true });
+    return ok({ received: true, event: eventType });
   }
 
   return err('Not found', 404);
