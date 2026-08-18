@@ -569,7 +569,7 @@ export async function adminRouter(request, env, ctx) {
                 }
             });
 
-            if (linkData && linkData.success && (linkData.short_url || linkData.id)) {
+            if (linkData && (linkData.short_url || linkData.id || linkData.success)) {
                 return ok({
                     success: true,
                     payment_link: linkData.short_url || `https://rzp.io/i/${linkData.id}`,
