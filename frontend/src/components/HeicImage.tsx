@@ -73,13 +73,24 @@ export default function HeicImage({
   index,
   fit,
   onLoad,
+  onError: customOnError,
   ...props
 }: HeicImageProps) {
   const [loaded, setLoaded] = useState(false);
   const [errored, setErrored] = useState(false);
 
   const displaySrc = getDisplaySrc(src, size);
-  if (!displaySrc) return null;
+  if (!displaySrc) {
+    // No valid source — render a proper placeholder instead of null
+    return (
+      <div
+        className={`${className} h-48 w-full bg-neutral-200 rounded-xl flex items-center justify-center text-neutral-500 animate-pulse`}
+        style={{ backgroundColor: '#f5f2eb' }}
+      >
+        <span className="text-sm">No Image</span>
+      </div>
+    );
+  }
 
   // First 4 products are above-the-fold → load eagerly with high priority
   const aboveFold = index !== undefined ? index < 4 : (size === 'full' || size === 'hero');
@@ -112,14 +123,19 @@ export default function HeicImage({
         if (onLoad) onLoad(e);
       }}
       onError={() => {
-        // On proxy error, fallback to original R2 URL
-        const imgEl = document.querySelector(`img[src="${displaySrc}"]`) as HTMLImageElement | null;
-        if (imgEl && src) {
-          const fallback = src.startsWith('http') ? src : `${R2_CDN}/${src}`;
-          if (imgEl.src !== fallback) imgEl.src = fallback;
-        }
         setLoaded(true);
         setErrored(true);
+        // Run custom error handler if provided, otherwise fallback logic
+        if (customOnError) {
+          customOnError();
+        } else {
+          // Fallback to original file path on error
+          const imgEl = document.querySelector(`img[src="${displaySrc}"]`) as HTMLImageElement | null;
+          if (imgEl && src) {
+            const fallback = src.startsWith('http') ? src : `${R2_CDN}/${src}`;
+            if (imgEl.src !== fallback) imgEl.src = fallback;
+          }
+        }
       }}
       {...props}
     />
