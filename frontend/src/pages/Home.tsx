@@ -127,28 +127,32 @@ function useFeaturedProducts() {
   return useQuery({
     queryKey: ['featuredProducts'],
     queryFn: async () => {
-      let res = await fetch('/api/products?limit=8&featured=true');
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      let data = await res.json();
-      if (!data.success) throw new Error(data.error || 'Failed to fetch featured products');
-      
-      let list = data.data;
-      // Fallback: If no products are marked as featured=1 in DB, fetch latest active products!
-      if (!Array.isArray(list) || list.length === 0) {
-        res = await fetch('/api/products?limit=8');
-        if (res.ok) {
-          const fallbackData = await res.json();
-          if (fallbackData.success && Array.isArray(fallbackData.data) && fallbackData.data.length > 0) {
-            list = fallbackData.data;
+      try {
+        let res = await fetch('/api/products?limit=8&featured=true');
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        let data = await res.json();
+        if (!data.success) throw new Error(data.error || 'Failed to fetch featured products');
+        
+        let list = data.data;
+        // Fallback: If no products are marked as featured=1 in DB, fetch latest active products!
+        if (!Array.isArray(list) || list.length === 0) {
+          res = await fetch('/api/products?limit=8');
+          if (res.ok) {
+            const fallbackData = await res.json();
+            if (fallbackData.success && Array.isArray(fallbackData.data) && fallbackData.data.length > 0) {
+              list = fallbackData.data;
+            }
           }
         }
-      }
+        const result = Array.isArray(list) ? list : [];
         if (result.length > 0) {
           localStorage.setItem('hu_fast_featured_cache', JSON.stringify(result));
           result.forEach((p: any) => cacheProductData(p));
         }
-      } catch {}
-      return result;
+        return result;
+      } catch {
+        return [];
+      }
     },
     initialData: () => {
       try {
