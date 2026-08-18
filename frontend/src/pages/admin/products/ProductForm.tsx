@@ -6,6 +6,13 @@ import { createProduct, updateProduct } from './productApi';
 import { validateProduct, toErrorMessage } from './productValidation';
 import ProductImages, { type ManagedImage } from './ProductImages';
 import type { AdminProduct, Category } from './productTypes';
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '../../../components/ui/sheet';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '../../../components/ui/tabs';
+import { Input } from '../../../components/ui/input';
+import { Label } from '../../../components/ui/label';
+import { Textarea } from '../../../components/ui/textarea';
+import { Button } from '../../../components/ui/button';
+import { Badge } from '../../../components/ui/badge';
 
 const EU_SIZES = ['36', '37', '38', '39', '40', '41'];
 const HEEL_HEIGHTS = ['Flat', 'Low (1-2")', 'Medium (2-3")', 'High (3-4")', 'Very High (4"+)'];
@@ -140,68 +147,75 @@ export default function ProductForm({
     return Math.round(((price - cost) / price) * 100);
   }, [form.price, form.cost_price]);
 
-  const handleStockChange = (label: string, stock: number) => {
+  const handleStockChange = (size: string, value: number) => {
+    const validVal = Math.max(0, value);
     set({
       size_stock: form.size_stock.map((s) =>
-        s.size_label === label ? { ...s, stock: Math.max(0, stock) } : s
+        s.size_label === size ? { ...s, stock: validVal } : s
       ),
     });
   };
 
   const addTag = () => {
-    const t = tagInput.trim();
-    if (t && !form.tags.includes(t)) {
-      set({ tags: [...form.tags, t] });
-      setTagInput('');
+    const clean = tagInput.trim();
+    if (!clean) return;
+    if (!form.tags.includes(clean)) {
+      set({ tags: [...form.tags, clean] });
     }
+    setTagInput('');
   };
 
   const handleSave = async () => {
-    const payload = {
-      name: form.name.trim(),
-      sku: form.sku.trim().toUpperCase(),
-      category: form.category,
-      brand: form.brand.trim() || 'HeelsUp',
-      price: Math.round((parseFloat(form.price) || 0) * 100),
-      original_price: form.original_price
-        ? Math.round((parseFloat(form.original_price) || 0) * 100)
-        : null,
-      cost_price: form.cost_price ? Math.round((parseFloat(form.cost_price) || 0) * 100) : null,
-      color: form.color.trim(),
-      material: form.material.trim(),
-      heel_height: form.heel_height,
-      width_option: form.width_option,
-      description: form.description.trim(),
-      detailed_description: form.detailed_description.trim(),
-      active: form.active,
-      featured: form.featured,
-      is_new: form.is_new,
-      is_trending: form.is_trending,
-      show_mrp: form.show_mrp,
-      size_stock: form.size_stock,
-      stock: form.size_stock.reduce((sum, s) => sum + s.stock, 0),
-      sizes: form.size_stock.filter((s) => s.stock > 0).map((s) => s.size_label),
-      images: form.images.map((img, i) => ({ url: img.url, alt: img.alt, position: i })),
-      tags: form.tags,
-      meta_title: form.meta_title.trim(),
-      meta_description: form.meta_description.trim(),
-      seo_keywords: form.seo_keywords.trim(),
-      supplier_id: form.supplier_id ? parseInt(form.supplier_id, 10) : null,
-    };
-
-    const errors = validateProduct(payload);
+    const errors = validateProduct(form as any);
     if (errors.length > 0) {
-      showToast('error', 'Validation Failed', toErrorMessage(errors));
+      showToast('error', 'Validation Error', toErrorMessage(errors));
       return;
     }
 
     setSaving(true);
     try {
+      const pricePaise = Math.round(parseFloat(form.price) * 100);
+      const origPaise = form.original_price ? Math.round(parseFloat(form.original_price) * 100) : null;
+      const costPaise = form.cost_price ? Math.round(parseFloat(form.cost_price) * 100) : null;
+
+      const payload = {
+        name: form.name.trim(),
+        sku: form.sku.trim().toUpperCase(),
+        category: form.category,
+        brand: form.brand.trim() || 'HeelsUp',
+        price: pricePaise,
+        original_price: origPaise,
+        cost_price: costPaise,
+        color: form.color.trim(),
+        material: form.material.trim(),
+        heel_height: form.heel_height,
+        width_option: form.width_option,
+        description: form.description.trim(),
+        detailed_description: form.detailed_description.trim(),
+        active: form.active,
+        featured: form.featured,
+        is_new: form.is_new,
+        is_trending: form.is_trending,
+        show_mrp: form.show_mrp,
+        size_stock: form.size_stock,
+        sizes: form.size_stock.filter((s) => s.stock > 0).map((s) => s.size_label),
+        images: form.images.map((img, idx) => ({
+          url: img.url,
+          alt: img.alt || form.name,
+          position: idx,
+        })),
+        tags: form.tags,
+        meta_title: form.meta_title.trim(),
+        meta_description: form.meta_description.trim(),
+        seo_keywords: form.seo_keywords.trim(),
+        supplier_id: form.supplier_id ? parseInt(form.supplier_id, 10) : null,
+      };
+
       if (product) {
-        await updateProduct(token, product.id, payload);
+        await updateProduct(token, product.id, payload as any);
         showToast('success', 'Product Updated', `"${payload.name}" saved successfully.`);
       } else {
-        await createProduct(token, payload);
+        await createProduct(token, payload as any);
         showToast('success', 'Product Created', `"${payload.name}" added to catalog.`);
       }
       onSaved();
@@ -212,114 +226,84 @@ export default function ProductForm({
     }
   };
 
-  const inputCls =
-    'w-full bg-slate-50 dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700 rounded-xl px-3 py-2 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-indigo-500';
-  const labelCls = 'block text-[10px] uppercase font-bold text-slate-400 dark:text-slate-500 mb-1';
-
   return (
-    <div className="fixed inset-0 z-50 flex justify-end">
-      <div onClick={onCancel} className="absolute inset-0 bg-slate-900/60 backdrop-blur-xs" />
-      <div className="w-full max-w-xl bg-white dark:bg-slate-900 border-l border-slate-200 dark:border-slate-800 shadow-2xl relative z-10 flex flex-col h-full text-slate-900 dark:text-white">
+    <Sheet open={true} onOpenChange={(open) => !open && onCancel()}>
+      <SheetContent side="right" className="w-full sm:max-w-2xl flex flex-col h-full p-0">
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 px-6 py-4 shrink-0">
-          <div>
-            <h3 className="text-sm font-bold text-slate-900 dark:text-white">
-              {product ? `Edit: ${product.name}` : 'Add New Catalog Style'}
-            </h3>
-            <p className="text-[11px] text-slate-400 mt-0.5">
-              Total inventory: <strong className="text-slate-700 dark:text-slate-200">{totalStock}</strong> units
-              {profitMargin !== null && profitMargin !== undefined && (
-                <span className="ml-2 font-mono">
-                  Margin:{' '}
-                  <strong
-                    className={
-                      profitMargin < 0
-                        ? 'text-rose-600'
-                        : profitMargin < 20
-                        ? 'text-amber-600'
-                        : 'text-emerald-600'
-                    }
-                  >
-                    {profitMargin}%
-                  </strong>
-                </span>
-              )}
-            </p>
-          </div>
-          <button
-            onClick={onCancel}
-            className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800"
-          >
-            <X className="w-5 h-5" />
-          </button>
-        </div>
+        <SheetHeader className="px-6 py-4 border-b border-slate-100 dark:border-slate-800">
+          <SheetTitle className="text-sm font-bold">
+            {product ? `Edit: ${product.name}` : 'Add New Catalog Style'}
+          </SheetTitle>
+          <SheetDescription className="text-xs">
+            Total inventory: <strong className="text-slate-900 dark:text-white font-mono">{totalStock}</strong> units
+            {profitMargin !== null && profitMargin !== undefined && (
+              <span className="ml-2 font-mono">
+                Margin:{' '}
+                <strong
+                  className={
+                    profitMargin < 0
+                      ? 'text-rose-600'
+                      : profitMargin < 20
+                      ? 'text-amber-600'
+                      : 'text-emerald-600'
+                  }
+                >
+                  {profitMargin}%
+                </strong>
+              </span>
+            )}
+          </SheetDescription>
+        </SheetHeader>
 
-        {/* Tabs */}
-        <div className="flex border-b border-slate-100 dark:border-slate-800 px-6 shrink-0 gap-6">
-          {(['basic', 'stock', 'media', 'seo'] as Tab[]).map((tab) => (
-            <button
-              key={tab}
-              onClick={() => setActiveTab(tab)}
-              className={`py-3 text-xs font-bold uppercase tracking-wider transition-colors flex items-center gap-1.5 border-b-2 ${
-                activeTab === tab
-                  ? 'text-indigo-600 dark:text-indigo-400 border-indigo-600 dark:border-indigo-400'
-                  : 'text-slate-400 border-transparent hover:text-slate-700 dark:hover:text-slate-300'
-              }`}
-            >
-              {tab === 'stock' && <Box className="w-3.5 h-3.5" />}
-              {tab === 'basic'
-                ? 'Basic Info'
-                : tab === 'stock'
-                ? 'Sizes & Stock'
-                : tab === 'media'
-                ? 'Images'
-                : 'SEO'}
-            </button>
-          ))}
+        {/* Tab Navigation */}
+        <div className="px-6 pt-3 border-b border-slate-100 dark:border-slate-800">
+          <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as Tab)}>
+            <TabsList className="w-full justify-start h-9 bg-slate-100 dark:bg-slate-800">
+              <TabsTrigger value="basic" className="text-xs">Basic Info</TabsTrigger>
+              <TabsTrigger value="stock" className="text-xs flex items-center gap-1">
+                <Box className="w-3.5 h-3.5 mr-1" /> Sizes & Stock
+              </TabsTrigger>
+              <TabsTrigger value="media" className="text-xs">Images</TabsTrigger>
+              <TabsTrigger value="seo" className="text-xs">SEO</TabsTrigger>
+            </TabsList>
+          </Tabs>
         </div>
 
         {/* Content */}
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            handleSave();
-          }}
-          className="flex-1 overflow-y-auto px-6 py-5 space-y-4 text-xs"
-        >
+        <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4 text-xs">
           {activeTab === 'basic' && (
             <>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className={labelCls}>Product Name *</label>
-                  <input
+                  <Label className="mb-1">Product Name *</Label>
+                  <Input
                     required
                     type="text"
                     value={form.name}
                     onChange={(e) => set({ name: e.target.value })}
                     placeholder="e.g. Oxford Double Buckle"
-                    className={inputCls}
                   />
                 </div>
                 <div>
-                  <label className={labelCls}>SKU Code *</label>
-                  <input
+                  <Label className="mb-1">SKU Code *</Label>
+                  <Input
                     required
                     type="text"
                     value={form.sku}
                     onChange={(e) => set({ sku: e.target.value })}
                     placeholder="HU-OX-01-BLK"
-                    className={`${inputCls} font-mono`}
+                    className="font-mono"
                   />
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className={labelCls}>Category</label>
+                  <Label className="mb-1">Category</Label>
                   <select
                     value={form.category}
                     onChange={(e) => set({ category: e.target.value })}
-                    className={inputCls}
+                    className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700 rounded-xl px-3 py-2 text-slate-900 dark:text-white focus:outline-none text-xs"
                   >
                     <option value="">Select category</option>
                     {categories.map((c) => (
@@ -330,57 +314,53 @@ export default function ProductForm({
                   </select>
                 </div>
                 <div>
-                  <label className={labelCls}>Brand</label>
-                  <input
+                  <Label className="mb-1">Brand</Label>
+                  <Input
                     type="text"
                     value={form.brand}
                     onChange={(e) => set({ brand: e.target.value })}
-                    className={inputCls}
                   />
                 </div>
               </div>
 
               <div className="grid grid-cols-3 gap-3">
                 <div>
-                  <label className={labelCls}>Color</label>
-                  <input
+                  <Label className="mb-1">Color</Label>
+                  <Input
                     type="text"
                     value={form.color}
                     onChange={(e) => set({ color: e.target.value })}
                     placeholder="e.g. Tan Brown"
-                    className={inputCls}
                   />
                 </div>
                 <div>
-                  <label className={labelCls}>Material</label>
-                  <input
+                  <Label className="mb-1">Material</Label>
+                  <Input
                     type="text"
                     value={form.material}
                     onChange={(e) => set({ material: e.target.value })}
                     placeholder="e.g. Full Grain Leather"
-                    className={inputCls}
                   />
                 </div>
                 <div>
-                  <label className={labelCls}>Supplier ID</label>
-                  <input
+                  <Label className="mb-1">Supplier ID</Label>
+                  <Input
                     type="number"
                     min={0}
                     value={form.supplier_id}
                     onChange={(e) => set({ supplier_id: e.target.value })}
                     placeholder="Optional"
-                    className={inputCls}
                   />
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className={labelCls}>Heel Height</label>
+                  <Label className="mb-1">Heel Height</Label>
                   <select
                     value={form.heel_height}
                     onChange={(e) => set({ heel_height: e.target.value })}
-                    className={inputCls}
+                    className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700 rounded-xl px-3 py-2 text-slate-900 dark:text-white focus:outline-none text-xs"
                   >
                     <option value="">Not specified</option>
                     {HEEL_HEIGHTS.map((h) => (
@@ -391,11 +371,11 @@ export default function ProductForm({
                   </select>
                 </div>
                 <div>
-                  <label className={labelCls}>Width Option</label>
+                  <Label className="mb-1">Width Option</Label>
                   <select
                     value={form.width_option}
                     onChange={(e) => set({ width_option: e.target.value })}
-                    className={inputCls}
+                    className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700 rounded-xl px-3 py-2 text-slate-900 dark:text-white focus:outline-none text-xs"
                   >
                     <option value="">Not specified</option>
                     {WIDTH_OPTIONS.map((w) => (
@@ -409,8 +389,8 @@ export default function ProductForm({
 
               <div className="grid grid-cols-3 gap-3">
                 <div>
-                  <label className={labelCls}>Selling Price (₹) *</label>
-                  <input
+                  <Label className="mb-1">Selling Price (₹) *</Label>
+                  <Input
                     required
                     type="number"
                     step="0.01"
@@ -418,38 +398,38 @@ export default function ProductForm({
                     value={form.price}
                     onChange={(e) => set({ price: e.target.value })}
                     placeholder="4999"
-                    className={inputCls}
+                    className="font-mono text-xs"
                   />
                 </div>
                 <div>
-                  <label className={labelCls}>MRP / Strike (₹)</label>
-                  <input
+                  <Label className="mb-1">MRP / Strike (₹)</Label>
+                  <Input
                     type="number"
                     step="0.01"
                     min="0"
                     value={form.original_price}
                     onChange={(e) => set({ original_price: e.target.value })}
                     placeholder="8999"
-                    className={inputCls}
+                    className="font-mono text-xs"
                   />
                 </div>
                 <div>
-                  <label className={labelCls}>Cost Price (₹)</label>
-                  <input
+                  <Label className="mb-1">Cost Price (₹)</Label>
+                  <Input
                     type="number"
                     step="0.01"
                     min="0"
                     value={form.cost_price}
                     onChange={(e) => set({ cost_price: e.target.value })}
                     placeholder="2500"
-                    className={inputCls}
+                    className="font-mono text-xs"
                   />
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-3 pt-1">
                 <div>
-                  <label className={labelCls}>Show MRP Strike</label>
+                  <Label className="mb-1">Show MRP Strike</Label>
                   <div className="flex items-center gap-2 pt-1">
                     <input
                       type="checkbox"
@@ -463,7 +443,7 @@ export default function ProductForm({
                     </label>
                   </div>
                 </div>
-                <div className="flex flex-wrap items-center gap-3 pt-2 uppercase tracking-wider text-[10px] font-bold text-slate-500 dark:text-slate-400">
+                <div className="flex flex-wrap items-center gap-3 pt-2 uppercase tracking-wider text-[10px] font-bold text-slate-500">
                   {[
                     { label: 'Publish', value: form.active, setter: (v: boolean) => set({ active: v }) },
                     { label: 'Featured', value: form.featured, setter: (v: boolean) => set({ featured: v }) },
@@ -484,29 +464,27 @@ export default function ProductForm({
               </div>
 
               <div>
-                <label className={labelCls}>Short Summary</label>
-                <textarea
+                <Label className="mb-1">Short Summary</Label>
+                <Textarea
                   rows={2}
                   value={form.description}
                   onChange={(e) => set({ description: e.target.value })}
                   placeholder="Summary of leather quality, stitch finish..."
-                  className={inputCls}
                 />
               </div>
 
               <div>
-                <label className={labelCls}>Detailed Description</label>
-                <textarea
+                <Label className="mb-1">Detailed Description</Label>
+                <Textarea
                   rows={4}
                   value={form.detailed_description}
                   onChange={(e) => set({ detailed_description: e.target.value })}
                   placeholder="Comprehensive craftsmanship details..."
-                  className={inputCls}
                 />
               </div>
 
               <div>
-                <label className={labelCls}>Tags</label>
+                <Label className="mb-1">Tags</Label>
                 <div className="flex flex-wrap items-center gap-2 p-3 bg-slate-50 dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700 rounded-xl min-h-[44px]">
                   {form.tags.map((tag, idx) => (
                     <span
@@ -550,9 +528,9 @@ export default function ProductForm({
                   </h4>
                   <p className="text-[10px] text-slate-400 mt-0.5">Specify stock counts per size</p>
                 </div>
-                <span className="text-xs font-bold text-slate-700 dark:text-slate-300 font-mono bg-slate-100 dark:bg-slate-800 px-3 py-1 rounded-lg">
+                <Badge variant="secondary" className="font-mono text-xs">
                   Total: {totalStock} units
-                </span>
+                </Badge>
               </div>
               <div className="grid grid-cols-3 gap-3">
                 {EU_SIZES.map((sz) => {
@@ -562,15 +540,15 @@ export default function ProductForm({
                       key={sz}
                       className="bg-slate-50 dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-700/60 rounded-xl p-3 flex flex-col justify-between items-center text-center"
                     >
-                      <label className="block text-[10px] font-bold text-slate-400 font-mono uppercase mb-1">
+                      <Label className="font-mono mb-1">
                         Size {sz}
-                      </label>
-                      <input
+                      </Label>
+                      <Input
                         type="number"
                         min={0}
                         value={row?.stock ?? 0}
                         onChange={(e) => handleStockChange(sz, parseInt(e.target.value) || 0)}
-                        className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg py-1 px-2 text-center text-slate-900 dark:text-white font-semibold font-mono text-xs focus:outline-none"
+                        className="text-center font-mono font-bold text-xs"
                       />
                     </div>
                   );
@@ -581,9 +559,7 @@ export default function ProductForm({
 
           {activeTab === 'media' && (
             <div className="space-y-4">
-              <label className="block text-[10px] uppercase font-bold text-slate-400">
-                Product Image Gallery
-              </label>
+              <Label>Product Image Gallery</Label>
               <ProductImages
                 images={form.images}
                 onChange={(images) => set({ images })}
@@ -597,70 +573,63 @@ export default function ProductForm({
               <div className="bg-slate-50 dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-700/60 rounded-2xl p-4 space-y-3">
                 <h4 className="text-[10px] uppercase font-bold text-slate-400">SEO & Metadata</h4>
                 <div>
-                  <label className="block text-[10px] uppercase font-bold text-slate-400 mb-1">
-                    Meta Title
-                  </label>
-                  <input
+                  <Label className="mb-1">Meta Title</Label>
+                  <Input
                     type="text"
                     value={form.meta_title}
                     onChange={(e) => set({ meta_title: e.target.value })}
                     placeholder="Premium Jodhpur Boots | HeelsUp"
-                    className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-slate-900 dark:text-white focus:outline-none text-xs"
                   />
                   <p className="text-[9px] text-slate-400 mt-1">{form.meta_title.length}/60 characters</p>
                 </div>
                 <div>
-                  <label className="block text-[10px] uppercase font-bold text-slate-400 mb-1">
-                    Meta Description
-                  </label>
-                  <textarea
+                  <Label className="mb-1">Meta Description</Label>
+                  <Textarea
                     rows={3}
                     value={form.meta_description}
                     onChange={(e) => set({ meta_description: e.target.value })}
                     placeholder="Handcrafted premium footwear at HeelsUp..."
-                    className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-slate-900 dark:text-white focus:outline-none leading-relaxed text-xs"
                   />
                   <p className="text-[9px] text-slate-400 mt-1">
                     {form.meta_description.length}/160 characters
                   </p>
                 </div>
                 <div>
-                  <label className="block text-[10px] uppercase font-bold text-slate-400 mb-1">
-                    SEO Keywords
-                  </label>
-                  <input
+                  <Label className="mb-1">SEO Keywords</Label>
+                  <Input
                     type="text"
                     value={form.seo_keywords}
                     onChange={(e) => set({ seo_keywords: e.target.value })}
                     placeholder="jodhpur boots, premium leather, heels"
-                    className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-slate-900 dark:text-white focus:outline-none text-xs font-mono"
+                    className="font-mono"
                   />
                 </div>
               </div>
             </div>
           )}
-        </form>
+        </div>
 
         {/* Footer */}
         <div className="border-t border-slate-100 dark:border-slate-800 px-6 py-4 shrink-0 flex gap-3">
-          <button
+          <Button
             type="button"
+            variant="outline"
             onClick={onCancel}
-            className="flex-1 py-2.5 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold text-xs uppercase tracking-wider rounded-xl transition-all"
+            className="flex-1 font-bold text-xs uppercase tracking-wider"
           >
             Cancel
-          </button>
-          <button
+          </Button>
+          <Button
             type="button"
             onClick={handleSave}
             disabled={saving}
-            className="flex-1 py-2.5 bg-slate-900 hover:bg-slate-800 dark:bg-indigo-600 dark:hover:bg-indigo-700 disabled:opacity-40 text-white font-bold text-xs uppercase tracking-wider rounded-xl transition-all shadow-xs flex items-center justify-center gap-2"
+            className="flex-1 font-bold text-xs uppercase tracking-wider"
           >
-            {saving && <RefreshCw className="w-3.5 h-3.5 animate-spin" />}
+            {saving && <RefreshCw className="w-3.5 h-3.5 animate-spin mr-1.5" />}
             {product ? 'Update Style' : 'Save Style'}
-          </button>
+          </Button>
         </div>
-      </div>
-    </div>
+      </SheetContent>
+    </Sheet>
   );
 }

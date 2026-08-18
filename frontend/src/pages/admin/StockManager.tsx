@@ -9,8 +9,14 @@ import {
   Package,
   ArrowUpRight,
   Minus,
-  Plus
+  Plus,
+  RefreshCw
 } from 'lucide-react';
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '../../components/ui/card';
+import { Badge } from '../../components/ui/badge';
+import { Button } from '../../components/ui/button';
+import { Input } from '../../components/ui/input';
+import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from '../../components/ui/table';
 
 interface Product {
   id: number;
@@ -138,20 +144,18 @@ export default function StockManager({ products, token, onRefresh }: StockManage
 
       const data = await res.json();
       if (data.success) {
-        showToast('success', 'Stock Saved', `Inventory counts updated for '${prod.name}'.`);
-
-        // Remove from modifications tracker
+        showToast('success', 'Stock Synchronized', `Updated inventory for ${prod.name}`);
         setModifiedStocks((prev) => {
-          const copy = { ...prev };
-          delete copy[prod.id];
-          return copy;
+          const next = { ...prev };
+          delete next[prod.id];
+          return next;
         });
         onRefresh();
       } else {
-        showToast('error', 'Save Denied', data.error || 'Server rejected stock updates.');
+        showToast('error', 'Sync Failed', data.error || 'Server rejected changes.');
       }
-    } catch {
-      showToast('error', 'Network Error', 'Failed to connect to database.');
+    } catch (err: any) {
+      showToast('error', 'Network Error', err.message || 'Could not update inventory.');
     } finally {
       setSavingId(null);
     }
@@ -160,154 +164,174 @@ export default function StockManager({ products, token, onRefresh }: StockManage
   return (
     <div className="space-y-5 antialiased">
       {/* Top Header Card */}
-      <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-5 shadow-xs flex flex-wrap items-center justify-between gap-4">
+      <Card className="p-5 flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h2 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+          <CardTitle className="text-lg flex items-center gap-2">
             <Boxes className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
-            Stock & Inventory Matrix
-          </h2>
-          <p className="text-xs text-slate-500 dark:text-slate-400">
-            Inline size-by-size inventory adjustments and warehouse restock management
-          </p>
+            Size-by-Size Inventory Matrix
+          </CardTitle>
+          <CardDescription>
+            Live stock levels across footwear sizes (UK-6 to UK-11)
+          </CardDescription>
         </div>
 
-        <div className="flex items-center gap-2 text-xs">
-          <span className="px-3 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 font-semibold text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
-            Total Catalog: {products.length}
-          </span>
+        <div className="flex items-center gap-2">
           {lowStockCount > 0 && (
-            <span className="px-3 py-1 rounded-lg bg-rose-50 text-rose-700 dark:bg-rose-950/50 dark:text-rose-400 font-semibold border border-rose-200/60 dark:border-rose-800/60 flex items-center gap-1">
-              <AlertTriangle className="w-3 h-3" /> Low Stock: {lowStockCount}
-            </span>
+            <Badge variant="destructive" className="flex items-center gap-1 text-xs">
+              <AlertTriangle className="w-3.5 h-3.5" />
+              {lowStockCount} Styles Low On Stock
+            </Badge>
           )}
+          <Button variant="outline" size="sm" onClick={onRefresh} className="text-xs font-semibold">
+            Refresh Matrix
+          </Button>
         </div>
-      </div>
+      </Card>
 
-      {/* Search Filter Bar */}
-      <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-4 shadow-xs">
-        <div className="relative max-w-md">
+      {/* Filter Row */}
+      <Card className="p-4 flex items-center justify-between gap-4">
+        <div className="relative flex-1 max-w-md">
           <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-          <input
+          <Input
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search catalog styles by SKU, name, or category..."
-            className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700 rounded-xl pl-9 pr-4 py-2 text-xs text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+            placeholder="Search by product name, SKU, or category..."
+            className="pl-9 text-xs"
           />
         </div>
-      </div>
 
-      {/* Stock Matrix Table Card */}
-      <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl overflow-hidden shadow-xs">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse text-xs">
-            <thead>
-              <tr className="bg-slate-50/80 dark:bg-slate-800/60 text-slate-500 dark:text-slate-400 border-b border-slate-200/80 dark:border-slate-800 font-semibold uppercase text-[10px] tracking-wider">
-                <th className="p-3.5">SKU / Code</th>
-                <th className="p-3.5">Product Style</th>
-                {standardSizes.map((size) => (
-                  <th key={size} className="p-3.5 text-center">
-                    UK-{size}
-                  </th>
-                ))}
-                <th className="p-3.5 text-center">Total Stock</th>
-                <th className="p-3.5 text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100 dark:divide-slate-800/80">
-              {filteredProducts.map((p) => {
-                const hasChanges = modifiedStocks[p.id] && Object.keys(modifiedStocks[p.id]).length > 0;
-
-                const totalCalculatedStock = standardSizes.reduce((sum, size) => {
-                  return sum + getSizeStock(p, size);
-                }, 0);
-
-                return (
-                  <tr
-                    key={p.id}
-                    className="hover:bg-slate-50/60 dark:hover:bg-slate-800/40 transition-colors"
-                  >
-                    <td className="p-3.5 font-mono font-bold text-slate-900 dark:text-white">{p.sku}</td>
-                    <td className="p-3.5">
-                      <h4 className="font-semibold text-slate-900 dark:text-white">{p.name}</h4>
-                      <span className="text-[10px] text-slate-400 uppercase tracking-wider font-mono mt-0.5 block">
-                        {p.category}
-                      </span>
-                    </td>
-
-                    {standardSizes.map((size) => {
-                      const stockVal = getSizeStock(p, size);
-                      return (
-                        <td key={size} className="p-3.5 text-center">
-                          <div className="inline-flex items-center justify-center gap-1 bg-slate-50 dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700 rounded-lg p-1 w-20">
-                            <button
-                              type="button"
-                              onClick={() => handleStockChange(p.id, size, stockVal - 1)}
-                              className="text-slate-400 hover:text-slate-700 dark:hover:text-white p-0.5 rounded transition-colors"
-                            >
-                              <Minus className="w-3 h-3" />
-                            </button>
-                            <input
-                              type="text"
-                              value={stockVal}
-                              onChange={(e) =>
-                                handleStockChange(p.id, size, parseInt(e.target.value) || 0)
-                              }
-                              className="bg-transparent border-0 w-7 text-center text-slate-900 dark:text-white font-mono font-bold text-xs focus:ring-0 p-0"
-                            />
-                            <button
-                              type="button"
-                              onClick={() => handleStockChange(p.id, size, stockVal + 1)}
-                              className="text-slate-400 hover:text-slate-700 dark:hover:text-white p-0.5 rounded transition-colors"
-                            >
-                              <Plus className="w-3 h-3" />
-                            </button>
-                          </div>
-                        </td>
-                      );
-                    })}
-
-                    <td className="p-3.5 text-center font-mono">
-                      <span
-                        className={`inline-block px-2.5 py-0.5 rounded-full font-bold text-[10px] border ${
-                          totalCalculatedStock <= 5
-                            ? 'bg-rose-50 text-rose-700 dark:bg-rose-950/60 dark:text-rose-400 border-rose-200/60 dark:border-rose-800/60 animate-pulse'
-                            : 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-400 border-emerald-200/60 dark:border-emerald-800/60'
-                        }`}
-                      >
-                        {totalCalculatedStock} units
-                      </span>
-                    </td>
-
-                    <td className="p-3.5 text-right">
-                      {hasChanges ? (
-                        <button
-                          onClick={() => handleSaveStock(p)}
-                          disabled={savingId === p.id}
-                          className="px-3 py-1.5 bg-slate-900 hover:bg-slate-800 dark:bg-indigo-600 dark:hover:bg-indigo-700 text-white rounded-xl text-[10px] font-bold uppercase tracking-wider flex items-center gap-1 transition-all shadow-xs ml-auto"
-                        >
-                          <Save className="w-3 h-3" />
-                          {savingId === p.id ? 'Saving...' : 'Save'}
-                        </button>
-                      ) : (
-                        <span className="text-[10px] text-slate-400">Synced</span>
-                      )}
-                    </td>
-                  </tr>
-                );
-              })}
-
-              {filteredProducts.length === 0 && (
-                <tr>
-                  <td colSpan={standardSizes.length + 3} className="py-20 text-center text-slate-400 italic">
-                    No catalog products found matching criteria.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
+        <div className="text-xs text-slate-500 dark:text-slate-400 font-medium">
+          Showing <span className="font-bold text-slate-900 dark:text-white">{filteredProducts.length}</span> styles
         </div>
-      </div>
+      </Card>
+
+      {/* Main Stock Table */}
+      <Card className="overflow-hidden">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead className="w-64">Product & Category</TableHead>
+              <TableHead className="text-center">Total Stock</TableHead>
+              {standardSizes.map((sz) => (
+                <TableHead key={sz} className="text-center font-mono w-24">
+                  UK-{sz}
+                </TableHead>
+              ))}
+              <TableHead className="text-right w-24">Actions</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {filteredProducts.map((prod) => {
+              const hasModifications = modifiedStocks[prod.id] !== undefined;
+              const isSaving = savingId === prod.id;
+
+              // Calculate dynamic total stock based on modifications
+              const currentTotalStock = standardSizes.reduce(
+                (sum, sz) => sum + getSizeStock(prod, sz),
+                0
+              );
+
+              return (
+                <TableRow
+                  key={prod.id}
+                  className={hasModifications ? 'bg-indigo-50/30 dark:bg-indigo-950/20' : ''}
+                >
+                  <TableCell>
+                    <div className="font-semibold text-slate-900 dark:text-white text-xs">{prod.name}</div>
+                    <div className="flex items-center gap-2 text-[10px] text-slate-400 font-mono mt-0.5">
+                      <span>SKU: {prod.sku}</span>
+                      <span>•</span>
+                      <span>{prod.category}</span>
+                    </div>
+                  </TableCell>
+
+                  <TableCell className="text-center">
+                    <Badge
+                      variant={
+                        currentTotalStock <= 5
+                          ? 'destructive'
+                          : currentTotalStock <= 15
+                          ? 'warning'
+                          : 'success'
+                      }
+                      className="font-mono text-[11px]"
+                    >
+                      {currentTotalStock} units
+                    </Badge>
+                  </TableCell>
+
+                  {standardSizes.map((sz) => {
+                    const currentVal = getSizeStock(prod, sz);
+                    const isLow = currentVal <= 2;
+
+                    return (
+                      <TableCell key={sz} className="text-center">
+                        <div className="flex items-center justify-center gap-1">
+                          <button
+                            type="button"
+                            onClick={() => handleStockChange(prod.id, sz, Math.max(0, currentVal - 1))}
+                            className="w-6 h-6 rounded-md bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 flex items-center justify-center text-xs font-bold transition-colors"
+                          >
+                            −
+                          </button>
+                          <input
+                            type="number"
+                            min={0}
+                            value={currentVal}
+                            onChange={(e) =>
+                              handleStockChange(prod.id, sz, parseInt(e.target.value) || 0)
+                            }
+                            className={`w-12 py-1 text-center text-xs font-bold font-mono rounded-md border focus:outline-none focus:ring-1 focus:ring-indigo-500 ${
+                              isLow
+                                ? 'border-rose-300 dark:border-rose-800 bg-rose-50/50 dark:bg-rose-950/30 text-rose-600'
+                                : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white'
+                            }`}
+                          />
+                          <button
+                            type="button"
+                            onClick={() => handleStockChange(prod.id, sz, currentVal + 1)}
+                            className="w-6 h-6 rounded-md bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 flex items-center justify-center text-xs font-bold transition-colors"
+                          >
+                            +
+                          </button>
+                        </div>
+                      </TableCell>
+                    );
+                  })}
+
+                  <TableCell className="text-right">
+                    <Button
+                      size="sm"
+                      disabled={!hasModifications || isSaving}
+                      onClick={() => handleSaveStock(prod)}
+                      className={`text-xs font-bold ${
+                        hasModifications
+                          ? 'bg-emerald-600 hover:bg-emerald-700 text-white'
+                          : 'opacity-40'
+                      }`}
+                    >
+                      {isSaving ? (
+                        <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                      ) : (
+                        <Save className="w-3.5 h-3.5" />
+                      )}
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              );
+            })}
+
+            {filteredProducts.length === 0 && (
+              <TableRow>
+                <TableCell colSpan={9} className="py-20 text-center text-slate-400 italic">
+                  No catalog items found matching your search.
+                </TableCell>
+              </TableRow>
+            )}
+          </TableBody>
+        </Table>
+      </Card>
     </div>
   );
 }

@@ -1,6 +1,13 @@
 import React, { useState, useMemo } from 'react';
 import { useToastStore } from '../../store/useToastStore';
 import { Star, MessageSquare, Check, Trash2, X, Filter, Sparkles, CheckCircle2, AlertCircle } from 'lucide-react';
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '../../components/ui/card';
+import { Badge } from '../../components/ui/badge';
+import { Button } from '../../components/ui/button';
+import { Input } from '../../components/ui/input';
+import { Label } from '../../components/ui/label';
+import { Textarea } from '../../components/ui/textarea';
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '../../components/ui/sheet';
 
 interface Review {
   id: number;
@@ -141,301 +148,249 @@ export default function ReviewsModeration({ reviews, onRefresh }: ReviewsModerat
     }
   };
 
-  const openReplyDrawer = (rev: Review) => {
-    setSelectedReview(rev);
-    setReplyText(rev.merchant_reply || '');
-  };
-
   return (
     <div className="space-y-5 antialiased">
       {/* Top Header Card */}
-      <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-5 shadow-xs flex flex-wrap items-center justify-between gap-4">
+      <Card className="p-5 flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h2 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
-            <Star className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
-            Customer Reviews Moderation
-          </h2>
-          <p className="text-xs text-slate-500 dark:text-slate-400">
-            Moderate incoming ratings, verify product feedback, and draft official brand responses
-          </p>
+          <CardTitle className="text-lg flex items-center gap-2">
+            <Star className="w-5 h-5 text-indigo-600 dark:text-indigo-400 fill-indigo-600 dark:fill-indigo-400" />
+            Reviews & UGC Feedback Moderation
+          </CardTitle>
+          <CardDescription>
+            Approve verified buyer ratings, reply with official merchant notes, and manage social proof
+          </CardDescription>
         </div>
 
-        <div className="flex items-center gap-2 text-xs">
-          <span className="px-3 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 font-semibold text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
-            Total Reviews: {stats.total}
-          </span>
-        </div>
-      </div>
+        <Button variant="outline" size="sm" onClick={onRefresh} className="text-xs font-semibold">
+          Refresh Feed
+        </Button>
+      </Card>
 
-      {/* KPI Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 p-4 rounded-2xl shadow-xs">
-          <span className="block text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
-            Average Rating
+      {/* Aggregate Score KPI Cards */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3.5">
+        <Card className="p-4">
+          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+            Average Score
           </span>
-          <div className="flex items-center gap-2 mt-1">
-            <span className="text-xl font-bold font-mono text-slate-900 dark:text-white">{stats.avg}</span>
-            <div className="flex text-amber-400">
-              <Star className="w-4 h-4 fill-current" />
-            </div>
+          <div className="flex items-center gap-1.5 mt-1">
+            <Star className="w-5 h-5 text-amber-500 fill-amber-500" />
+            <span className="text-2xl font-bold font-mono text-slate-900 dark:text-white">
+              {stats.avg}
+            </span>
+            <span className="text-xs text-slate-400">/ 5.0</span>
           </div>
-          <span className="text-[10px] text-slate-400 mt-0.5 block">Storewide score (out of 5.0)</span>
-        </div>
+        </Card>
 
-        <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 p-4 rounded-2xl shadow-xs">
-          <span className="block text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
+        <Card className="p-4">
+          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
             Total Reviews
           </span>
-          <span className="block text-xl font-bold font-mono text-slate-900 dark:text-white mt-1">
+          <span className="text-2xl font-bold font-mono text-slate-900 dark:text-white mt-1 block">
             {stats.total}
           </span>
-          <span className="text-[10px] text-slate-400 mt-0.5 block">Submitted customer entries</span>
-        </div>
+        </Card>
 
-        <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 p-4 rounded-2xl shadow-xs">
-          <span className="block text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
-            Pending Approval
+        <Card className="p-4">
+          <span className="text-[10px] font-bold text-amber-600 uppercase tracking-wider block">
+            Pending Queue
           </span>
-          <span className="block text-xl font-bold font-mono text-amber-600 dark:text-amber-400 mt-1">
+          <span className="text-2xl font-bold font-mono text-amber-600 mt-1 block">
             {stats.pending}
           </span>
-          <span className="text-[10px] text-amber-600/80 font-semibold mt-0.5 block">Requires moderation</span>
-        </div>
+        </Card>
 
-        <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 p-4 rounded-2xl shadow-xs">
-          <span className="block text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
-            Approved & Live
+        <Card className="p-4">
+          <span className="text-[10px] font-bold text-emerald-600 uppercase tracking-wider block">
+            Live on Store
           </span>
-          <span className="block text-xl font-bold font-mono text-emerald-600 dark:text-emerald-400 mt-1">
+          <span className="text-2xl font-bold font-mono text-emerald-600 mt-1 block">
             {stats.approved}
           </span>
-          <span className="text-[10px] text-emerald-600/80 font-semibold mt-0.5 block">Live on storefront</span>
-        </div>
+        </Card>
       </div>
 
       {/* Filters Toolbar */}
-      <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-4 shadow-xs flex flex-wrap items-center justify-between gap-3">
-        <div className="relative flex-1 min-w-[200px] max-w-md">
-          <Star className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search reviewer name, product, feedback text..."
-            className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700 rounded-xl pl-9 pr-4 py-2 text-xs text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-indigo-500"
-          />
-        </div>
-
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2">
-            <span className="text-[10px] font-bold text-slate-400 uppercase">Rating:</span>
-            <select
-              value={filterRating}
-              onChange={(e) => setFilterRating(Number(e.target.value))}
-              className="bg-slate-50 dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700 rounded-xl px-3 py-1.5 text-xs text-slate-900 dark:text-white focus:outline-none"
-            >
-              <option value="0">All Ratings</option>
-              <option value="5">⭐⭐⭐⭐⭐ 5 Stars</option>
-              <option value="4">⭐⭐⭐⭐ 4 Stars</option>
-              <option value="3">⭐⭐⭐ 3 Stars</option>
-              <option value="2">⭐⭐ 2 Stars</option>
-              <option value="1">⭐ 1 Star</option>
-            </select>
+      <Card className="p-4 flex flex-wrap items-center justify-between gap-3">
+        <div className="flex flex-wrap items-center gap-3 flex-1 min-w-[280px]">
+          <div className="relative flex-1 min-w-[200px]">
+            <Input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search by buyer name, review text, product..."
+              className="text-xs"
+            />
           </div>
 
-          <div className="flex items-center gap-2">
-            <span className="text-[10px] font-bold text-slate-400 uppercase">Status:</span>
-            <select
-              value={filterStatus}
-              onChange={(e) => setFilterStatus(e.target.value as any)}
-              className="bg-slate-50 dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700 rounded-xl px-3 py-1.5 text-xs text-slate-900 dark:text-white focus:outline-none"
-            >
-              <option value="all">All Reviews</option>
-              <option value="pending">Pending</option>
-              <option value="approved">Approved</option>
-            </select>
-          </div>
-        </div>
-      </div>
-
-      {/* Reviews Table Card */}
-      <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl overflow-hidden shadow-xs">
-        {filteredReviews.length === 0 ? (
-          <div className="py-20 text-center text-xs text-slate-400 italic">
-            No customer reviews match your active filter settings.
-          </div>
-        ) : (
-          <div className="divide-y divide-slate-100 dark:divide-slate-800/80">
-            {filteredReviews.map((rev) => (
-              <div
-                key={rev.id}
-                className="p-5 flex flex-col md:flex-row gap-5 hover:bg-slate-50/60 dark:hover:bg-slate-800/40 transition-colors"
+          {/* Star Filter */}
+          <div className="flex items-center gap-1">
+            {[0, 5, 4, 3, 2, 1].map((r) => (
+              <Button
+                key={r}
+                size="sm"
+                variant={filterRating === r ? 'default' : 'outline'}
+                onClick={() => setFilterRating(r)}
+                className="h-8 px-2.5 text-xs font-bold font-mono"
               >
-                {/* Rating & Reviewer info */}
-                <div className="md:w-56 shrink-0 space-y-1.5">
-                  <div className="flex text-amber-400">
-                    {Array.from({ length: 5 }).map((_, i) => (
+                {r === 0 ? 'All' : `${r}★`}
+              </Button>
+            ))}
+          </div>
+
+          <select
+            value={filterStatus}
+            onChange={(e) => setFilterStatus(e.target.value as any)}
+            className="bg-slate-50 dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700 rounded-xl px-3 py-1.5 text-xs text-slate-700 dark:text-slate-300 focus:outline-none"
+          >
+            <option value="all">All Moderation Statuses</option>
+            <option value="pending">Pending Approval</option>
+            <option value="approved">Approved & Published</option>
+          </select>
+        </div>
+
+        <span className="text-xs text-slate-500 font-medium">
+          {filteredReviews.length} matching reviews
+        </span>
+      </Card>
+
+      {/* Reviews Cards List */}
+      <div className="space-y-3">
+        {filteredReviews.map((rev) => (
+          <Card key={rev.id} className="p-5">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div className="space-y-1.5 flex-1 min-w-[260px]">
+                <div className="flex items-center gap-2">
+                  <div className="flex items-center text-amber-500">
+                    {[1, 2, 3, 4, 5].map((star) => (
                       <Star
-                        key={i}
+                        key={star}
                         className={`w-3.5 h-3.5 ${
-                          i < rev.rating ? 'fill-current' : 'text-slate-200 dark:text-slate-700'
+                          star <= rev.rating ? 'fill-amber-500' : 'text-slate-200 dark:text-slate-700'
                         }`}
                       />
                     ))}
                   </div>
-                  <div>
-                    <h4 className="text-xs font-bold text-slate-900 dark:text-white">{rev.reviewer_name}</h4>
-                    <span className="text-[10px] text-slate-400 block font-mono">
-                      {new Date(rev.created_at || Date.now()).toLocaleDateString('en-IN')}
-                    </span>
-                  </div>
-                  <div>
-                    <span className="text-[9px] text-slate-400 uppercase tracking-wider block font-bold">
-                      Product:
-                    </span>
-                    <span className="text-xs text-slate-600 dark:text-slate-300 font-semibold line-clamp-1">
-                      {rev.product_name}
-                    </span>
-                  </div>
-                  <div>
-                    <span
-                      className={`inline-block px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider border ${
-                        rev.approved
-                          ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-400 border-emerald-200/60 dark:border-emerald-800/60'
-                          : 'bg-amber-50 text-amber-700 dark:bg-amber-950/50 dark:text-amber-400 border-amber-200/60 dark:border-amber-800/60'
-                      }`}
-                    >
-                      {rev.approved ? 'Live Approved' : 'Pending Moderation'}
-                    </span>
-                  </div>
+                  <h4 className="font-bold text-slate-900 dark:text-white text-xs">{rev.title}</h4>
+                  <Badge variant={rev.approved ? 'success' : 'warning'}>
+                    {rev.approved ? 'Approved' : 'Pending Moderation'}
+                  </Badge>
                 </div>
 
-                {/* Body review details and merchant response */}
-                <div className="flex-1 space-y-3">
-                  <div>
-                    <h3 className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider">
-                      {rev.title}
-                    </h3>
-                    <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed mt-1 italic">
-                      "{rev.body}"
-                    </p>
-                  </div>
+                <p className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed">{rev.body}</p>
 
-                  {rev.merchant_reply && (
-                    <div className="p-3 bg-slate-50 dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-700/60 rounded-xl space-y-1">
-                      <span className="block text-[9px] font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider">
-                        Official Store Reply:
-                      </span>
-                      <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
-                        "{rev.merchant_reply}"
-                      </p>
-                    </div>
-                  )}
-
-                  {/* Actions */}
-                  <div className="flex items-center gap-2 pt-1">
-                    {!rev.approved && (
-                      <button
-                        onClick={() => handleApprove(rev.id)}
-                        className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-[10px] uppercase tracking-wider flex items-center gap-1 transition-colors shadow-xs"
-                      >
-                        <Check className="w-3.5 h-3.5" /> Approve Review
-                      </button>
-                    )}
-                    <button
-                      onClick={() => openReplyDrawer(rev)}
-                      className="px-3 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 font-bold rounded-xl text-[10px] uppercase tracking-wider flex items-center gap-1 transition-colors"
-                    >
-                      <MessageSquare className="w-3.5 h-3.5" />{' '}
-                      {rev.merchant_reply ? 'Edit Response' : 'Reply'}
-                    </button>
-                    <button
-                      onClick={() => handleDelete(rev.id)}
-                      className="px-3 py-1.5 border border-rose-200/60 dark:border-rose-800/60 text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 font-bold rounded-xl text-[10px] uppercase tracking-wider flex items-center gap-1 transition-colors ml-auto"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" /> Delete
-                    </button>
-                  </div>
+                <div className="flex flex-wrap items-center gap-3 text-[11px] text-slate-400 font-medium pt-1">
+                  <span className="font-semibold text-slate-600 dark:text-slate-300">
+                    {rev.reviewer_name}
+                  </span>
+                  <span>•</span>
+                  <span>{rev.product_name}</span>
+                  <span>•</span>
+                  <span className="font-mono">{new Date(rev.created_at).toLocaleDateString()}</span>
                 </div>
               </div>
-            ))}
-          </div>
+
+              {/* Action Buttons */}
+              <div className="flex items-center gap-1.5 shrink-0">
+                {!rev.approved && (
+                  <Button
+                    size="sm"
+                    onClick={() => handleApprove(rev.id)}
+                    className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold h-8"
+                  >
+                    <Check className="w-3.5 h-3.5 mr-1" /> Approve
+                  </Button>
+                )}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setSelectedReview(rev);
+                    setReplyText(rev.merchant_reply || '');
+                  }}
+                  className="text-xs font-semibold h-8"
+                >
+                  <MessageSquare className="w-3.5 h-3.5 mr-1" /> Reply
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => handleDelete(rev.id)}
+                  title="Delete Review"
+                  className="text-slate-400 hover:text-rose-600 h-8 w-8"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                </Button>
+              </div>
+            </div>
+
+            {/* Merchant Reply Box */}
+            {rev.merchant_reply && (
+              <div className="mt-3.5 p-3 bg-indigo-50/60 dark:bg-indigo-950/30 border border-indigo-100 dark:border-indigo-900/50 rounded-xl space-y-1">
+                <span className="text-[10px] font-bold text-indigo-700 dark:text-indigo-400 uppercase tracking-wider block">
+                  Official Merchant Reply
+                </span>
+                <p className="text-xs text-indigo-950 dark:text-indigo-200 leading-relaxed">
+                  {rev.merchant_reply}
+                </p>
+              </div>
+            )}
+          </Card>
+        ))}
+
+        {filteredReviews.length === 0 && (
+          <Card className="p-16 text-center text-slate-400 italic">
+            No customer reviews found matching filter criteria.
+          </Card>
         )}
       </div>
 
-      {/* Slide-over Reply Drawer */}
-      {selectedReview && (
-        <div className="fixed inset-0 z-50 flex justify-end">
-          <div
-            onClick={() => setSelectedReview(null)}
-            className="absolute inset-0 bg-slate-900/60 backdrop-blur-xs transition-opacity"
-          />
-          <div className="w-full max-w-lg bg-white dark:bg-slate-900 border-l border-slate-200 dark:border-slate-800 shadow-2xl relative z-10 p-6 flex flex-col justify-between h-full overflow-y-auto">
-            <div className="space-y-5">
-              <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-4">
-                <h3 className="text-base font-bold text-slate-900 dark:text-white">
-                  Merchant Response Console
-                </h3>
-                <button
-                  onClick={() => setSelectedReview(null)}
-                  className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
+      {/* Slide-over Drawer for Merchant Response */}
+      <Sheet open={!!selectedReview} onOpenChange={(open) => !open && setSelectedReview(null)}>
+        {selectedReview && (
+          <SheetContent side="right" className="w-full sm:max-w-lg">
+            <SheetHeader>
+              <SheetTitle>Respond to Review</SheetTitle>
+              <SheetDescription>
+                Public response from official merchant account to {selectedReview.reviewer_name}
+              </SheetDescription>
+            </SheetHeader>
 
-              {/* Review snippet card */}
-              <div className="p-4 bg-slate-50 dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-700/60 rounded-xl space-y-2">
-                <div className="flex text-amber-400">
-                  {Array.from({ length: selectedReview.rating }).map((_, i) => (
-                    <Star key={i} className="w-3.5 h-3.5 fill-current" />
-                  ))}
+            <form onSubmit={handleReplySubmit} className="space-y-4 my-4 text-xs">
+              <div className="p-3.5 bg-slate-50 dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-700/60 rounded-xl space-y-1.5">
+                <div className="flex items-center gap-1.5 text-amber-500">
+                  <span className="font-bold font-mono">{selectedReview.rating}★</span>
+                  <span className="font-semibold text-slate-900 dark:text-white">
+                    {selectedReview.title}
+                  </span>
                 </div>
-                <h4 className="text-xs font-bold text-slate-900 dark:text-white uppercase">
-                  {selectedReview.title}
-                </h4>
-                <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed italic">
+                <p className="text-slate-600 dark:text-slate-300 leading-relaxed text-xs">
                   "{selectedReview.body}"
                 </p>
-                <span className="block text-[10px] text-slate-400 font-mono">
-                  — By {selectedReview.reviewer_name} on {selectedReview.product_name}
-                </span>
               </div>
 
-              {/* Response Form */}
-              <form onSubmit={handleReplySubmit} className="space-y-4">
-                <div>
-                  <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">
-                    Official Store Response Message
-                  </label>
-                  <textarea
-                    required
-                    rows={6}
-                    value={replyText}
-                    onChange={(e) => setReplyText(e.target.value)}
-                    placeholder="Type official store reply to customer review..."
-                    className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-3 text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-indigo-500"
-                  />
-                </div>
-                <button
-                  type="submit"
-                  disabled={submittingReply}
-                  className="w-full py-2.5 bg-slate-900 hover:bg-slate-800 dark:bg-indigo-600 dark:hover:bg-indigo-700 text-white font-bold rounded-xl text-xs uppercase tracking-wider transition-all shadow-xs"
-                >
-                  {submittingReply ? 'Saving Response...' : 'Save & Publish Reply'}
-                </button>
-              </form>
-            </div>
+              <div>
+                <Label className="mb-1">Merchant Response Body</Label>
+                <Textarea
+                  rows={5}
+                  required
+                  value={replyText}
+                  onChange={(e) => setReplyText(e.target.value)}
+                  placeholder="Thank you for your feedback! We are thrilled to hear that..."
+                />
+              </div>
 
-            <button
-              onClick={() => setSelectedReview(null)}
-              className="w-full mt-6 py-2.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 font-semibold rounded-xl text-xs uppercase transition-colors"
-            >
-              Cancel
-            </button>
-          </div>
-        </div>
-      )}
+              <Button
+                type="submit"
+                disabled={submittingReply}
+                className="w-full py-2.5 font-bold text-xs"
+              >
+                {submittingReply ? 'Publishing Reply...' : 'Save & Publish Response'}
+              </Button>
+            </form>
+          </SheetContent>
+        )}
+      </Sheet>
     </div>
   );
 }

@@ -1,6 +1,14 @@
 import React, { useState } from 'react';
 import { useToastStore } from '../../store/useToastStore';
 import { Plus, Edit3, Trash2, X, Search, FileText, Globe, ExternalLink } from 'lucide-react';
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '../../components/ui/card';
+import { Badge } from '../../components/ui/badge';
+import { Button } from '../../components/ui/button';
+import { Input } from '../../components/ui/input';
+import { Label } from '../../components/ui/label';
+import { Textarea } from '../../components/ui/textarea';
+import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from '../../components/ui/table';
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '../../components/ui/sheet';
 
 interface PageConfig {
   id: number;
@@ -125,216 +133,187 @@ export default function PagesManager({ pages, token, onRefresh }: PagesManagerPr
   return (
     <div className="space-y-5 antialiased">
       {/* Top Header Card */}
-      <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-5 shadow-xs flex flex-wrap items-center justify-between gap-4">
+      <Card className="p-5 flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h2 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+          <CardTitle className="text-lg flex items-center gap-2">
             <FileText className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
             Static Pages & Legal CMS
-          </h2>
-          <p className="text-xs text-slate-500 dark:text-slate-400">
+          </CardTitle>
+          <CardDescription>
             Publish storefront policy documents, terms of service, sizing guidelines, and about pages
-          </p>
+          </CardDescription>
         </div>
 
-        <button
-          onClick={handleOpenAdd}
-          className="px-4 py-2 bg-slate-900 hover:bg-slate-800 dark:bg-indigo-600 dark:hover:bg-indigo-700 text-white font-bold text-xs rounded-xl flex items-center gap-1.5 shadow-xs transition-colors"
-        >
-          <Plus className="w-4 h-4" /> Add Static Page
-        </button>
-      </div>
+        <Button onClick={handleOpenAdd} className="text-xs font-bold">
+          <Plus className="w-4 h-4 mr-1" /> Add Static Page
+        </Button>
+      </Card>
 
       {/* Filter Row */}
-      <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-4 shadow-xs flex items-center justify-between gap-3">
+      <Card className="p-4 flex items-center justify-between gap-3">
         <div className="relative flex-1 max-w-md">
           <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-          <input
+          <Input
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search pages by title or slug..."
-            className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700 rounded-xl pl-9 pr-4 py-2 text-xs text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+            className="pl-9 text-xs"
           />
         </div>
 
-        <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">
-          {filtered.length} published pages
+        <span className="text-xs text-slate-500 font-medium">
+          {filtered.length} pages published
         </span>
-      </div>
+      </Card>
 
-      {/* Grid List */}
-      <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl overflow-hidden shadow-xs">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse text-xs">
-            <thead>
-              <tr className="bg-slate-50/80 dark:bg-slate-800/60 text-slate-500 dark:text-slate-400 border-b border-slate-200/80 dark:border-slate-800 font-semibold uppercase text-[10px] tracking-wider">
-                <th className="p-3.5">Page Title</th>
-                <th className="p-3.5">Slug URL</th>
-                <th className="p-3.5">Content Preview</th>
-                <th className="p-3.5">Status</th>
-                <th className="p-3.5 text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100 dark:divide-slate-800/80">
-              {filtered.map((p) => (
-                <tr
-                  key={p.id}
-                  className="hover:bg-slate-50/60 dark:hover:bg-slate-800/40 transition-colors"
-                >
-                  <td className="p-3.5 font-semibold text-slate-900 dark:text-white text-xs">
-                    {p.title}
-                  </td>
-                  <td className="p-3.5">
-                    <span className="px-2.5 py-1 rounded-md bg-slate-100 dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 font-mono text-[11px] font-bold border border-slate-200 dark:border-slate-700">
-                      /{p.slug}
-                    </span>
-                  </td>
-                  <td className="p-3.5 text-slate-500 dark:text-slate-400 max-w-sm truncate text-xs font-mono">
-                    {p.content ? p.content.substring(0, 80) + '...' : '—'}
-                  </td>
-                  <td className="p-3.5">
-                    <span
-                      className={`inline-block px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border ${
-                        p.active
-                          ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-400 border-emerald-200/60 dark:border-emerald-800/60'
-                          : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400 border-slate-200 dark:border-slate-700'
-                      }`}
+      {/* Pages Table */}
+      <Card className="overflow-hidden">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Page Title</TableHead>
+              <TableHead>Slug Endpoint</TableHead>
+              <TableHead>Content Preview</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead className="text-right">Actions</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {filtered.map((p) => (
+              <TableRow key={p.id}>
+                <TableCell className="font-semibold text-slate-900 dark:text-white text-xs">
+                  {p.title}
+                </TableCell>
+
+                <TableCell>
+                  <a
+                    href={`/pages/${p.slug}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-1 font-mono text-[10px] text-indigo-600 dark:text-indigo-400 hover:underline"
+                  >
+                    /{p.slug} <ExternalLink className="w-3 h-3" />
+                  </a>
+                </TableCell>
+
+                <TableCell className="text-slate-500 max-w-xs truncate text-xs font-mono">
+                  {p.content ? p.content.slice(0, 80) + '...' : '—'}
+                </TableCell>
+
+                <TableCell>
+                  <Badge variant={p.active ? 'success' : 'outline'}>
+                    {p.active ? 'Published' : 'Draft'}
+                  </Badge>
+                </TableCell>
+
+                <TableCell className="text-right">
+                  <div className="flex items-center justify-end gap-1.5">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => handleOpenEdit(p)}
+                      title="Edit Page"
+                      className="text-slate-500 hover:text-indigo-600"
                     >
-                      {p.active ? 'Published' : 'Draft'}
-                    </span>
-                  </td>
-                  <td className="p-3.5 text-right">
-                    <div className="flex items-center justify-end gap-1.5">
-                      <button
-                        onClick={() => handleOpenEdit(p)}
-                        className="p-1.5 rounded-lg text-slate-500 hover:text-indigo-600 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
-                        title="Edit Page"
-                      >
-                        <Edit3 className="w-3.5 h-3.5" />
-                      </button>
-                      <button
-                        onClick={() => handleDelete(p.id)}
-                        className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors"
-                        title="Delete Page"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
+                      <Edit3 className="w-3.5 h-3.5" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => handleDelete(p.id)}
+                      title="Delete Page"
+                      className="text-slate-400 hover:text-rose-600"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </Button>
+                  </div>
+                </TableCell>
+              </TableRow>
+            ))}
 
-              {filtered.length === 0 && (
-                <tr>
-                  <td colSpan={5} className="py-20 text-center text-slate-400 italic">
-                    No CMS pages found matching criteria.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
+            {filtered.length === 0 && (
+              <TableRow>
+                <TableCell colSpan={5} className="py-20 text-center text-slate-400 italic">
+                  No static pages found matching criteria.
+                </TableCell>
+              </TableRow>
+            )}
+          </TableBody>
+        </Table>
+      </Card>
 
-      {/* Slide-over Drawer */}
-      {drawerOpen && (
-        <div className="fixed inset-0 z-50 flex justify-end">
-          <div
-            onClick={() => setDrawerOpen(false)}
-            className="absolute inset-0 bg-slate-900/60 backdrop-blur-xs transition-opacity"
-          />
-          <div className="w-full max-w-lg bg-white dark:bg-slate-900 border-l border-slate-200 dark:border-slate-800 shadow-2xl relative z-10 p-6 flex flex-col justify-between h-full overflow-y-auto">
-            <div className="space-y-5">
-              <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-4">
-                <h3 className="text-base font-bold text-slate-900 dark:text-white">
-                  {editingPage ? 'Modify Static Page' : 'Create Static Page'}
-                </h3>
-                <button
-                  onClick={() => setDrawerOpen(false)}
-                  className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
+      {/* Slide-over Drawer using Sheet */}
+      <Sheet open={drawerOpen} onOpenChange={setDrawerOpen}>
+        <SheetContent side="right" className="w-full sm:max-w-xl">
+          <SheetHeader>
+            <SheetTitle>{editingPage ? 'Modify Static Page' : 'Create Static Page'}</SheetTitle>
+            <SheetDescription>Publish markdown-formatted content to storefront</SheetDescription>
+          </SheetHeader>
 
-              <form onSubmit={handleSubmit} className="space-y-4 text-xs">
-                <div>
-                  <label className="block text-[10px] uppercase font-bold text-slate-400 dark:text-slate-500 mb-1">
-                    Page Headline
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={pageTitle}
-                    onChange={(e) => {
-                      setPageTitle(e.target.value);
-                      if (!editingPage) {
-                        setPageSlug(
-                          e.target.value
-                            .toLowerCase()
-                            .replace(/[^a-z0-9]+/g, '-')
-                            .replace(/(^-|-$)/g, '')
-                        );
-                      }
-                    }}
-                    placeholder="e.g. Return & Exchange Policy"
-                    className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-indigo-500"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-[10px] uppercase font-bold text-slate-400 dark:text-slate-500 mb-1">
-                    URL Slug
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={pageSlug}
-                    onChange={(e) => setPageSlug(e.target.value)}
-                    placeholder="e.g. return-exchange-policy"
-                    className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-slate-900 dark:text-white focus:outline-none font-mono text-xs"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-[10px] uppercase font-bold text-slate-400 dark:text-slate-500 mb-1">
-                    Page Body Content (Markdown / HTML Supported)
-                  </label>
-                  <textarea
-                    rows={12}
-                    required
-                    value={pageContent}
-                    onChange={(e) => setPageContent(e.target.value)}
-                    placeholder="## Policy Overview&#10;&#10;Explain terms, customer guidelines, contact info..."
-                    className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-3 text-slate-900 dark:text-white focus:outline-none font-mono text-xs leading-relaxed"
-                  />
-                </div>
-
-                <div className="pt-1">
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={pageActive}
-                      onChange={(e) => setPageActive(e.target.checked)}
-                      className="w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500"
-                    />
-                    <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">
-                      Page Published & Live on Storefront
-                    </span>
-                  </label>
-                </div>
-
-                <button
-                  type="submit"
-                  className="w-full py-2.5 bg-slate-900 hover:bg-slate-800 dark:bg-indigo-600 dark:hover:bg-indigo-700 text-white font-bold text-xs rounded-xl transition-all shadow-xs"
-                >
-                  Save Page Content
-                </button>
-              </form>
+          <form onSubmit={handleSubmit} className="space-y-4 my-4 text-xs">
+            <div>
+              <Label className="mb-1">Page Title *</Label>
+              <Input
+                type="text"
+                required
+                value={pageTitle}
+                onChange={(e) => {
+                  setPageTitle(e.target.value);
+                  if (!editingPage) {
+                    setPageSlug(
+                      e.target.value
+                        .toLowerCase()
+                        .replace(/[^a-z0-9]+/g, '-')
+                        .replace(/(^-|-$)/g, '')
+                    );
+                  }
+                }}
+                placeholder="e.g. Terms & Conditions"
+              />
             </div>
-          </div>
-        </div>
-      )}
+
+            <div>
+              <Label className="mb-1">Slug URL Identifier *</Label>
+              <Input
+                type="text"
+                required
+                value={pageSlug}
+                onChange={(e) => setPageSlug(e.target.value)}
+                placeholder="e.g. terms-and-conditions"
+                className="font-mono text-xs"
+              />
+            </div>
+
+            <div>
+              <Label className="mb-1">Page Markdown / HTML Content</Label>
+              <Textarea
+                rows={12}
+                value={pageContent}
+                onChange={(e) => setPageContent(e.target.value)}
+                placeholder="# Sizing Guide..."
+                className="font-mono text-xs"
+              />
+            </div>
+
+            <div>
+              <Label className="mb-1">Publication Status</Label>
+              <select
+                value={pageActive ? 'true' : 'false'}
+                onChange={(e) => setPageActive(e.target.value === 'true')}
+                className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-slate-900 dark:text-white focus:outline-none text-xs"
+              >
+                <option value="true">Published (Public)</option>
+                <option value="false">Draft (Hidden)</option>
+              </select>
+            </div>
+
+            <Button type="submit" className="w-full py-2.5 font-bold text-xs">
+              Save Static Page
+            </Button>
+          </form>
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }

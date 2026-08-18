@@ -21,6 +21,9 @@ import {
   Sparkles,
   ChevronRight
 } from 'lucide-react';
+import { Badge } from '../../components/ui/badge';
+import { Button } from '../../components/ui/button';
+import { Separator } from '../../components/ui/separator';
 
 interface SidebarProps {
   activeTab: string;
@@ -107,21 +110,23 @@ export default function AdminSidebar({
                 <span className="text-base font-bold text-slate-900 dark:text-white tracking-tight">
                   HEELS<span className="text-indigo-600 dark:text-indigo-400">UP</span>
                 </span>
-                <span className="px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider bg-indigo-50 text-indigo-700 dark:bg-indigo-950/60 dark:text-indigo-300 rounded-md border border-indigo-200/60 dark:border-indigo-800/60">
-                  ADMIN
-                </span>
+                <Badge variant="info" className="px-1.5 py-0 text-[9px] font-bold">
+                  PRO
+                </Badge>
               </div>
               <p className="text-[10px] text-slate-400 dark:text-slate-500 font-medium">Enterprise Control Hub</p>
             </div>
           </div>
 
-          <button
+          <Button
+            variant="ghost"
+            size="icon"
             onClick={() => setSidebarOpen(false)}
-            className="md:hidden p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+            className="md:hidden text-slate-400"
             aria-label="Close Sidebar"
           >
             <X className="w-5 h-5" />
-          </button>
+          </Button>
         </div>
 
         {/* Scrollable Navigation List */}
@@ -140,48 +145,46 @@ export default function AdminSidebar({
 
                 <div className="space-y-0.5">
                   {allowedItems.map((item) => {
-                    const IconComponent = item.icon;
+                    const Icon = item.icon;
                     const isActive = activeTab === item.id;
-                    const isOrderTab = item.id === 'orders';
 
                     return (
                       <button
                         key={item.id}
                         onClick={() => {
                           setActiveTab(item.id);
-                          if (window.innerWidth < 768) setSidebarOpen(false);
+                          setSidebarOpen(false);
                         }}
-                        className={`w-full group flex items-center justify-between px-3 py-2.5 rounded-xl text-xs transition-all duration-150 relative ${
+                        className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-semibold transition-all group ${
                           isActive
-                            ? 'bg-slate-900 text-white dark:bg-indigo-600 dark:text-white font-semibold shadow-sm'
-                            : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-100/80 dark:hover:bg-slate-800/60 font-medium'
+                            ? 'bg-slate-900 text-white dark:bg-indigo-600 dark:text-white shadow-xs'
+                            : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/60 hover:text-slate-900 dark:hover:text-white'
                         }`}
                       >
-                        <div className="flex items-center gap-2.5 min-w-0">
-                          <div
-                            className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 transition-colors ${
+                        <div className="flex items-center gap-3">
+                          <Icon
+                            className={`w-4 h-4 transition-transform group-hover:scale-110 ${
                               isActive
                                 ? 'text-white'
-                                : 'text-slate-500 dark:text-slate-400 group-hover:text-slate-900 dark:group-hover:text-white'
+                                : 'text-slate-400 dark:text-slate-500 group-hover:text-slate-700 dark:group-hover:text-slate-300'
                             }`}
-                          >
-                            <IconComponent className="w-4 h-4" />
-                          </div>
-                          <span className="truncate">{item.label}</span>
+                          />
+                          <span>{item.label}</span>
                         </div>
 
-                        {/* Badges / Realtime count */}
-                        {isOrderTab && unseenOrders > 0 ? (
-                          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-500 text-white animate-pulse shadow-xs">
-                            {unseenOrders} NEW
-                          </span>
-                        ) : item.badge ? (
-                          <span className="px-1.5 py-0.2 rounded text-[9px] font-bold tracking-tight bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-400 border border-emerald-200/50 dark:border-emerald-800/50">
-                            {item.badge}
-                          </span>
-                        ) : isActive ? (
-                          <ChevronRight className="w-3.5 h-3.5 opacity-60 shrink-0" />
-                        ) : null}
+                        <div className="flex items-center gap-1.5">
+                          {item.id === 'orders' && unseenOrders > 0 && (
+                            <Badge variant="destructive" className="animate-pulse px-1.5 py-0 text-[9px] font-mono">
+                              +{unseenOrders}
+                            </Badge>
+                          )}
+                          {item.badge && !isActive && (
+                            <Badge variant="secondary" className="px-1.5 py-0 text-[9px]">
+                              {item.badge}
+                            </Badge>
+                          )}
+                          {isActive && <ChevronRight className="w-3.5 h-3.5 opacity-80" />}
+                        </div>
                       </button>
                     );
                   })}
@@ -191,15 +194,18 @@ export default function AdminSidebar({
           })}
         </div>
 
-        {/* Footer Session Action */}
-        <div className="p-3 border-t border-slate-100 dark:border-slate-800/80 shrink-0">
-          <button
+        <Separator />
+
+        {/* Footer / Sign Out Section */}
+        <div className="p-3 shrink-0">
+          <Button
+            variant="ghost"
             onClick={handleLogout}
-            className="w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl text-rose-600 dark:text-rose-400 bg-rose-50/70 dark:bg-rose-950/30 hover:bg-rose-100 dark:hover:bg-rose-900/40 font-semibold text-xs transition-colors border border-rose-200/50 dark:border-rose-900/40"
+            className="w-full justify-start text-slate-500 dark:text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/30 font-medium"
           >
-            <LogOut className="w-3.5 h-3.5" />
-            <span>End Admin Session</span>
-          </button>
+            <LogOut className="w-4 h-4 mr-2" />
+            <span>Sign Out Session</span>
+          </Button>
         </div>
       </aside>
     </>

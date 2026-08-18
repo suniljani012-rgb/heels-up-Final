@@ -2,9 +2,14 @@
 import React, { useEffect, useState } from 'react';
 import { X, Loader2, CheckCircle, AlertCircle, ArrowLeft, Edit3, Package, Layers } from 'lucide-react';
 import { useToastStore } from '../../../store/useToastStore';
-import { fetchProductDetail, type AdminProduct } from './productApi';
+import { fetchProductDetail } from './productApi';
+import type { AdminProduct } from './productTypes';
 import type { Category } from '../types';
 import ProductImages from './ProductImages';
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '../../../components/ui/card';
+import { Badge } from '../../../components/ui/badge';
+import { Button } from '../../../components/ui/button';
+import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from '../../../components/ui/table';
 
 interface ProductDetailProps {
   id: number;
@@ -44,73 +49,64 @@ export default function ProductDetail({ id, categories, token }: ProductDetailPr
 
   if (error || !product) {
     return (
-      <div className="p-8 max-w-lg mx-auto text-center space-y-4">
+      <Card className="p-8 max-w-lg mx-auto text-center space-y-4">
         <AlertCircle className="w-8 h-8 text-rose-500 mx-auto" />
-        <h2 className="text-lg font-bold text-slate-900 dark:text-white">Product Not Found</h2>
-        <p className="text-xs text-slate-500">{error || `Product #${id} could not be loaded.`}</p>
-        <button
-          onClick={() => window.history.back()}
-          className="px-4 py-2 bg-slate-900 text-white rounded-xl text-xs font-bold"
-        >
+        <CardTitle className="text-lg">Product Not Found</CardTitle>
+        <CardDescription>{error || `Product #${id} could not be loaded.`}</CardDescription>
+        <Button onClick={() => window.history.back()} size="sm">
           Go Back
-        </button>
-      </div>
+        </Button>
+      </Card>
     );
   }
 
   return (
     <div className="space-y-5 antialiased">
       {/* Top Header */}
-      <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-5 shadow-xs flex flex-wrap items-center justify-between gap-4">
+      <Card className="p-5 flex flex-wrap items-center justify-between gap-4">
         <div className="flex items-center gap-3">
-          <button
+          <Button
+            variant="outline"
+            size="icon"
             onClick={() => window.history.back()}
-            className="p-2 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 transition-colors"
+            className="h-8 w-8"
           >
             <ArrowLeft className="w-4 h-4" />
-          </button>
+          </Button>
           <div>
-            <h2 className="text-lg font-bold text-slate-900 dark:text-white">
-              {product.name}
-            </h2>
-            <p className="text-xs text-slate-400 font-mono">SKU: {product.sku}</p>
+            <CardTitle className="text-lg">{product.name}</CardTitle>
+            <CardDescription className="font-mono text-xs">SKU: {product.sku}</CardDescription>
           </div>
         </div>
 
         <div className="flex items-center gap-2">
-          <span className="px-3 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-mono text-xs font-bold border border-slate-200 dark:border-slate-700">
+          <Badge variant="secondary" className="font-mono text-xs">
             Stock: {product.stock} units
-          </span>
-          <span
-            className={`px-3 py-1 rounded-lg text-xs font-bold border ${
-              product.active
-                ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-400 border-emerald-200/60 dark:border-emerald-800/60'
-                : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400 border-slate-200 dark:border-slate-700'
-            }`}
-          >
+          </Badge>
+          <Badge variant={product.active ? 'success' : 'outline'}>
             {product.active ? 'Active' : 'Draft'}
-          </span>
+          </Badge>
         </div>
-      </div>
+      </Card>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
         {/* Left: Product Images & Key Metrics */}
         <div className="space-y-4">
-          <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-5 shadow-xs space-y-4">
-            <h4 className="text-xs font-bold uppercase tracking-wider text-slate-900 dark:text-white border-b border-slate-100 dark:border-slate-800 pb-2">
+          <Card className="p-5 space-y-4">
+            <CardTitle className="text-xs font-bold uppercase tracking-wider border-b border-slate-100 dark:border-slate-800 pb-2">
               Media Showcase
-            </h4>
+            </CardTitle>
             <ProductImages
-              images={(product.images || []).map((url) => ({ url, alt: '' }))}
+              images={(product.images || []).map((url: string) => ({ url, alt: '' }))}
               token={token}
               onChange={() => {}}
             />
-          </div>
+          </Card>
 
-          <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-5 shadow-xs space-y-3">
-            <h4 className="text-xs font-bold uppercase tracking-wider text-slate-900 dark:text-white border-b border-slate-100 dark:border-slate-800 pb-2">
+          <Card className="p-5 space-y-3">
+            <CardTitle className="text-xs font-bold uppercase tracking-wider border-b border-slate-100 dark:border-slate-800 pb-2">
               Financial Matrix
-            </h4>
+            </CardTitle>
             <div className="grid grid-cols-2 gap-3 text-xs">
               <div className="p-3 bg-slate-50 dark:bg-slate-800/60 rounded-xl border border-slate-200/60 dark:border-slate-700/60">
                 <span className="text-[10px] uppercase font-bold text-slate-400">Selling Price</span>
@@ -137,66 +133,80 @@ export default function ProductDetail({ id, categories, token }: ProductDetailPr
                 </p>
               </div>
             </div>
-          </div>
+          </Card>
         </div>
 
-        {/* Right: Specifications Table */}
+        {/* Right: Specifications & Variant Matrix */}
         <div className="lg:col-span-2 space-y-4">
-          <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-5 shadow-xs space-y-4">
-            <h4 className="text-xs font-bold uppercase tracking-wider text-slate-900 dark:text-white border-b border-slate-100 dark:border-slate-800 pb-2">
-              Catalog Specifications
-            </h4>
-            <table className="w-full text-left border-collapse text-xs">
-              <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                <tr>
-                  <td className="py-2.5 font-bold text-slate-400 w-44">Category</td>
-                  <td className="py-2.5 font-semibold text-slate-900 dark:text-white">
-                    {product.category || '—'}
-                  </td>
-                </tr>
-                <tr>
-                  <td className="py-2.5 font-bold text-slate-400">Brand</td>
-                  <td className="py-2.5 font-semibold text-slate-900 dark:text-white">
-                    {product.brand || 'HeelsUp'}
-                  </td>
-                </tr>
-                <tr>
-                  <td className="py-2.5 font-bold text-slate-400">Color Variant</td>
-                  <td className="py-2.5 text-slate-700 dark:text-slate-300">{product.color || '—'}</td>
-                </tr>
-                <tr>
-                  <td className="py-2.5 font-bold text-slate-400">Material</td>
-                  <td className="py-2.5 text-slate-700 dark:text-slate-300">{product.material || '—'}</td>
-                </tr>
-                <tr>
-                  <td className="py-2.5 font-bold text-slate-400">Heel Height</td>
-                  <td className="py-2.5 text-slate-700 dark:text-slate-300">{product.heel_height || '—'}</td>
-                </tr>
-                <tr>
-                  <td className="py-2.5 font-bold text-slate-400">Width Option</td>
-                  <td className="py-2.5 text-slate-700 dark:text-slate-300">{product.width_option || '—'}</td>
-                </tr>
-                <tr>
-                  <td className="py-2.5 font-bold text-slate-400">Description</td>
-                  <td className="py-2.5 text-slate-600 dark:text-slate-300 leading-relaxed">
-                    {product.description || '—'}
-                  </td>
-                </tr>
-                <tr>
-                  <td className="py-2.5 font-bold text-slate-400">SEO Meta Title</td>
-                  <td className="py-2.5 text-slate-600 dark:text-slate-300 font-mono text-[11px]">
-                    {product.meta_title || '—'}
-                  </td>
-                </tr>
-                <tr>
-                  <td className="py-2.5 font-bold text-slate-400">SEO Meta Description</td>
-                  <td className="py-2.5 text-slate-600 dark:text-slate-300 text-[11px]">
-                    {product.meta_description || '—'}
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
+          <Card className="p-5 space-y-4">
+            <CardTitle className="text-xs font-bold uppercase tracking-wider border-b border-slate-100 dark:border-slate-800 pb-2">
+              Product Overview & Specifications
+            </CardTitle>
+
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 text-xs">
+              <div>
+                <span className="text-slate-400 font-medium block">Category</span>
+                <span className="font-semibold text-slate-900 dark:text-white mt-0.5 block">
+                  {product.category || '—'}
+                </span>
+              </div>
+              <div>
+                <span className="text-slate-400 font-medium block">Brand</span>
+                <span className="font-semibold text-slate-900 dark:text-white mt-0.5 block">
+                  {product.brand || 'HeelsUp'}
+                </span>
+              </div>
+              <div>
+                <span className="text-slate-400 font-medium block">Primary Color</span>
+                <span className="font-semibold text-slate-900 dark:text-white mt-0.5 block">
+                  {product.color || '—'}
+                </span>
+              </div>
+            </div>
+
+            <div>
+              <span className="text-slate-400 font-medium block text-xs mb-1">Product Description</span>
+              <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed bg-slate-50 dark:bg-slate-800/50 p-3.5 rounded-xl border border-slate-100 dark:border-slate-800">
+                {product.description || 'No description provided.'}
+              </p>
+            </div>
+          </Card>
+
+          {/* Size Stock Grid Table */}
+          <Card className="overflow-hidden">
+            <div className="px-5 py-3.5 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/40">
+              <h4 className="text-xs font-bold uppercase tracking-wider text-slate-900 dark:text-white">
+                Footwear Size Grid & Inventory Matrix
+              </h4>
+            </div>
+
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Shoe Size (UK)</TableHead>
+                  <TableHead>In Stock Units</TableHead>
+                  <TableHead>Reserved Orders</TableHead>
+                  <TableHead className="text-right">Availability</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {(product.size_stock || []).map((sz: any) => (
+                  <TableRow key={sz.size_label}>
+                    <TableCell className="font-mono font-bold text-xs">
+                      UK-{sz.size_label}
+                    </TableCell>
+                    <TableCell className="font-mono text-xs">{sz.stock} units</TableCell>
+                    <TableCell className="font-mono text-xs text-slate-400">{sz.reserved || 0} reserved</TableCell>
+                    <TableCell className="text-right">
+                      <Badge variant={sz.stock > 0 ? 'success' : 'destructive'}>
+                        {sz.stock > 0 ? 'Available' : 'Sold Out'}
+                      </Badge>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </Card>
         </div>
       </div>
     </div>

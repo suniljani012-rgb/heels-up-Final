@@ -122,12 +122,12 @@ export default function HeicImage({
         setLoaded(true);
         if (onLoad) onLoad(e);
       }}
-      onError={() => {
+      onError={(e) => {
         setLoaded(true);
         setErrored(true);
         // Run custom error handler if provided, otherwise fallback logic
         if (customOnError) {
-          customOnError();
+          customOnError(e);
         } else {
           // Fallback to original file path on error
           const imgEl = document.querySelector(`img[src="${displaySrc}"]`) as HTMLImageElement | null;

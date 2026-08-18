@@ -1,6 +1,11 @@
 import { useState, useMemo } from 'react';
 import { Activity, Search, Filter, Download, RefreshCw, Shield, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useToastStore } from '../../store/useToastStore';
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '../../components/ui/card';
+import { Badge } from '../../components/ui/badge';
+import { Button } from '../../components/ui/button';
+import { Input } from '../../components/ui/input';
+import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from '../../components/ui/table';
 
 export interface AuditLog {
   id: number;
@@ -89,43 +94,47 @@ export default function AuditLogs({ logs, loading, onRefresh }: AuditLogsProps) 
   return (
     <div className="space-y-5 antialiased">
       {/* Top Header Card */}
-      <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-5 shadow-xs flex flex-wrap items-center justify-between gap-4">
+      <Card className="p-5 flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h2 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+          <CardTitle className="text-lg flex items-center gap-2">
             <Activity className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
             Audit Logs & Security Trail
-          </h2>
-          <p className="text-xs text-slate-500 dark:text-slate-400">
+          </CardTitle>
+          <CardDescription>
             Immutable chronicle of administrative actions, catalog modifications, and login attempts
-          </p>
+          </CardDescription>
         </div>
 
         <div className="flex items-center gap-2">
           {filteredLogs.length > 0 && (
-            <button
+            <Button
+              variant="outline"
+              size="sm"
               onClick={handleExportCsv}
-              className="px-3.5 py-2 border border-slate-200/80 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-800 dark:text-slate-200 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-colors"
+              className="text-xs font-semibold"
             >
-              <Download className="w-3.5 h-3.5" /> Export CSV
-            </button>
+              <Download className="w-3.5 h-3.5 mr-1" /> Export CSV
+            </Button>
           )}
 
-          <button
+          <Button
+            variant="outline"
+            size="icon"
             onClick={onRefresh}
-            className="p-2 border border-slate-200/80 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl text-slate-600 dark:text-slate-300 transition-colors"
             title="Refresh Logs"
+            className="h-8 w-8"
           >
-            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-          </button>
+            <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
+          </Button>
         </div>
-      </div>
+      </Card>
 
       {/* Filter Row */}
-      <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-4 shadow-xs flex flex-wrap items-center justify-between gap-3">
+      <Card className="p-4 flex flex-wrap items-center justify-between gap-3">
         <div className="flex flex-wrap items-center gap-3 flex-1 min-w-[280px]">
           <div className="relative flex-1 min-w-[200px]">
             <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-            <input
+            <Input
               type="text"
               value={searchQuery}
               onChange={(e) => {
@@ -133,104 +142,98 @@ export default function AuditLogs({ logs, loading, onRefresh }: AuditLogsProps) 
                 setPage(0);
               }}
               placeholder="Search by admin email, action or details..."
-              className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700 rounded-xl pl-9 pr-4 py-2 text-xs text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+              className="pl-9 text-xs"
             />
           </div>
 
-          <div className="flex items-center gap-2">
-            <span className="text-[10px] font-bold text-slate-400 uppercase">Action:</span>
-            <select
-              value={selectedAction}
-              onChange={(e) => {
-                setSelectedAction(e.target.value);
-                setPage(0);
-              }}
-              className="bg-slate-50 dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-900 dark:text-white focus:outline-none"
-            >
-              <option value="">All Actions</option>
-              {actionOptions.map((act) => (
-                <option key={act} value={act}>
-                  {act}
-                </option>
-              ))}
-            </select>
-          </div>
+          <select
+            value={selectedAction}
+            onChange={(e) => {
+              setSelectedAction(e.target.value);
+              setPage(0);
+            }}
+            className="bg-slate-50 dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-700 dark:text-slate-300 focus:outline-none"
+          >
+            <option value="">All Action Types</option>
+            {actionOptions.map((act) => (
+              <option key={act} value={act}>
+                {act}
+              </option>
+            ))}
+          </select>
         </div>
 
-        {/* Pagination Controls */}
-        <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
-          <button
+        <div className="flex items-center gap-2 text-xs text-slate-500">
+          <Button
+            variant="outline"
+            size="sm"
             disabled={page === 0}
             onClick={() => setPage((p) => p - 1)}
-            className="p-1.5 rounded-lg bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-200/60 dark:border-slate-700 disabled:opacity-30 transition-colors"
+            className="h-8 px-2"
           >
             <ChevronLeft className="w-3.5 h-3.5" />
-          </button>
+          </Button>
           <span className="font-semibold text-slate-700 dark:text-slate-300">
             Page {page + 1} of {Math.ceil(filteredLogs.length / pageSize) || 1}
           </span>
-          <button
+          <Button
+            variant="outline"
+            size="sm"
             disabled={(page + 1) * pageSize >= filteredLogs.length}
             onClick={() => setPage((p) => p + 1)}
-            className="p-1.5 rounded-lg bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-200/60 dark:border-slate-700 disabled:opacity-30 transition-colors"
+            className="h-8 px-2"
           >
             <ChevronRight className="w-3.5 h-3.5" />
-          </button>
+          </Button>
         </div>
-      </div>
+      </Card>
 
-      {/* Logs Table Card */}
-      <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl overflow-hidden shadow-xs">
-        {loading ? (
-          <div className="py-20 text-center text-xs text-slate-400">Retrieving audit log trail...</div>
-        ) : paginatedLogs.length === 0 ? (
-          <div className="py-20 text-center text-xs text-slate-400 italic">
-            No audit records match the selected search criteria.
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse text-xs">
-              <thead>
-                <tr className="bg-slate-50/80 dark:bg-slate-800/60 text-slate-500 dark:text-slate-400 border-b border-slate-200/80 dark:border-slate-800 font-semibold uppercase text-[10px] tracking-wider">
-                  <th className="p-3.5 w-40">Timestamp</th>
-                  <th className="p-3.5 w-48">Administrator</th>
-                  <th className="p-3.5 w-40">Action Category</th>
-                  <th className="p-3.5">Details & Payload</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100 dark:divide-slate-800/80">
-                {paginatedLogs.map((l) => (
-                  <tr
-                    key={l.id}
-                    className="hover:bg-slate-50/60 dark:hover:bg-slate-800/40 transition-colors"
-                  >
-                    <td className="p-3.5 font-mono text-[11px] text-slate-400 whitespace-nowrap">
-                      {new Date(l.created_at || Date.now()).toLocaleString('en-IN', {
-                        day: '2-digit',
-                        month: 'short',
-                        hour: '2-digit',
-                        minute: '2-digit',
-                        second: '2-digit',
-                      })}
-                    </td>
-                    <td className="p-3.5 font-semibold text-slate-900 dark:text-white">
-                      {l.admin_email || 'System / Automated'}
-                    </td>
-                    <td className="p-3.5">
-                      <span className="inline-block px-2.5 py-0.5 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-md text-[10px] font-mono font-bold text-slate-700 dark:text-slate-300 uppercase">
-                        {l.action}
-                      </span>
-                    </td>
-                    <td className="p-3.5 text-slate-600 dark:text-slate-300 text-xs leading-relaxed">
-                      {l.details}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
+      {/* Logs Table */}
+      <Card className="overflow-hidden">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead className="w-48">Timestamp</TableHead>
+              <TableHead className="w-56">Admin Account</TableHead>
+              <TableHead className="w-44">Action Event</TableHead>
+              <TableHead>Audit Details</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {paginatedLogs.map((l) => (
+              <TableRow key={l.id}>
+                <TableCell className="font-mono text-[11px] text-slate-500 whitespace-nowrap">
+                  {new Date(l.created_at).toLocaleString()}
+                </TableCell>
+
+                <TableCell>
+                  <span className="font-mono text-slate-900 dark:text-white text-xs font-semibold">
+                    {l.admin_email || 'System'}
+                  </span>
+                </TableCell>
+
+                <TableCell>
+                  <Badge variant="outline" className="font-mono text-[10px]">
+                    {l.action}
+                  </Badge>
+                </TableCell>
+
+                <TableCell className="text-slate-600 dark:text-slate-300 text-xs font-mono break-all">
+                  {l.details || '—'}
+                </TableCell>
+              </TableRow>
+            ))}
+
+            {paginatedLogs.length === 0 && (
+              <TableRow>
+                <TableCell colSpan={4} className="py-20 text-center text-slate-400 italic">
+                  No security audit trail logs found matching search.
+                </TableCell>
+              </TableRow>
+            )}
+          </TableBody>
+        </Table>
+      </Card>
     </div>
   );
 }

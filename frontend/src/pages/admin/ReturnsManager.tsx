@@ -1,6 +1,14 @@
 import { useToastStore } from '../../store/useToastStore';
 import { useState, useMemo } from 'react';
 import { RotateCw, Search, Eye, RefreshCw, X, Phone, Mail, ArrowRightLeft, ShieldCheck, CheckCircle2 } from 'lucide-react';
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '../../components/ui/card';
+import { Badge } from '../../components/ui/badge';
+import { Button } from '../../components/ui/button';
+import { Input } from '../../components/ui/input';
+import { Label } from '../../components/ui/label';
+import { Textarea } from '../../components/ui/textarea';
+import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from '../../components/ui/table';
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '../../components/ui/sheet';
 
 interface ReturnRequest {
   id: number;
@@ -103,307 +111,250 @@ export default function ReturnsManager({ returns, onRefresh }: ReturnsManagerPro
   return (
     <div className="space-y-5 antialiased">
       {/* Top Header Card */}
-      <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-5 shadow-xs flex flex-wrap items-center justify-between gap-4">
+      <Card className="p-5 flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h2 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+          <CardTitle className="text-lg flex items-center gap-2">
             <ArrowRightLeft className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
             Exchanges & Returns Pipeline
-          </h2>
-          <p className="text-xs text-slate-500 dark:text-slate-400">
+          </CardTitle>
+          <CardDescription>
             Track customer size exchange claims, inspect return conditions, and process refunds
-          </p>
+          </CardDescription>
         </div>
 
-        <button
+        <Button
+          variant="outline"
+          size="sm"
           onClick={onRefresh}
-          className="p-2 border border-slate-200/80 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl text-slate-600 dark:text-slate-300 transition-colors"
-          title="Refresh Returns"
+          className="text-xs font-semibold"
         >
-          <RefreshCw className="w-4 h-4" />
-        </button>
-      </div>
+          <RefreshCw className="w-3.5 h-3.5 mr-1" /> Refresh Pipeline
+        </Button>
+      </Card>
 
       {/* Search and Filters Bar */}
-      <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-4 shadow-xs flex flex-wrap items-center justify-between gap-3">
+      <Card className="p-4 flex flex-wrap items-center justify-between gap-3">
         <div className="flex flex-wrap items-center gap-3 flex-1 min-w-[280px]">
           <div className="relative flex-1 min-w-[200px]">
             <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-            <input
+            <Input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search by order number, customer phone, reason..."
-              className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700 rounded-xl pl-9 pr-4 py-2 text-xs text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+              className="pl-9 text-xs"
             />
           </div>
 
-          <div className="flex items-center gap-2">
-            <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase">
-              Filter:
-            </span>
-            <select
-              value={filterStatus}
-              onChange={(e) => setFilterStatus(e.target.value)}
-              className="bg-slate-50 dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-900 dark:text-white focus:outline-none"
-            >
-              <option value="">All Claims</option>
-              <option value="pending">Pending Review</option>
-              <option value="approved">Approved</option>
-              <option value="received">Items Received</option>
-              <option value="completed">Completed / Shipped</option>
-              <option value="rejected">Rejected Claim</option>
-            </select>
-          </div>
+          <select
+            value={filterStatus}
+            onChange={(e) => setFilterStatus(e.target.value)}
+            className="bg-slate-50 dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-700 dark:text-slate-300 focus:outline-none"
+          >
+            <option value="">All Statuses</option>
+            <option value="pending">Pending Claims</option>
+            <option value="approved">Approved For Return</option>
+            <option value="received">Parcel Received</option>
+            <option value="completed">Completed & Settled</option>
+            <option value="rejected">Rejected Claims</option>
+          </select>
         </div>
 
-        <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">
-          {filteredReturns.length} claims
+        <span className="text-xs text-slate-500 font-medium">
+          {filteredReturns.length} return claims
         </span>
-      </div>
+      </Card>
 
-      {/* Claims List Table Card */}
-      <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl overflow-hidden shadow-xs">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse text-xs">
-            <thead>
-              <tr className="bg-slate-50/80 dark:bg-slate-800/60 text-slate-500 dark:text-slate-400 border-b border-slate-200/80 dark:border-slate-800 font-semibold uppercase text-[10px] tracking-wider">
-                <th className="p-3.5">Order No</th>
-                <th className="p-3.5">Customer</th>
-                <th className="p-3.5">Claim Type</th>
-                <th className="p-3.5">Reason</th>
-                <th className="p-3.5">Status</th>
-                <th className="p-3.5">Filed Date</th>
-                <th className="p-3.5 text-right">Action</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100 dark:divide-slate-800/80">
-              {filteredReturns.map((r) => (
-                <tr
-                  key={r.id}
-                  className="hover:bg-slate-50/60 dark:hover:bg-slate-800/40 transition-colors"
-                >
-                  <td className="p-3.5 font-mono text-xs font-bold text-indigo-600 dark:text-indigo-400">
-                    {r.order_number}
-                  </td>
-                  <td className="p-3.5">
-                    <div className="font-semibold text-slate-900 dark:text-white">{r.customer_name}</div>
-                    <span className="text-[10px] text-slate-400 block font-mono">{r.customer_phone}</span>
-                  </td>
-                  <td className="p-3.5">
-                    <span
-                      className={`inline-block px-2.5 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider ${
-                        r.return_type === 'exchange'
-                          ? 'bg-amber-50 text-amber-700 dark:bg-amber-950/50 dark:text-amber-400 border border-amber-200/60 dark:border-amber-800/60'
-                          : 'bg-indigo-50 text-indigo-700 dark:bg-indigo-950/50 dark:text-indigo-400 border border-indigo-200/60 dark:border-indigo-800/60'
-                      }`}
-                    >
-                      {r.return_type === 'exchange' ? '🔄 Exchange' : '💵 Refund'}
-                    </span>
-                  </td>
-                  <td className="p-3.5 text-slate-600 dark:text-slate-400 max-w-xs truncate text-[11px]">
-                    {r.reason}
-                  </td>
-                  <td className="p-3.5">
-                    <span
-                      className={`inline-block px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border ${
-                        r.status === 'pending'
-                          ? 'bg-amber-50 text-amber-700 dark:bg-amber-950/50 dark:text-amber-400 border-amber-200/60 dark:border-amber-800/60'
-                          : r.status === 'approved'
-                          ? 'bg-blue-50 text-blue-700 dark:bg-blue-950/50 dark:text-blue-400 border-blue-200/60 dark:border-blue-800/60'
-                          : r.status === 'received'
-                          ? 'bg-purple-50 text-purple-700 dark:bg-purple-950/50 dark:text-purple-400 border-purple-200/60 dark:border-purple-800/60'
-                          : r.status === 'completed'
-                          ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-400 border-emerald-200/60 dark:border-emerald-800/60'
-                          : 'bg-rose-50 text-rose-700 dark:bg-rose-950/50 dark:text-rose-400 border-rose-200/60 dark:border-rose-800/60'
-                      }`}
-                    >
-                      {r.status}
-                    </span>
-                  </td>
-                  <td className="p-3.5 font-mono text-[11px] text-slate-500 dark:text-slate-400">
-                    {new Date(r.created_at || Date.now()).toLocaleDateString('en-IN', {
-                      day: '2-digit',
-                      month: 'short',
-                      year: 'numeric',
-                    })}
-                  </td>
-                  <td className="p-3.5 text-right">
-                    <button
-                      onClick={() => openReturnDrawer(r)}
-                      className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 rounded-xl text-[10px] font-bold uppercase tracking-wider inline-flex items-center gap-1.5 transition-colors"
-                    >
-                      <Eye className="w-3.5 h-3.5" /> Review
-                    </button>
-                  </td>
-                </tr>
-              ))}
+      {/* Returns Table */}
+      <Card className="overflow-hidden">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Order Reference</TableHead>
+              <TableHead>Customer Details</TableHead>
+              <TableHead>Claim Type</TableHead>
+              <TableHead>Claim Reason</TableHead>
+              <TableHead>Claimed Date</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead className="text-right">Actions</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {filteredReturns.map((ret) => (
+              <TableRow key={ret.id}>
+                <TableCell className="font-mono font-bold text-xs text-indigo-600 dark:text-indigo-400">
+                  #{ret.order_number}
+                </TableCell>
 
-              {filteredReturns.length === 0 && (
-                <tr>
-                  <td colSpan={7} className="py-20 text-center text-slate-400 italic">
-                    No return claims found matching criteria.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
+                <TableCell>
+                  <div className="font-semibold text-slate-900 dark:text-white text-xs">{ret.customer_name}</div>
+                  <div className="text-[10px] text-slate-400 font-mono">{ret.customer_phone}</div>
+                </TableCell>
 
-      {/* Slide-over Review Drawer */}
-      {selectedReturn && (
-        <div className="fixed inset-0 z-50 flex justify-end">
-          <div
-            onClick={() => setSelectedReturn(null)}
-            className="absolute inset-0 bg-slate-900/60 backdrop-blur-xs transition-opacity"
-          />
-          <div className="w-full max-w-lg bg-white dark:bg-slate-900 border-l border-slate-200 dark:border-slate-800 shadow-2xl relative z-10 p-6 flex flex-col justify-between h-full overflow-y-auto">
-            <div className="space-y-5">
-              <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-4">
-                <h3 className="text-base font-bold text-slate-900 dark:text-white">
-                  Return Request Review
-                </h3>
-                <button
-                  onClick={() => setSelectedReturn(null)}
-                  className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
+                <TableCell>
+                  <Badge variant={ret.return_type === 'exchange' ? 'info' : 'secondary'} className="capitalize">
+                    {ret.return_type}
+                  </Badge>
+                </TableCell>
 
-              {/* Order and Customer Contact Card */}
-              <div className="p-4 bg-slate-50 dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-700/60 rounded-xl space-y-2">
-                <div className="flex justify-between items-center">
-                  <span className="text-xs text-indigo-600 dark:text-indigo-400 font-bold font-mono">
-                    ORDER #{selectedReturn.order_number}
-                  </span>
-                  <span className="text-[10px] text-slate-400">
-                    {new Date(selectedReturn.created_at).toLocaleString()}
-                  </span>
-                </div>
-                <h4 className="text-xs font-bold text-slate-900 dark:text-white uppercase">
-                  {selectedReturn.customer_name}
-                </h4>
-                <div className="flex flex-col gap-1 text-[11px] text-slate-500 dark:text-slate-400 font-mono pt-1">
-                  <span className="flex items-center gap-1.5">
-                    <Phone className="w-3.5 h-3.5" /> {selectedReturn.customer_phone}
-                  </span>
-                  {selectedReturn.customer_email && (
-                    <span className="flex items-center gap-1.5">
-                      <Mail className="w-3.5 h-3.5" /> {selectedReturn.customer_email}
-                    </span>
-                  )}
-                </div>
-              </div>
+                <TableCell className="text-slate-600 dark:text-slate-300 max-w-xs truncate text-xs">
+                  {ret.reason || 'Size mismatch'}
+                </TableCell>
 
-              {/* Returning Items */}
-              <div className="space-y-2">
-                <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                  Returning Items Details
+                <TableCell className="text-slate-500 font-mono text-[11px]">
+                  {new Date(ret.created_at).toLocaleDateString()}
+                </TableCell>
+
+                <TableCell>
+                  <Badge
+                    variant={
+                      ret.status === 'completed'
+                        ? 'success'
+                        : ret.status === 'approved'
+                        ? 'info'
+                        : ret.status === 'rejected'
+                        ? 'destructive'
+                        : 'warning'
+                    }
+                  >
+                    {ret.status}
+                  </Badge>
+                </TableCell>
+
+                <TableCell className="text-right">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => openReturnDrawer(ret)}
+                    className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 h-7"
+                  >
+                    <Eye className="w-3.5 h-3.5 mr-1" /> Review Claim
+                  </Button>
+                </TableCell>
+              </TableRow>
+            ))}
+
+            {filteredReturns.length === 0 && (
+              <TableRow>
+                <TableCell colSpan={7} className="py-20 text-center text-slate-400 italic">
+                  No return or exchange claims found.
+                </TableCell>
+              </TableRow>
+            )}
+          </TableBody>
+        </Table>
+      </Card>
+
+      {/* Slide-over Drawer using Sheet */}
+      <Sheet open={!!selectedReturn} onOpenChange={(open) => !open && setSelectedReturn(null)}>
+        {selectedReturn && (
+          <SheetContent side="right" className="w-full sm:max-w-lg">
+            <SheetHeader>
+              <SheetTitle>Claim #{selectedReturn.order_number}</SheetTitle>
+              <SheetDescription>
+                {selectedReturn.return_type.toUpperCase()} Request filed on{' '}
+                {new Date(selectedReturn.created_at).toLocaleDateString()}
+              </SheetDescription>
+            </SheetHeader>
+
+            <div className="space-y-4 my-4 text-xs">
+              {/* Customer Contact Card */}
+              <div className="p-3.5 bg-slate-50 dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-700/60 rounded-xl space-y-1">
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+                  Customer Contact
                 </span>
-                <div className="space-y-2">
-                  {parseItems(selectedReturn.items).map((it, idx) => (
-                    <div
-                      key={idx}
-                      className="p-3 bg-slate-50 dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-700/60 rounded-xl flex justify-between items-center text-xs"
-                    >
-                      <div>
-                        <span className="text-slate-900 dark:text-white block font-semibold">
-                          {it.product_name || 'HeelsUp Footwear'}
-                        </span>
-                        <span className="text-slate-400 text-[10px] font-mono">
-                          Size: UK {it.size} | Qty: {it.quantity || 1}
-                        </span>
-                      </div>
-                      <span className="font-mono font-bold text-slate-900 dark:text-white">
-                        ₹{it.price ? (it.price / 100).toFixed(2) : '0.00'}
-                      </span>
-                    </div>
-                  ))}
-                </div>
+                <p className="font-semibold text-slate-900 dark:text-white text-xs">{selectedReturn.customer_name}</p>
+                <p className="text-slate-500 font-mono text-[11px]">{selectedReturn.customer_phone}</p>
               </div>
 
-              {/* Reason card */}
-              <div className="p-3.5 bg-amber-50/60 dark:bg-amber-950/30 border border-amber-200/60 dark:border-amber-800/40 rounded-xl space-y-1">
-                <span className="block text-[9px] font-bold text-amber-700 dark:text-amber-400 uppercase tracking-wider">
-                  Claim Reason
+              {/* Claim Description & Reason */}
+              <div className="p-3.5 bg-slate-50 dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-700/60 rounded-xl space-y-1">
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+                  Reason for Claim
                 </span>
-                <p className="text-xs text-amber-900 dark:text-amber-200 leading-relaxed italic">
-                  "{selectedReturn.reason}"
+                <p className="text-slate-700 dark:text-slate-300 leading-relaxed text-xs">
+                  {selectedReturn.reason || 'No description provided.'}
                 </p>
               </div>
 
-              {/* Action Notes */}
-              <div className="space-y-2 pt-1">
-                <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                  Internal Processing Notes
-                </label>
-                <textarea
-                  rows={3}
-                  value={actionNotes}
-                  onChange={(e) => setActionNotes(e.target.value)}
-                  placeholder="Record package condition, replacement AWB tracking, or refund transaction ID..."
-                  className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-3 text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-indigo-500"
-                />
-              </div>
-
-              {/* Status Pipeline Buttons */}
-              <div className="space-y-2">
-                <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                  Action Pipeline
+              {/* Items in Claim */}
+              <div>
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-2">
+                  Claimed Products
                 </span>
-                <div className="grid grid-cols-2 gap-2">
-                  {selectedReturn.status === 'pending' && (
-                    <>
-                      <button
-                        onClick={() => handleUpdateStatus('approved')}
-                        disabled={updatingStatus}
-                        className="py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs uppercase tracking-wider transition-colors shadow-xs"
-                      >
-                        Approve Claim
-                      </button>
-                      <button
-                        onClick={() => handleUpdateStatus('rejected')}
-                        disabled={updatingStatus}
-                        className="py-2.5 bg-rose-50 text-rose-700 dark:bg-rose-950/50 dark:text-rose-400 border border-rose-200 dark:border-rose-800 font-bold rounded-xl text-xs uppercase tracking-wider hover:bg-rose-100 transition-colors"
-                      >
-                        Reject Claim
-                      </button>
-                    </>
-                  )}
-                  {selectedReturn.status === 'approved' && (
-                    <button
-                      onClick={() => handleUpdateStatus('received')}
-                      disabled={updatingStatus}
-                      className="col-span-2 py-2.5 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-xl text-xs uppercase tracking-wider transition-colors shadow-xs"
-                    >
-                      Confirm Items Received in Hub
-                    </button>
-                  )}
-                  {selectedReturn.status === 'received' && (
-                    <button
-                      onClick={() => handleUpdateStatus('completed')}
-                      disabled={updatingStatus}
-                      className="col-span-2 py-2.5 bg-slate-900 hover:bg-slate-800 dark:bg-indigo-600 dark:hover:bg-indigo-700 text-white font-bold rounded-xl text-xs uppercase tracking-wider transition-colors shadow-xs"
-                    >
-                      {selectedReturn.return_type === 'exchange'
-                        ? 'Dispatch Replacement Pair'
-                        : 'Issue Net Bank Refund'}
-                    </button>
+                <div className="divide-y divide-slate-100 dark:divide-slate-800 border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden bg-white dark:bg-slate-900">
+                  {parseItems(selectedReturn.items).map((it, idx) => (
+                    <div key={idx} className="p-3 flex items-center justify-between text-xs">
+                      <div>
+                        <p className="font-semibold text-slate-900 dark:text-white">{it.product_name || 'Footwear Style'}</p>
+                        <Badge variant="outline" className="text-[9px] font-mono mt-1">
+                          Size: {it.size}
+                        </Badge>
+                      </div>
+                      <span className="font-mono text-slate-500 font-bold">Qty: {it.quantity || 1}</span>
+                    </div>
+                  ))}
+                  {parseItems(selectedReturn.items).length === 0 && (
+                    <div className="p-3 text-slate-400 italic">Entire Order Package</div>
                   )}
                 </div>
               </div>
-            </div>
 
-            <button
-              onClick={() => setSelectedReturn(null)}
-              className="w-full mt-6 py-2.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 font-semibold rounded-xl text-xs uppercase transition-colors"
-            >
-              Close Panel
-            </button>
-          </div>
-        </div>
-      )}
+              {/* Merchant / Admin Resolution Notes */}
+              <div>
+                <Label className="mb-1">Merchant Resolution Notes</Label>
+                <Textarea
+                  rows={3}
+                  value={actionNotes}
+                  onChange={(e) => setActionNotes(e.target.value)}
+                  placeholder="Notes on return parcel condition, courier pickup, or exchange dispatch..."
+                />
+              </div>
+
+              {/* Action Buttons */}
+              <div className="space-y-2 pt-2">
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+                  Resolution Decision
+                </span>
+                <div className="grid grid-cols-2 gap-2">
+                  <Button
+                    onClick={() => handleUpdateStatus('approved')}
+                    disabled={updatingStatus}
+                    className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs"
+                  >
+                    Approve Return
+                  </Button>
+                  <Button
+                    variant="destructive"
+                    onClick={() => handleUpdateStatus('rejected')}
+                    disabled={updatingStatus}
+                    className="text-xs font-bold"
+                  >
+                    Reject Claim
+                  </Button>
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <Button
+                    variant="outline"
+                    onClick={() => handleUpdateStatus('received')}
+                    disabled={updatingStatus}
+                    className="text-xs font-bold"
+                  >
+                    Parcel Received
+                  </Button>
+                  <Button
+                    onClick={() => handleUpdateStatus('completed')}
+                    disabled={updatingStatus}
+                    className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs"
+                  >
+                    Mark Settled
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </SheetContent>
+        )}
+      </Sheet>
     </div>
   );
 }

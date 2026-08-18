@@ -1,6 +1,11 @@
 import React, { useState } from 'react';
 import { useToastStore } from '../../store/useToastStore';
 import { ShieldCheck, Key, Lock, Mail, ArrowLeft, CheckCircle2 } from 'lucide-react';
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '../../components/ui/card';
+import { Badge } from '../../components/ui/badge';
+import { Button } from '../../components/ui/button';
+import { Input } from '../../components/ui/input';
+import { Label } from '../../components/ui/label';
 
 interface AdminAuthProps {
   onAuthSuccess: (user: { name: string; role: string; email: string; permissions?: string[] }) => void;
@@ -143,220 +148,255 @@ export default function AdminAuth({ onAuthSuccess }: AdminAuthProps) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           email: resetEmail.toLowerCase().trim(),
-          otp: resetOtpCode,
+          otp: resetOtpCode.trim(),
           password: resetNewPassword,
         }),
       });
       const data = await res.json();
       if (data.success) {
-        showToast('success', 'Credentials Reset', 'Your password has been successfully updated.');
+        showToast('success', 'Password Updated', 'You can now authenticate with your new password.');
         setResetStep('login');
+        setResetEmail('');
+        setResetOtpCode('');
+        setResetNewPassword('');
+        setResetConfirmPassword('');
       } else {
-        showToast('error', 'Reset Failure', data.error || 'Invalid passcode.');
+        showToast('error', 'Reset Failed', data.error || 'Invalid OTP code.');
       }
     } catch {
-      showToast('error', 'Network Error', 'Could not establish connection to reset services.');
+      showToast('error', 'Connection Failure', 'Could not save new password.');
     } finally {
       setResettingPassword(false);
     }
   };
 
   return (
-    <div className="max-w-md w-full bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-2xl p-8 rounded-3xl animate-fade-in text-slate-900 dark:text-white">
-      {/* Header */}
-      <div className="text-center space-y-2">
-        <div className="w-12 h-12 rounded-2xl bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 flex items-center justify-center mx-auto shadow-xs">
-          <ShieldCheck className="w-6 h-6" />
+    <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center p-4 antialiased">
+      <div className="w-full max-w-md space-y-6">
+        {/* Brand Header */}
+        <div className="text-center space-y-2">
+          <div className="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-indigo-600/10 border border-indigo-500/20 text-indigo-400 mb-2">
+            <ShieldCheck className="w-6 h-6" />
+          </div>
+          <h1 className="text-xl font-bold tracking-tight text-white">HeelsUp Enterprise Portal</h1>
+          <p className="text-xs text-slate-400">Authenticated staff administration console</p>
         </div>
-        <h2 className="text-xl font-bold tracking-tight text-slate-900 dark:text-white">
-          HeelsUp Administration
-        </h2>
-        <p className="text-xs text-slate-500 dark:text-slate-400">
-          Secure identity verification & governance console
-        </p>
-      </div>
 
-      {resetStep === 'login' && !otpRequired && (
-        <form className="mt-7 space-y-4" onSubmit={handleLogin}>
-          <div className="space-y-3">
-            <div>
-              <label className="block text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-1">
-                Staff Email Address
-              </label>
-              <div className="relative">
-                <Mail className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                <input
-                  type="email"
+        {/* Step 1: Login Form / 2FA OTP */}
+        {resetStep === 'login' && !otpRequired && (
+          <Card className="bg-slate-900 border-slate-800 text-slate-100 p-6 space-y-5">
+            <form onSubmit={handleLogin} className="space-y-4">
+              <div>
+                <Label className="text-slate-400 mb-1">Corporate Email</Label>
+                <div className="relative">
+                  <Mail className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
+                  <Input
+                    type="email"
+                    required
+                    value={emailInput}
+                    onChange={(e) => setEmailInput(e.target.value)}
+                    placeholder="staff@heelsup.in"
+                    className="pl-9 bg-slate-950 border-slate-800 text-white font-mono text-xs"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <Label className="text-slate-400">Master Password</Label>
+                  <button
+                    type="button"
+                    onClick={() => setResetStep('forgot_email')}
+                    className="text-[10px] text-indigo-400 hover:underline"
+                  >
+                    Forgot passcode?
+                  </button>
+                </div>
+                <div className="relative">
+                  <Lock className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
+                  <Input
+                    type="password"
+                    required
+                    value={passwordInput}
+                    onChange={(e) => setPasswordInput(e.target.value)}
+                    placeholder="••••••••••••"
+                    className="pl-9 bg-slate-950 border-slate-800 text-white text-xs"
+                  />
+                </div>
+              </div>
+
+              <Button
+                type="submit"
+                disabled={loggingIn}
+                className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs py-2.5"
+              >
+                {loggingIn ? 'Authenticating...' : 'Sign In to Portal'}
+              </Button>
+            </form>
+          </Card>
+        )}
+
+        {/* Step 2: 2FA Verification Form */}
+        {resetStep === 'login' && otpRequired && (
+          <Card className="bg-slate-900 border-slate-800 text-slate-100 p-6 space-y-5">
+            <div className="text-center space-y-1 border-b border-slate-800 pb-4">
+              <h2 className="text-sm font-bold text-white flex items-center justify-center gap-1.5">
+                <Key className="w-4 h-4 text-indigo-400" /> Two-Factor Verification
+              </h2>
+              <p className="text-xs text-slate-400">
+                Enter the 6-digit numeric passcode sent to your identity email
+              </p>
+            </div>
+
+            <form onSubmit={handleOtpVerify} className="space-y-4">
+              <div>
+                <Label className="text-slate-400 mb-1 text-center block">Security Passcode (OTP)</Label>
+                <Input
+                  type="text"
+                  maxLength={6}
                   required
-                  value={emailInput}
-                  onChange={(e) => setEmailInput(e.target.value)}
-                  placeholder="admin@heelsup.in"
-                  className="w-full pl-9 pr-3.5 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700 placeholder-slate-400 text-slate-900 dark:text-white rounded-xl focus:outline-none focus:ring-1 focus:ring-indigo-500 text-xs transition-all font-medium"
+                  value={otpInput}
+                  onChange={(e) => setOtpInput(e.target.value.replace(/\D/g, ''))}
+                  placeholder="000000"
+                  className="bg-slate-950 border-slate-800 text-white text-center font-mono text-xl tracking-[0.5em]"
                 />
               </div>
+
+              <Button
+                type="submit"
+                disabled={loggingIn || otpInput.length !== 6}
+                className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs py-2.5"
+              >
+                {loggingIn ? 'Verifying 2FA...' : 'Confirm Access'}
+              </Button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setOtpRequired(false);
+                  setSessionToken(null);
+                }}
+                className="w-full text-center text-xs text-slate-500 hover:text-slate-400"
+              >
+                Cancel and back to login
+              </button>
+            </form>
+          </Card>
+        )}
+
+        {/* Step 3: Forgot Password - Request OTP */}
+        {resetStep === 'forgot_email' && (
+          <Card className="bg-slate-900 border-slate-800 text-slate-100 p-6 space-y-5">
+            <div className="text-center space-y-1 border-b border-slate-800 pb-4">
+              <h2 className="text-sm font-bold text-white">Reset Account Password</h2>
+              <p className="text-xs text-slate-400">
+                Receive an email passcode to set a new administrator password
+              </p>
             </div>
 
-            <div>
-              <label className="block text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-1">
-                Access Password
-              </label>
-              <div className="relative">
-                <Lock className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                <input
-                  type="password"
-                  required
-                  value={passwordInput}
-                  onChange={(e) => setPasswordInput(e.target.value)}
-                  placeholder="••••••••••••"
-                  className="w-full pl-9 pr-3.5 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700 placeholder-slate-400 text-slate-900 dark:text-white rounded-xl focus:outline-none focus:ring-1 focus:ring-indigo-500 text-xs transition-all font-mono"
-                />
-              </div>
-            </div>
-          </div>
-
-          <div className="flex items-center justify-end">
-            <button
-              type="button"
-              onClick={() => setResetStep('forgot_email')}
-              className="text-xs text-indigo-600 dark:text-indigo-400 hover:underline transition-colors"
-            >
-              Forgot password?
-            </button>
-          </div>
-
-          <button
-            type="submit"
-            disabled={loggingIn}
-            className="w-full py-2.5 px-4 text-xs font-bold uppercase tracking-wider rounded-xl text-white bg-slate-900 hover:bg-slate-800 dark:bg-indigo-600 dark:hover:bg-indigo-700 transition-all shadow-xs active:scale-[0.98] disabled:opacity-50"
-          >
-            {loggingIn ? 'Authenticating...' : 'Sign In to Portal'}
-          </button>
-        </form>
-      )}
-
-      {otpRequired && (
-        <form className="mt-7 space-y-4" onSubmit={handleOtpVerify}>
-          <div className="space-y-3">
-            <div>
-              <label className="block text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-1 text-center">
-                Two-Factor Security Code (OTP)
-              </label>
-              <input
-                type="text"
-                required
-                maxLength={6}
-                value={otpInput}
-                onChange={(e) => setOtpInput(e.target.value)}
-                placeholder="123456"
-                className="w-full py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white rounded-xl focus:outline-none focus:ring-1 focus:ring-indigo-500 text-sm font-mono text-center tracking-widest font-bold"
-              />
-            </div>
-          </div>
-
-          <button
-            type="submit"
-            disabled={loggingIn}
-            className="w-full py-2.5 px-4 text-xs font-bold uppercase tracking-wider rounded-xl text-white bg-slate-900 hover:bg-slate-800 dark:bg-indigo-600 dark:hover:bg-indigo-700 transition-all shadow-xs active:scale-[0.98] disabled:opacity-50"
-          >
-            {loggingIn ? 'Verifying...' : 'Confirm Passcode'}
-          </button>
-        </form>
-      )}
-
-      {resetStep === 'forgot_email' && (
-        <form className="mt-7 space-y-4" onSubmit={handleForgotSubmit}>
-          <div className="space-y-3">
-            <div>
-              <label className="block text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-1">
-                Registered Staff Email
-              </label>
-              <div className="relative">
-                <Mail className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                <input
+            <form onSubmit={handleForgotSubmit} className="space-y-4">
+              <div>
+                <Label className="text-slate-400 mb-1">Registered Staff Email</Label>
+                <Input
                   type="email"
                   required
                   value={resetEmail}
                   onChange={(e) => setResetEmail(e.target.value)}
-                  placeholder="admin@heelsup.in"
-                  className="w-full pl-9 pr-3.5 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 placeholder-slate-400 text-slate-900 dark:text-white rounded-xl focus:outline-none focus:ring-1 focus:ring-indigo-500 text-xs"
+                  placeholder="staff@heelsup.in"
+                  className="bg-slate-950 border-slate-800 text-white font-mono text-xs"
                 />
               </div>
-            </div>
-          </div>
 
-          <div className="flex items-center justify-between">
-            <button
-              type="button"
-              onClick={() => setResetStep('login')}
-              className="text-xs text-slate-500 hover:text-slate-800 dark:hover:text-white flex items-center gap-1"
-            >
-              <ArrowLeft className="w-3.5 h-3.5" /> Back to Login
-            </button>
-          </div>
+              <Button
+                type="submit"
+                disabled={resettingPassword}
+                className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs py-2.5"
+              >
+                {resettingPassword ? 'Sending...' : 'Send Reset Code'}
+              </Button>
 
-          <button
-            type="submit"
-            disabled={resettingPassword}
-            className="w-full py-2.5 px-4 text-xs font-bold uppercase tracking-wider rounded-xl text-white bg-slate-900 hover:bg-slate-800 dark:bg-indigo-600 dark:hover:bg-indigo-700 transition-all shadow-xs active:scale-[0.98] disabled:opacity-50"
-          >
-            {resettingPassword ? 'Sending OTP...' : 'Send Recovery Passcode'}
-          </button>
-        </form>
-      )}
+              <button
+                type="button"
+                onClick={() => setResetStep('login')}
+                className="w-full text-center text-xs text-slate-500 hover:text-slate-400 flex items-center justify-center gap-1"
+              >
+                <ArrowLeft className="w-3.5 h-3.5" /> Back to sign in
+              </button>
+            </form>
+          </Card>
+        )}
 
-      {resetStep === 'reset_otp' && (
-        <form className="mt-7 space-y-4" onSubmit={handleResetSubmit}>
-          <div className="space-y-3">
-            <div>
-              <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">
-                OTP Passcode
-              </label>
-              <input
-                type="text"
-                required
-                value={resetOtpCode}
-                onChange={(e) => setResetOtpCode(e.target.value)}
-                placeholder="123456"
-                className="w-full py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white rounded-xl focus:outline-none focus:ring-1 focus:ring-indigo-500 text-xs text-center font-mono tracking-widest font-bold"
-              />
+        {/* Step 4: Forgot Password - Complete Reset */}
+        {resetStep === 'reset_otp' && (
+          <Card className="bg-slate-900 border-slate-800 text-slate-100 p-6 space-y-5">
+            <div className="text-center space-y-1 border-b border-slate-800 pb-4">
+              <h2 className="text-sm font-bold text-white">Enter Reset Code & New Password</h2>
+              <p className="text-xs text-slate-400">
+                Check inbox at <span className="font-mono text-indigo-400">{resetEmail}</span>
+              </p>
             </div>
-            <div>
-              <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">
-                New Password
-              </label>
-              <input
-                type="password"
-                required
-                value={resetNewPassword}
-                onChange={(e) => setResetNewPassword(e.target.value)}
-                placeholder="••••••••••••"
-                className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white rounded-xl focus:outline-none focus:ring-1 focus:ring-indigo-500 text-xs"
-              />
-            </div>
-            <div>
-              <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">
-                Confirm Password
-              </label>
-              <input
-                type="password"
-                required
-                value={resetConfirmPassword}
-                onChange={(e) => setResetConfirmPassword(e.target.value)}
-                placeholder="••••••••••••"
-                className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white rounded-xl focus:outline-none focus:ring-1 focus:ring-indigo-500 text-xs"
-              />
-            </div>
-          </div>
 
-          <button
-            type="submit"
-            disabled={resettingPassword}
-            className="w-full py-2.5 px-4 text-xs font-bold uppercase tracking-wider rounded-xl text-white bg-slate-900 hover:bg-slate-800 dark:bg-indigo-600 dark:hover:bg-indigo-700 transition-all shadow-xs active:scale-[0.98] disabled:opacity-50"
-          >
-            {resettingPassword ? 'Updating...' : 'Set New Password'}
-          </button>
-        </form>
-      )}
+            <form onSubmit={handleResetSubmit} className="space-y-4">
+              <div>
+                <Label className="text-slate-400 mb-1">Reset Passcode (OTP)</Label>
+                <Input
+                  type="text"
+                  maxLength={6}
+                  required
+                  value={resetOtpCode}
+                  onChange={(e) => setResetOtpCode(e.target.value.replace(/\D/g, ''))}
+                  placeholder="000000"
+                  className="bg-slate-950 border-slate-800 text-white font-mono text-xs text-center tracking-widest"
+                />
+              </div>
+
+              <div>
+                <Label className="text-slate-400 mb-1">New Password</Label>
+                <Input
+                  type="password"
+                  required
+                  value={resetNewPassword}
+                  onChange={(e) => setResetNewPassword(e.target.value)}
+                  placeholder="••••••••••••"
+                  className="bg-slate-950 border-slate-800 text-white text-xs"
+                />
+              </div>
+
+              <div>
+                <Label className="text-slate-400 mb-1">Confirm New Password</Label>
+                <Input
+                  type="password"
+                  required
+                  value={resetConfirmPassword}
+                  onChange={(e) => setResetConfirmPassword(e.target.value)}
+                  placeholder="••••••••••••"
+                  className="bg-slate-950 border-slate-800 text-white text-xs"
+                />
+              </div>
+
+              <Button
+                type="submit"
+                disabled={resettingPassword}
+                className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs py-2.5"
+              >
+                {resettingPassword ? 'Updating Password...' : 'Save New Password & Sign In'}
+              </Button>
+
+              <button
+                type="button"
+                onClick={() => setResetStep('login')}
+                className="w-full text-center text-xs text-slate-500 hover:text-slate-400 flex items-center justify-center gap-1"
+              >
+                <ArrowLeft className="w-3.5 h-3.5" /> Back to sign in
+              </button>
+            </form>
+          </Card>
+        )}
+
+        <div className="text-center text-[11px] text-slate-600 font-mono">
+          Protected by Enterprise Session Authorization & IP Auditing
+        </div>
+      </div>
     </div>
   );
 }

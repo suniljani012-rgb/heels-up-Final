@@ -1,8 +1,14 @@
 import React, { useState } from 'react';
 import { prepareAndUpload } from '../../utils/imageUpload';
 import { useToastStore } from '../../store/useToastStore';
-import { Plus, Edit3, Trash2, X, Image as ImageIcon, ExternalLink, Sparkles } from 'lucide-react';
+import { Plus, Edit3, Trash2, X, Image as ImageIcon, ExternalLink, Sparkles, RefreshCw } from 'lucide-react';
 import HeicImage from '../../components/HeicImage';
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '../../components/ui/card';
+import { Badge } from '../../components/ui/badge';
+import { Button } from '../../components/ui/button';
+import { Input } from '../../components/ui/input';
+import { Label } from '../../components/ui/label';
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '../../components/ui/sheet';
 
 interface Banner {
   id: number;
@@ -152,242 +158,199 @@ export default function BannersManager({ banners, token, onRefresh }: BannersMan
   return (
     <div className="space-y-5 antialiased">
       {/* Top Header Card */}
-      <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-5 shadow-xs flex flex-wrap items-center justify-between gap-4">
+      <Card className="p-5 flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h2 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+          <CardTitle className="text-lg flex items-center gap-2">
             <ImageIcon className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
-            Homepage Hero Banners & Showcase
-          </h2>
-          <p className="text-xs text-slate-500 dark:text-slate-400">
-            Configure storefront carousel slides, promotional banners, and campaign CTA links
-          </p>
+            Homepage Hero Banners & Creatives
+          </CardTitle>
+          <CardDescription>
+            Publish 21:9 responsive storefront promotional hero carousels and collection redirect CTA cards
+          </CardDescription>
         </div>
 
-        <button
-          onClick={handleOpenAdd}
-          className="px-4 py-2 bg-slate-900 hover:bg-slate-800 dark:bg-indigo-600 dark:hover:bg-indigo-700 text-white font-bold text-xs rounded-xl flex items-center gap-1.5 shadow-xs transition-colors"
-        >
-          <Plus className="w-4 h-4" /> Add Banner
-        </button>
-      </div>
+        <Button onClick={handleOpenAdd} className="text-xs font-bold">
+          <Plus className="w-4 h-4 mr-1" /> Add Banner
+        </Button>
+      </Card>
 
-      {/* Grid of Banners */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-        {banners.map((b) => (
-          <div
-            key={b.id}
-            className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl overflow-hidden shadow-xs flex flex-col group"
-          >
-            <div className="aspect-[21/9] bg-slate-100 dark:bg-slate-800 relative border-b border-slate-200/80 dark:border-slate-800 flex items-center justify-center overflow-hidden">
-              {b.image_url ? (
-                <HeicImage
-                  src={b.image_url}
-                  alt={b.title}
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                />
-              ) : (
-                <span className="text-xs font-mono text-slate-400">No image loaded</span>
-              )}
+      {/* Banners Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+        {banners.map((banner) => (
+          <Card key={banner.id} className="overflow-hidden group">
+            {/* Banner Image Container */}
+            <div className="aspect-[21/9] bg-slate-100 dark:bg-slate-800 relative overflow-hidden border-b border-slate-100 dark:border-slate-800">
+              <HeicImage
+                src={banner.image_url}
+                alt={banner.title}
+                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+              />
               <div className="absolute top-3 right-3 flex items-center gap-1.5">
-                <span
-                  className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border ${
-                    b.active
-                      ? 'bg-emerald-500/90 backdrop-blur-xs text-white border-emerald-400/40 shadow-xs'
-                      : 'bg-slate-900/80 backdrop-blur-xs text-slate-300 border-slate-700'
-                  }`}
-                >
-                  {b.active ? 'Active' : 'Draft'}
-                </span>
-                <span className="bg-slate-900/80 backdrop-blur-xs text-white px-2 py-0.5 rounded-full font-mono text-[10px] font-bold">
-                  #{b.sort_order}
-                </span>
+                <Badge variant={banner.active ? 'success' : 'outline'}>
+                  {banner.active ? 'Active' : 'Disabled'}
+                </Badge>
+                <Badge variant="secondary" className="font-mono">
+                  Order #{banner.sort_order}
+                </Badge>
               </div>
             </div>
 
-            <div className="p-4 flex-1 flex flex-col justify-between space-y-3">
-              <div className="space-y-1">
-                <h4 className="font-bold text-slate-900 dark:text-white text-xs line-clamp-1">
-                  {b.title}
-                </h4>
-                <p className="text-[11px] text-slate-500 dark:text-slate-400 line-clamp-2">
-                  {b.subtitle || 'No subtitle specified.'}
-                </p>
-                {b.link && (
-                  <span className="text-[10px] text-indigo-600 dark:text-indigo-400 font-mono flex items-center gap-1 truncate mt-1">
-                    <ExternalLink className="w-3 h-3 shrink-0" /> {b.link}
+            {/* Banner Meta & Actions */}
+            <div className="p-5 flex items-center justify-between gap-4">
+              <div className="space-y-1 min-w-0">
+                <h3 className="font-bold text-slate-900 dark:text-white text-sm truncate">
+                  {banner.title}
+                </h3>
+                {banner.subtitle && (
+                  <p className="text-xs text-slate-500 truncate">{banner.subtitle}</p>
+                )}
+                {banner.link && (
+                  <span className="text-[10px] text-indigo-600 dark:text-indigo-400 font-mono flex items-center gap-1">
+                    <ExternalLink className="w-3 h-3" /> {banner.link}
                   </span>
                 )}
               </div>
 
-              <div className="flex items-center gap-2 pt-3 border-t border-slate-100 dark:border-slate-800">
-                <button
-                  onClick={() => handleOpenEdit(b)}
-                  className="flex-1 py-1.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 font-bold rounded-xl text-[10px] uppercase tracking-wider text-center transition-colors"
+              <div className="flex items-center gap-1.5 shrink-0">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => handleOpenEdit(banner)}
+                  title="Edit Banner"
+                  className="text-slate-500 hover:text-indigo-600"
                 >
-                  Edit Banner
-                </button>
-                <button
-                  onClick={() => handleDelete(b.id)}
-                  className="px-3 py-1.5 border border-rose-200/60 dark:border-rose-800/60 text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 font-bold rounded-xl text-[10px] uppercase transition-colors"
+                  <Edit3 className="w-4 h-4" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => handleDelete(banner.id)}
+                  title="Delete Banner"
+                  className="text-slate-400 hover:text-rose-600"
                 >
-                  Remove
-                </button>
+                  <Trash2 className="w-4 h-4" />
+                </Button>
               </div>
             </div>
-          </div>
+          </Card>
         ))}
 
         {banners.length === 0 && (
-          <div className="col-span-full py-20 text-center text-slate-400 italic bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800">
+          <Card className="md:col-span-2 p-16 text-center text-slate-400 italic">
             No homepage promotional banners configured.
-          </div>
+          </Card>
         )}
       </div>
 
-      {/* Slide-over Drawer */}
-      {drawerOpen && (
-        <div className="fixed inset-0 z-50 flex justify-end">
-          <div
-            onClick={() => setDrawerOpen(false)}
-            className="absolute inset-0 bg-slate-900/60 backdrop-blur-xs transition-opacity"
-          />
-          <div className="w-full max-w-md bg-white dark:bg-slate-900 border-l border-slate-200 dark:border-slate-800 shadow-2xl relative z-10 p-6 flex flex-col justify-between h-full overflow-y-auto">
-            <div className="space-y-5">
-              <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-4">
-                <h3 className="text-base font-bold text-slate-900 dark:text-white">
-                  {editingBanner ? 'Modify Banner' : 'Create Banner'}
-                </h3>
-                <button
-                  onClick={() => setDrawerOpen(false)}
-                  className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800"
-                >
-                  <X className="w-5 h-5" />
-                </button>
+      {/* Slide-over Drawer using Sheet */}
+      <Sheet open={drawerOpen} onOpenChange={setDrawerOpen}>
+        <SheetContent side="right" className="w-full sm:max-w-lg">
+          <SheetHeader>
+            <SheetTitle>{editingBanner ? 'Modify Hero Banner' : 'Create Hero Banner'}</SheetTitle>
+            <SheetDescription>Configure visual assets and target URL redirects</SheetDescription>
+          </SheetHeader>
+
+          <form onSubmit={handleSubmit} className="space-y-4 my-4 text-xs">
+            <div>
+              <Label className="mb-1">Banner Headline Title *</Label>
+              <Input
+                type="text"
+                required
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                placeholder="e.g. Artisanal Autumn Collection"
+              />
+            </div>
+
+            <div>
+              <Label className="mb-1">Subtitle / Callout Text</Label>
+              <Input
+                type="text"
+                value={subtitle}
+                onChange={(e) => setSubtitle(e.target.value)}
+                placeholder="e.g. Handcrafted boots with memory foam soles"
+              />
+            </div>
+
+            <div>
+              <Label className="mb-1">Destination URL / Route</Label>
+              <Input
+                type="text"
+                value={link}
+                onChange={(e) => setLink(e.target.value)}
+                placeholder="/category/boots or /product/oxford-black"
+                className="font-mono text-xs"
+              />
+            </div>
+
+            {/* Banner Image Asset Upload & Preview */}
+            <div className="space-y-2">
+              <Label className="mb-1">Banner Image Asset *</Label>
+              <div className="flex gap-2">
+                <Input
+                  type="url"
+                  required
+                  value={imageUrl}
+                  onChange={(e) => setImageUrl(e.target.value)}
+                  placeholder="https://..."
+                  className="font-mono text-xs"
+                />
+                <label className="cursor-pointer">
+                  <input
+                    type="file"
+                    accept="image/*,.heic,.heif"
+                    onChange={handleImageUpload}
+                    className="hidden"
+                    disabled={uploadingImage}
+                  />
+                  <div className="px-3 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-xl font-bold text-xs flex items-center gap-1.5 transition-colors whitespace-nowrap">
+                    {uploadingImage ? (
+                      <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                    ) : (
+                      <ImageIcon className="w-3.5 h-3.5" />
+                    )}
+                    {uploadingImage ? uploadStatus || 'Uploading...' : 'Upload'}
+                  </div>
+                </label>
               </div>
 
-              <form onSubmit={handleSubmit} className="space-y-4 text-xs">
-                <div>
-                  <label className="block text-[10px] uppercase font-bold text-slate-400 dark:text-slate-500 mb-1">
-                    Banner Headline
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={title}
-                    onChange={(e) => setTitle(e.target.value)}
-                    placeholder="e.g. The Royal Jodhpur Boots Edition"
-                    className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-indigo-500"
-                  />
+              {imageUrl && (
+                <div className="aspect-[21/9] rounded-xl overflow-hidden border border-slate-200 dark:border-slate-800 mt-2 bg-slate-50 dark:bg-slate-800">
+                  <HeicImage src={imageUrl} alt="Preview" className="w-full h-full object-cover" />
                 </div>
-
-                <div>
-                  <label className="block text-[10px] uppercase font-bold text-slate-400 dark:text-slate-500 mb-1">
-                    Subtitle / Tagline (Optional)
-                  </label>
-                  <input
-                    type="text"
-                    value={subtitle}
-                    onChange={(e) => setSubtitle(e.target.value)}
-                    placeholder="e.g. Crafted in Hand-Finished Full Grain Leather"
-                    className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-slate-900 dark:text-white focus:outline-none"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-[10px] uppercase font-bold text-slate-400 dark:text-slate-500 mb-1">
-                    CTA Action Redirect Link (Optional)
-                  </label>
-                  <input
-                    type="text"
-                    value={link}
-                    onChange={(e) => setLink(e.target.value)}
-                    placeholder="e.g. /shop?category=boots"
-                    className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-slate-900 dark:text-white focus:outline-none font-mono"
-                  />
-                </div>
-
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-[10px] uppercase font-bold text-slate-400 dark:text-slate-500 mb-1">
-                      Sort Position
-                    </label>
-                    <input
-                      type="number"
-                      value={sortOrder}
-                      onChange={(e) => setSortOrder(e.target.value)}
-                      className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-slate-900 dark:text-white focus:outline-none font-mono"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-[10px] uppercase font-bold text-slate-400 dark:text-slate-500 mb-1">
-                      Visibility
-                    </label>
-                    <div className="flex items-center gap-2 pt-2">
-                      <input
-                        type="checkbox"
-                        id="bannerActiveCheckbox"
-                        checked={active}
-                        onChange={(e) => setActive(e.target.checked)}
-                        className="w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500"
-                      />
-                      <label
-                        htmlFor="bannerActiveCheckbox"
-                        className="text-xs font-semibold text-slate-700 dark:text-slate-300"
-                      >
-                        Banner Active
-                      </label>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Banner Image Upload & URL */}
-                <div className="space-y-2">
-                  <label className="block text-[10px] uppercase font-bold text-slate-400 dark:text-slate-500 mb-1">
-                    Banner Image (21:9 Aspect Ratio recommended)
-                  </label>
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="text"
-                      required
-                      value={imageUrl}
-                      onChange={(e) => setImageUrl(e.target.value)}
-                      placeholder="https://media.heelsup.in/banners/..."
-                      className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-slate-900 dark:text-white focus:outline-none font-mono text-xs"
-                    />
-                    <label className="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 text-xs font-bold uppercase rounded-xl cursor-pointer shrink-0 transition-colors">
-                      {uploadingImage ? 'Uploading...' : 'Upload'}
-                      <input
-                        type="file"
-                        accept="image/*,.heic,.heif"
-                        onChange={handleImageUpload}
-                        className="hidden"
-                        disabled={uploadingImage}
-                      />
-                    </label>
-                  </div>
-                  {uploadingImage && (
-                    <span className="text-[10px] font-mono text-indigo-600 dark:text-indigo-400 italic">
-                      {uploadStatus || 'Processing...'}
-                    </span>
-                  )}
-                  {imageUrl && (
-                    <div className="aspect-[21/9] rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700 mt-2">
-                      <HeicImage src={imageUrl} className="w-full h-full object-cover" />
-                    </div>
-                  )}
-                </div>
-
-                <button
-                  type="submit"
-                  className="w-full py-2.5 bg-slate-900 hover:bg-slate-800 dark:bg-indigo-600 dark:hover:bg-indigo-700 text-white font-bold text-xs rounded-xl transition-all shadow-xs"
-                >
-                  Save Banner Record
-                </button>
-              </form>
+              )}
             </div>
-          </div>
-        </div>
-      )}
+
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label className="mb-1">Display Sort Order</Label>
+                <Input
+                  type="number"
+                  value={sortOrder}
+                  onChange={(e) => setSortOrder(e.target.value)}
+                  className="font-mono text-xs"
+                />
+              </div>
+
+              <div>
+                <Label className="mb-1">Visibility State</Label>
+                <select
+                  value={active ? 'true' : 'false'}
+                  onChange={(e) => setActive(e.target.value === 'true')}
+                  className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-slate-900 dark:text-white focus:outline-none text-xs"
+                >
+                  <option value="true">Active (Live in Carousel)</option>
+                  <option value="false">Disabled (Draft / Hidden)</option>
+                </select>
+              </div>
+            </div>
+
+            <Button type="submit" className="w-full py-2.5 font-bold text-xs">
+              Save Banner Settings
+            </Button>
+          </form>
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }

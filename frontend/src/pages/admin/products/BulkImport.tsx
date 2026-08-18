@@ -5,6 +5,9 @@ import { useToastStore } from '../../../store/useToastStore';
 import { bulkImportProducts, downloadCsvTemplate } from './productApi';
 import { isValidEuSize } from './productValidation';
 import type { BulkImportResult, BulkImportRow } from './productTypes';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '../../../components/ui/dialog';
+import { Button } from '../../../components/ui/button';
+import { Badge } from '../../../components/ui/badge';
 
 interface BulkImportProps {
   token: string;
@@ -162,104 +165,100 @@ export default function BulkImport({ token, defaultCategory, onClose, onComplete
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div onClick={onClose} className="absolute inset-0 bg-slate-900/60 backdrop-blur-xs" />
-      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 w-full max-w-lg rounded-3xl shadow-2xl relative z-10 p-6 space-y-5 text-slate-900 dark:text-white">
-        <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-4">
-          <div>
-            <h3 className="text-base font-bold text-slate-900 dark:text-white">
-              Bulk Catalog CSV Import
-            </h3>
-            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-              Validated batch CSV import with size-by-size inventory mapping
-            </p>
-          </div>
-          <button
-            onClick={onClose}
-            className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800"
+    <Dialog open={true} onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="sm:max-w-lg">
+        <DialogHeader>
+          <DialogTitle>Bulk Catalog CSV Import</DialogTitle>
+          <DialogDescription>
+            Validated batch CSV import with size-by-size inventory mapping
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="space-y-4 my-2 text-xs">
+          <div
+            onClick={() => csvRef.current?.click()}
+            className="border-2 border-dashed border-slate-200 dark:border-slate-700 hover:border-indigo-500 bg-slate-50 dark:bg-slate-800/60 rounded-2xl p-8 text-center cursor-pointer transition-colors group"
           >
-            <X className="w-5 h-5" />
-          </button>
-        </div>
-
-        <div
-          onClick={() => csvRef.current?.click()}
-          className="border-2 border-dashed border-slate-200 dark:border-slate-700 hover:border-indigo-500 bg-slate-50 dark:bg-slate-800/60 rounded-2xl p-8 text-center cursor-pointer transition-colors group"
-        >
-          <input
-            ref={csvRef}
-            type="file"
-            accept=".csv"
-            onChange={(e) => {
-              setCsvFile(e.target.files?.[0] || null);
-              setResult(null);
-            }}
-            className="hidden"
-          />
-          <FileText className="w-8 h-8 text-slate-400 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 mx-auto mb-2 transition-colors" />
-          {csvFile ? (
-            <div>
-              <p className="text-sm font-bold text-slate-900 dark:text-white">{csvFile.name}</p>
-              <p className="text-xs text-slate-500 dark:text-slate-400 font-mono mt-0.5">
-                {(csvFile.size / 1024).toFixed(1)} KB
-              </p>
-            </div>
-          ) : (
-            <>
-              <p className="text-sm font-semibold text-slate-700 dark:text-slate-300">
-                Click to browse CSV file
-              </p>
-              <p className="text-xs text-slate-400 mt-1">
-                Download the official template first for guaranteed schema match
-              </p>
-            </>
-          )}
-        </div>
-
-        {result && (
-          <div className="bg-slate-50 dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-700/60 rounded-2xl p-4 space-y-2">
-            <div className="flex items-center gap-2 text-emerald-600 dark:text-emerald-400">
-              <CheckCircle2 className="w-4 h-4" />
-              <span className="text-xs font-bold">{result.success} products imported successfully</span>
-              {result.failed > 0 && (
-                <span className="text-rose-600 text-xs font-bold">({result.failed} failed)</span>
-              )}
-            </div>
-            {result.errors && result.errors.length > 0 && (
-              <div className="space-y-1 pt-1">
-                <div className="flex items-center gap-1.5 text-rose-600">
-                  <AlertTriangle className="w-3.5 h-3.5" />
-                  <span className="text-xs font-bold">{result.errors.length} row(s) with errors:</span>
-                </div>
-                <div className="max-h-28 overflow-y-auto">
-                  {result.errors.map((e, i) => (
-                    <p key={i} className="text-[10px] text-rose-500 font-mono pl-5">
-                      {e}
-                    </p>
-                  ))}
-                </div>
+            <input
+              ref={csvRef}
+              type="file"
+              accept=".csv"
+              onChange={(e) => {
+                setCsvFile(e.target.files?.[0] || null);
+                setResult(null);
+              }}
+              className="hidden"
+            />
+            <FileText className="w-8 h-8 text-slate-400 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 mx-auto mb-2 transition-colors" />
+            {csvFile ? (
+              <div>
+                <p className="text-sm font-bold text-slate-900 dark:text-white">{csvFile.name}</p>
+                <p className="text-xs text-slate-500 dark:text-slate-400 font-mono mt-0.5">
+                  {(csvFile.size / 1024).toFixed(1)} KB
+                </p>
               </div>
+            ) : (
+              <>
+                <p className="text-sm font-semibold text-slate-700 dark:text-slate-300">
+                  Click to browse CSV file
+                </p>
+                <p className="text-xs text-slate-400 mt-1">
+                  Download the official template first for guaranteed schema match
+                </p>
+              </>
             )}
           </div>
-        )}
 
-        <div className="flex gap-3">
-          <button
-            onClick={downloadCsvTemplate}
-            className="flex-1 py-2.5 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 transition-colors"
-          >
-            <Download className="w-3.5 h-3.5" /> Template
-          </button>
-          <button
-            onClick={handleImport}
-            disabled={!csvFile || loading}
-            className="flex-1 py-2.5 bg-slate-900 hover:bg-slate-800 dark:bg-indigo-600 dark:hover:bg-indigo-700 disabled:opacity-40 text-white font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 transition-all shadow-xs"
-          >
-            {loading ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <UploadCloud className="w-3.5 h-3.5" />}
-            {loading ? 'Importing...' : 'Start Import'}
-          </button>
+          {result && (
+            <div className="bg-slate-50 dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-700/60 rounded-2xl p-4 space-y-2">
+              <div className="flex items-center gap-2 text-emerald-600 dark:text-emerald-400">
+                <CheckCircle2 className="w-4 h-4" />
+                <span className="text-xs font-bold">{result.success} products imported successfully</span>
+                {result.failed > 0 && (
+                  <span className="text-rose-600 text-xs font-bold">({result.failed} failed)</span>
+                )}
+              </div>
+              {result.errors && result.errors.length > 0 && (
+                <div className="space-y-1 pt-1">
+                  <div className="flex items-center gap-1.5 text-rose-600">
+                    <AlertTriangle className="w-3.5 h-3.5" />
+                    <span className="text-xs font-bold">{result.errors.length} row(s) with errors:</span>
+                  </div>
+                  <div className="max-h-28 overflow-y-auto">
+                    {result.errors.map((e, i) => (
+                      <p key={i} className="text-[10px] text-rose-500 font-mono pl-5">
+                        {e}
+                      </p>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          <div className="flex gap-3 pt-2">
+            <Button
+              variant="outline"
+              onClick={downloadCsvTemplate}
+              className="flex-1 font-bold text-xs"
+            >
+              <Download className="w-3.5 h-3.5 mr-1.5" /> Template
+            </Button>
+            <Button
+              onClick={handleImport}
+              disabled={!csvFile || loading}
+              className="flex-1 font-bold text-xs"
+            >
+              {loading ? (
+                <RefreshCw className="w-3.5 h-3.5 animate-spin mr-1.5" />
+              ) : (
+                <UploadCloud className="w-3.5 h-3.5 mr-1.5" />
+              )}
+              {loading ? 'Importing...' : 'Start Import'}
+            </Button>
+          </div>
         </div>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }

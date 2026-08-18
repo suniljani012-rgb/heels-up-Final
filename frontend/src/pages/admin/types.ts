@@ -214,6 +214,10 @@ export interface DashboardData {
   total_pos_sales: number;
   orders_count: number;
   pos_sales_count: number;
+  aov?: number;
+  repeatCustomers?: number;
+  salesGrowth?: number;
   daily_sales?: { label: string; revenue: number }[];
   category_sales?: { category: string; value: number }[];
+  low_stock_products?: any[];
 }

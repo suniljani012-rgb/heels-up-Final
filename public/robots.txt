@@ -1,26 +1,32 @@
 User-agent: *
 Allow: /
 
-# Allow Search Crawlers for E-commerce Keywords
-User-agent: Googlebot
-Allow: /
-Allow: /shop
-Allow: /product/
-Allow: /heels
-Allow: /block-heels
-Allow: /pencil-heels
-Allow: /stilettos
-
-User-agent: Googlebot-Image
-Allow: /
-
-# Block Private Admin & Account Pages
-Disallow: /admin
-Disallow: /admin/*
+# Block admin pages from indexing
+Disallow: /admin.html
+Disallow: /admin-*.html
 Disallow: /api/
-Disallow: /checkout
-Disallow: /cart
-Disallow: /account
-Disallow: /orders
+
+# Block cart and checkout
+Disallow: /cart.html
+Disallow: /checkout.html
+Disallow: /orders.html
+Disallow: /profile.html
+Disallow: /login.html
+Disallow: /register.html
+Disallow: /forgot-password.html
+Disallow: /reset-password.html
+
+# Allow important pages
+Allow: /index.html
+Allow: /shop.html
+Allow: /category.html
+Allow: /product.html
+Allow: /search.html
+Allow: /blog.html
+Allow: /blog-post.html
+Allow: /about.html
+Allow: /contact.html
+Allow: /faq.html
+Allow: /policy/
 
 Sitemap: https://heelsup.in/sitemap.xml

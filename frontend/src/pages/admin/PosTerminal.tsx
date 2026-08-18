@@ -23,6 +23,14 @@ import {
   Percent
 } from 'lucide-react';
 import HeicImage from '../../components/HeicImage';
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '../../components/ui/card';
+import { Badge } from '../../components/ui/badge';
+import { Button } from '../../components/ui/button';
+import { Input } from '../../components/ui/input';
+import { Label } from '../../components/ui/label';
+import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from '../../components/ui/table';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '../../components/ui/dialog';
+import { Separator } from '../../components/ui/separator';
 
 // Instagram SVG icon
 const InstagramIcon = ({ className }: { className?: string }) => (
@@ -140,18 +148,36 @@ export default function PosTerminal({ products, categories, coupons, onOrderCrea
   // Derived sizes & stocks based on selected product and selected color
   const sizeStockOptions = useMemo(() => {
     if (!selectedProduct) return [];
-    if (selectedProduct.color_variants && selectedProduct.color_variants.length > 0) {
+
+    if (selectedProduct.color_variants && selectedProduct.color_variants.length > 0 && selectedColor) {
       const cv = selectedProduct.color_variants.find((v) => v.color === selectedColor);
-      return cv ? cv.size_stock : [];
+      if (cv && cv.size_stock) {
+        return cv.size_stock;
+      }
     }
-    // Fallback: If no color_variants, return size_stock from main product
-    return selectedProduct.sizes.map((sz) => {
-      const found = selectedProduct.size_stock?.find((ss: any) => ss.size_label === sz);
-      return { size_label: sz, stock: found ? found.stock : 99 };
-    });
+
+    if (selectedProduct.size_stock && selectedProduct.size_stock.length > 0) {
+      return selectedProduct.size_stock;
+    }
+
+    if (selectedProduct.sizes && selectedProduct.sizes.length > 0) {
+      return selectedProduct.sizes.map((s) => ({
+        size_label: s,
+        stock: Math.floor(selectedProduct.stock / selectedProduct.sizes.length) || 1,
+      }));
+    }
+
+    return [
+      { size_label: '36', stock: 5 },
+      { size_label: '37', stock: 5 },
+      { size_label: '38', stock: 5 },
+      { size_label: '39', stock: 5 },
+      { size_label: '40', stock: 5 },
+      { size_label: '41', stock: 5 },
+    ];
   }, [selectedProduct, selectedColor]);
 
-  // Set default color/size when selected product changes
+  // Auto-select first color/size on product change
   useEffect(() => {
     if (selectedProduct) {
       if (availableColors.length > 0) {
@@ -159,6 +185,10 @@ export default function PosTerminal({ products, categories, coupons, onOrderCrea
       } else {
         setSelectedColor('');
       }
+      setItemPriceOverride((selectedProduct.price / 100).toString());
+    } else {
+      setSelectedColor('');
+      setSelectedSize('');
       setItemPriceOverride('');
     }
   }, [selectedProduct, availableColors]);
@@ -173,131 +203,133 @@ export default function PosTerminal({ products, categories, coupons, onOrderCrea
 
   // Close dropdown on outside click
   useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
-      if (productDropdownRef.current && !productDropdownRef.current.contains(e.target as Node)) {
+    function handleClickOutside(event: MouseEvent) {
+      if (
+        productDropdownRef.current &&
+        !productDropdownRef.current.contains(event.target as Node)
+      ) {
         setShowProductDropdown(false);
       }
-    };
+    }
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Add Item to Cart
+  // Pricing calculations
+  const subtotalPaise = useMemo(() => {
+    return cart.reduce((acc, item) => {
+      const price = item.customPrice !== undefined ? item.customPrice * 100 : item.product.price;
+      return acc + price * item.qty;
+    }, 0);
+  }, [cart]);
+
+  const couponDiscountPaise = useMemo(() => {
+    if (!appliedCoupon) return 0;
+    if (appliedCoupon.discount_type === 'percentage') {
+      return Math.round((subtotalPaise * appliedCoupon.discount_value) / 100);
+    } else {
+      return Math.min(subtotalPaise, appliedCoupon.discount_value * 100);
+    }
+  }, [appliedCoupon, subtotalPaise]);
+
+  const manualDiscountPaise = customDiscount * 100;
+  const totalDiscountPaise = Math.min(subtotalPaise, couponDiscountPaise + manualDiscountPaise);
+  const discountedSubtotalPaise = Math.max(0, subtotalPaise - totalDiscountPaise);
+
+  const gstMultiplier = gstRate > 0 ? gstRate / (100 + gstRate) : 0;
+  const gstAmountPaise = Math.round(discountedSubtotalPaise * gstMultiplier);
+  const baseAmountPaise = discountedSubtotalPaise - gstAmountPaise;
+  const totalPayablePaise = discountedSubtotalPaise;
+
+  const currentDrawerCash = useMemo(() => {
+    const totalCashSales =
+      paymentMethod === 'cash' ? totalPayablePaise / 100 : 0;
+    const totalDrops = cashDrops.reduce((acc, d) => acc + d.amount, 0);
+    return drawerStartCash + totalCashSales - totalDrops;
+  }, [drawerStartCash, totalPayablePaise, paymentMethod, cashDrops]);
+
   const handleAddItemToBill = (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedProduct) {
-      showToast('error', 'Select Product', 'Please choose a product to bill.');
+      showToast('error', 'Select Product', 'Please choose a product from the list.');
       return;
     }
     if (!selectedSize) {
-      showToast('error', 'Select Size', 'Please select a size for this item.');
+      showToast('error', 'Select Size', 'Please choose a size variant.');
       return;
     }
 
-    const priceOverride = itemPriceOverride.trim() ? parseFloat(itemPriceOverride) : undefined;
-    const finalPrice = priceOverride !== undefined ? priceOverride : selectedProduct.price / 100;
+    const priceOverrideNum = parseFloat(itemPriceOverride);
+    const customPrice = !isNaN(priceOverrideNum) ? priceOverrideNum : undefined;
 
-    // Check if item exists in cart
-    const existingIndex = cart.findIndex(
-      (c) =>
-        c.product.id === selectedProduct.id &&
-        c.size === selectedSize &&
-        c.color === selectedColor &&
-        c.customPrice === priceOverride
-    );
+    setCart((prev) => {
+      const existingIdx = prev.findIndex(
+        (it) =>
+          it.product.id === selectedProduct.id &&
+          it.size === selectedSize &&
+          it.color === selectedColor
+      );
 
-    if (existingIndex > -1) {
-      const updated = [...cart];
-      updated[existingIndex].qty += itemQty;
-      setCart(updated);
-    } else {
-      setCart((prev) => [
+      if (existingIdx >= 0) {
+        const next = [...prev];
+        next[existingIdx].qty += itemQty;
+        if (customPrice !== undefined) next[existingIdx].customPrice = customPrice;
+        return next;
+      }
+
+      return [
         ...prev,
         {
           product: selectedProduct,
           size: selectedSize,
           color: selectedColor,
           qty: itemQty,
-          customPrice: priceOverride,
+          customPrice,
         },
-      ]);
-    }
+      ];
+    });
 
-    // Reset item selector
+    showToast('success', 'Item Added', `${selectedProduct.name} added to cart.`);
     setSelectedProduct(null);
     setSearchProductQuery('');
-    setItemPriceOverride('');
     setItemQty(1);
-    showToast('success', 'Item Added', 'Product added to invoice.');
-  };
-
-  const updateQty = (index: number, delta: number) => {
-    const updated = [...cart];
-    const newQty = updated[index].qty + delta;
-    if (newQty <= 0) {
-      updated.splice(index, 1);
-    } else {
-      updated[index].qty = newQty;
-    }
-    setCart(updated);
-  };
-
-  const updateCustomPrice = (index: number, val: string) => {
-    const updated = [...cart];
-    const parsed = parseFloat(val);
-    updated[index].customPrice = isNaN(parsed) ? undefined : Math.max(0, parsed);
-    setCart(updated);
   };
 
   const removeFromCart = (index: number) => {
-    setCart((prev) => prev.filter((_, i) => i !== index));
+    setCart((prev) => prev.filter((_, idx) => idx !== index));
   };
 
-  // Calculations
-  const subtotalPaise = useMemo(() => {
-    return cart.reduce((acc, item) => {
-      const unitPricePaise =
-        item.customPrice !== undefined ? item.customPrice * 100 : item.product.price;
-      return acc + unitPricePaise * item.qty;
-    }, 0);
-  }, [cart]);
+  const updateQty = (index: number, delta: number) => {
+    setCart((prev) =>
+      prev
+        .map((item, idx) => {
+          if (idx === index) {
+            const nextQty = item.qty + delta;
+            return nextQty > 0 ? { ...item, qty: nextQty } : null;
+          }
+          return item;
+        })
+        .filter(Boolean) as any[]
+    );
+  };
 
-  const couponDiscountPaise = useMemo(() => {
-    if (!appliedCoupon) return 0;
-    if (appliedCoupon.type === 'percent') {
-      return (subtotalPaise * appliedCoupon.discount) / 100;
-    }
-    return appliedCoupon.discount * 100;
-  }, [appliedCoupon, subtotalPaise]);
-
-  const totalDiscountPaise = useMemo(() => {
-    const manualDiscountPaise = customDiscount * 100;
-    return Math.min(subtotalPaise, couponDiscountPaise + manualDiscountPaise);
-  }, [subtotalPaise, couponDiscountPaise, customDiscount]);
-
-  const discountedAmountPaise = Math.max(0, subtotalPaise - totalDiscountPaise);
-
-  const gstAmountPaise = useMemo(() => {
-    if (gstRate === 0) return 0;
-    return (discountedAmountPaise * gstRate) / (100 + gstRate);
-  }, [discountedAmountPaise, gstRate]);
-
-  const baseAmountPaise = discountedAmountPaise - gstAmountPaise;
-  const totalPayablePaise = discountedAmountPaise;
-
-  const currentDrawerCash = useMemo(() => {
-    const dropsTotal = cashDrops.reduce((acc, d) => acc + d.amount, 0);
-    return drawerStartCash - dropsTotal;
-  }, [drawerStartCash, cashDrops]);
+  const updateCustomPrice = (index: number, priceStr: string) => {
+    const val = parseFloat(priceStr);
+    setCart((prev) =>
+      prev.map((item, idx) =>
+        idx === index ? { ...item, customPrice: !isNaN(val) ? val : undefined } : item
+      )
+    );
+  };
 
   const handleApplyCoupon = () => {
     if (!couponCode.trim()) return;
     const found = coupons.find(
-      (c) => c.code.toLowerCase() === couponCode.trim().toLowerCase() && (c.active === 1 || c.active === true)
+      (c) => c.code.toLowerCase() === couponCode.trim().toLowerCase() && c.active
     );
     if (found) {
       setAppliedCoupon(found);
-      showToast('success', 'Coupon Applied', `${found.code} saved.`);
+      showToast('success', 'Coupon Applied', `${found.code} applied.`);
     } else {
       showToast('error', 'Invalid Coupon', 'Coupon not found or inactive.');
     }
@@ -466,79 +498,81 @@ export default function PosTerminal({ products, categories, coupons, onOrderCrea
   return (
     <div className="space-y-5 antialiased">
       {/* Header Bar */}
-      <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 p-5 rounded-2xl shadow-xs flex flex-wrap items-center justify-between gap-4">
+      <Card className="p-5 flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h2 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+          <CardTitle className="text-lg flex items-center gap-2">
             <CreditCard className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
             Retail POS Terminal & Quick Invoicing
-          </h2>
-          <p className="text-xs text-slate-500 dark:text-slate-400">
+          </CardTitle>
+          <CardDescription>
             Realtime counter billing, omni-channel orders, and cash drawer management
-          </p>
+          </CardDescription>
         </div>
 
-        {/* Channel Selector */}
-        <div className="flex flex-wrap items-center gap-1.5">
-          <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mr-1">
-            Channel:
-          </span>
-          {(['in-store', 'whatsapp', 'instagram', 'phone'] as SaleChannel[]).map((ch) => (
-            <button
-              key={ch}
-              onClick={() => {
-                setSaleChannel(ch);
-                setNotes(
-                  ch === 'in-store'
-                    ? 'In-Store POS Sale'
-                    : ch === 'whatsapp'
-                    ? 'WhatsApp Sale'
-                    : ch === 'instagram'
-                    ? 'Instagram DM Sale'
-                    : 'Phone Order'
-                );
-              }}
-              className={`px-3 py-1.5 rounded-xl text-xs font-bold border transition-all flex items-center gap-1.5 ${
-                saleChannel === ch
-                  ? channelColors[ch]
-                  : 'border-slate-200/80 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'
-              }`}
-            >
-              {ch === 'whatsapp' && <MessageCircle className="w-3.5 h-3.5" />}
-              {ch === 'instagram' && <InstagramIcon className="w-3.5 h-3.5" />}
-              {ch === 'in-store' && <Package className="w-3.5 h-3.5" />}
-              {ch === 'phone' && <Smartphone className="w-3.5 h-3.5" />}
-              {ch === 'in-store' ? 'In-Store' : ch.charAt(0).toUpperCase() + ch.slice(1)}
-            </button>
-          ))}
-        </div>
+        {/* Channel Selector & Drawer Balance */}
+        <div className="flex items-center gap-3 flex-wrap">
+          <div className="flex items-center gap-1">
+            <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mr-1">
+              Channel:
+            </span>
+            {(['in-store', 'whatsapp', 'instagram', 'phone'] as SaleChannel[]).map((ch) => (
+              <Button
+                key={ch}
+                size="sm"
+                variant={saleChannel === ch ? 'default' : 'outline'}
+                onClick={() => {
+                  setSaleChannel(ch);
+                  setNotes(
+                    ch === 'in-store'
+                      ? 'In-Store POS Sale'
+                      : ch === 'whatsapp'
+                      ? 'WhatsApp Sale'
+                      : ch === 'instagram'
+                      ? 'Instagram DM Sale'
+                      : 'Phone Order'
+                  );
+                }}
+                className={`h-8 text-xs font-bold ${
+                  saleChannel === ch ? channelColors[ch] : ''
+                }`}
+              >
+                {ch === 'whatsapp' && <MessageCircle className="w-3.5 h-3.5 mr-1" />}
+                {ch === 'instagram' && <InstagramIcon className="w-3.5 h-3.5 mr-1" />}
+                {ch === 'in-store' && <Package className="w-3.5 h-3.5 mr-1" />}
+                {ch === 'phone' && <Smartphone className="w-3.5 h-3.5 mr-1" />}
+                {ch === 'in-store' ? 'In-Store' : ch.charAt(0).toUpperCase() + ch.slice(1)}
+              </Button>
+            ))}
+          </div>
 
-        <button
-          onClick={() => setShowDrawerManager(!showDrawerManager)}
-          className="px-3.5 py-1.5 border border-slate-200/80 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-800 dark:text-slate-200 rounded-xl text-xs font-bold transition-colors flex items-center gap-1.5"
-        >
-          <DollarSign className="w-3.5 h-3.5 text-emerald-500" />
-          Drawer: ₹{currentDrawerCash.toFixed(0)}
-        </button>
-      </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setShowDrawerManager(!showDrawerManager)}
+            className="h-8 font-bold text-xs"
+          >
+            <DollarSign className="w-3.5 h-3.5 text-emerald-500 mr-1" />
+            Drawer: ₹{currentDrawerCash.toFixed(0)}
+          </Button>
+        </div>
+      </Card>
 
       {/* Main Billing Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
         {/* LEFT: Product Selection & Bill Table (8 cols) */}
         <div className="lg:col-span-8 space-y-4">
           {/* Product Selection Form */}
-          <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 p-5 rounded-2xl shadow-xs space-y-4">
-            <h3 className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider border-b border-slate-100 dark:border-slate-800 pb-2">
+          <Card className="p-5 space-y-4">
+            <CardTitle className="text-xs font-bold uppercase tracking-wider border-b border-slate-100 dark:border-slate-800 pb-2">
               Select Product & Variant
-            </h3>
+            </CardTitle>
 
             <form onSubmit={handleAddItemToBill} className="grid grid-cols-1 md:grid-cols-12 gap-3 items-end">
               {/* Product Search */}
               <div className="md:col-span-5 relative" ref={productDropdownRef}>
-                <label className="block text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase mb-1">
-                  Product / SKU
-                </label>
+                <Label className="mb-1">Product / SKU</Label>
                 <div className="relative">
-                  <input
+                  <Input
                     type="text"
                     placeholder="Search product by title, SKU..."
                     value={
@@ -552,7 +586,7 @@ export default function PosTerminal({ products, categories, coupons, onOrderCrea
                       setShowProductDropdown(true);
                     }}
                     onFocus={() => setShowProductDropdown(true)}
-                    className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700 rounded-xl pl-3 pr-8 py-2 text-xs font-semibold text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                    className="pr-8 text-xs font-semibold"
                   />
                   <ChevronDown className="w-4 h-4 absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
 
@@ -602,9 +636,7 @@ export default function PosTerminal({ products, categories, coupons, onOrderCrea
 
               {/* Color Dropdown */}
               <div className="md:col-span-2">
-                <label className="block text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase mb-1">
-                  Color
-                </label>
+                <Label className="mb-1">Color</Label>
                 <select
                   disabled={!selectedProduct || availableColors.length === 0}
                   value={selectedColor}
@@ -622,9 +654,7 @@ export default function PosTerminal({ products, categories, coupons, onOrderCrea
 
               {/* Size Dropdown */}
               <div className="md:col-span-2">
-                <label className="block text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase mb-1">
-                  Size & Stock
-                </label>
+                <Label className="mb-1">Size & Stock</Label>
                 <select
                   disabled={!selectedProduct || sizeStockOptions.length === 0}
                   value={selectedSize}
@@ -642,221 +672,217 @@ export default function PosTerminal({ products, categories, coupons, onOrderCrea
 
               {/* Price Override */}
               <div className="md:col-span-2">
-                <label className="block text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase mb-1">
-                  Unit Price (₹)
-                </label>
-                <input
+                <Label className="mb-1">Unit Price (₹)</Label>
+                <Input
                   type="number"
                   disabled={!selectedProduct}
                   value={itemPriceOverride}
                   onChange={(e) => setItemPriceOverride(e.target.value)}
                   placeholder="0.00"
-                  className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700 rounded-xl px-3 py-2 text-xs font-mono text-right text-slate-900 dark:text-white focus:outline-none disabled:opacity-50"
+                  className="text-right font-mono text-xs"
                 />
               </div>
 
               {/* Submit Add */}
               <div className="md:col-span-1">
-                <button
+                <Button
                   type="submit"
                   disabled={!selectedProduct}
-                  className="w-full py-2 bg-slate-900 hover:bg-slate-800 dark:bg-indigo-600 dark:hover:bg-indigo-700 text-white rounded-xl flex items-center justify-center transition-colors shadow-xs disabled:opacity-40"
+                  size="icon"
+                  className="w-full h-9"
                 >
                   <Plus className="w-4 h-4" />
-                </button>
+                </Button>
               </div>
             </form>
-          </div>
+          </Card>
 
           {/* Cart Table */}
-          <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl shadow-xs overflow-hidden">
+          <Card className="overflow-hidden">
             <div className="px-5 py-3.5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-slate-50/50 dark:bg-slate-800/40">
               <h3 className="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-1.5 uppercase tracking-wider">
                 <ShoppingCart className="w-3.5 h-3.5 text-indigo-600" />
                 Cart Items ({cart.length})
               </h3>
               {cart.length > 0 && (
-                <button
+                <Button
+                  variant="ghost"
+                  size="sm"
                   onClick={() => setCart([])}
-                  className="text-[10px] font-bold text-rose-600 dark:text-rose-400 hover:underline uppercase tracking-wider"
+                  className="text-rose-600 dark:text-rose-400 p-0 h-auto text-[10px] font-bold uppercase tracking-wider"
                 >
                   Clear All
-                </button>
+                </Button>
               )}
             </div>
 
-            <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse text-xs">
-                <thead>
-                  <tr className="bg-slate-50/80 dark:bg-slate-800/60 text-slate-500 dark:text-slate-400 border-b border-slate-200/80 dark:border-slate-800 font-mono text-[9px] uppercase tracking-wider">
-                    <th className="p-3.5">Product Description</th>
-                    <th className="p-3.5 w-32">Unit Rate (₹)</th>
-                    <th className="p-3.5 w-28 text-center">Qty</th>
-                    <th className="p-3.5 w-28 text-right">Subtotal</th>
-                    <th className="p-3.5 w-12 text-right"></th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100 dark:divide-slate-800/80">
-                  {cart.length === 0 ? (
-                    <tr>
-                      <td colSpan={5} className="py-14 text-center text-slate-400 italic">
-                        Select a product above to add items to invoice
-                      </td>
-                    </tr>
-                  ) : (
-                    cart.map((item, idx) => {
-                      const itemPrice =
-                        item.customPrice !== undefined ? item.customPrice : item.product.price / 100;
-                      return (
-                        <tr
-                          key={`${item.product.id}-${item.size}-${item.color}`}
-                          className="hover:bg-slate-50/60 dark:hover:bg-slate-800/40"
-                        >
-                          <td className="p-3.5">
-                            <div className="flex items-center gap-3">
-                              {item.product.images?.[0] && (
-                                <div className="w-9 h-9 border border-slate-200 dark:border-slate-700 rounded-lg overflow-hidden flex items-center justify-center shrink-0">
-                                  <HeicImage
-                                    src={item.product.images[0]}
-                                    className="w-full h-full object-contain"
-                                  />
-                                </div>
-                              )}
-                              <div>
-                                <span className="font-semibold text-slate-900 dark:text-white block">
-                                  {item.product.name}
-                                </span>
-                                <span className="text-[10px] text-slate-400 font-mono block mt-0.5">
-                                  SKU: {item.product.sku}{' '}
-                                  {item.color ? `• ${item.color}` : ''} • Size: UK {item.size}
-                                </span>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Product Description</TableHead>
+                  <TableHead className="w-32">Unit Rate (₹)</TableHead>
+                  <TableHead className="w-28 text-center">Qty</TableHead>
+                  <TableHead className="w-28 text-right">Subtotal</TableHead>
+                  <TableHead className="w-12 text-right"></TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {cart.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={5} className="py-14 text-center text-slate-400 italic">
+                      Select a product above to add items to invoice
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  cart.map((item, idx) => {
+                    const itemPrice =
+                      item.customPrice !== undefined ? item.customPrice : item.product.price / 100;
+                    return (
+                      <TableRow key={`${item.product.id}-${item.size}-${item.color}`}>
+                        <TableCell>
+                          <div className="flex items-center gap-3">
+                            {item.product.images?.[0] && (
+                              <div className="w-9 h-9 border border-slate-200 dark:border-slate-700 rounded-lg overflow-hidden flex items-center justify-center shrink-0">
+                                <HeicImage
+                                  src={item.product.images[0]}
+                                  className="w-full h-full object-contain"
+                                />
                               </div>
-                            </div>
-                          </td>
-                          <td className="p-3.5">
-                            <input
-                              type="number"
-                              step="0.01"
-                              value={item.customPrice !== undefined ? item.customPrice : ''}
-                              placeholder={(item.product.price / 100).toString()}
-                              onChange={(e) => updateCustomPrice(idx, e.target.value)}
-                              className="w-24 bg-slate-50 dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700 rounded-lg px-2 py-1 text-xs text-right font-mono text-slate-900 dark:text-white focus:outline-none"
-                            />
-                          </td>
-                          <td className="p-3.5">
-                            <div className="flex items-center justify-center gap-1.5">
-                              <button
-                                onClick={() => updateQty(idx, -1)}
-                                className="w-6 h-6 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg flex items-center justify-center text-slate-700 dark:text-slate-300 font-bold"
-                              >
-                                −
-                              </button>
-                              <span className="text-xs font-bold font-mono text-slate-900 dark:text-white w-5 text-center">
-                                {item.qty}
+                            )}
+                            <div>
+                              <span className="font-semibold text-slate-900 dark:text-white block">
+                                {item.product.name}
                               </span>
-                              <button
-                                onClick={() => updateQty(idx, 1)}
-                                className="w-6 h-6 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg flex items-center justify-center text-slate-700 dark:text-slate-300"
-                              >
-                                <Plus className="w-3 h-3" />
-                              </button>
+                              <span className="text-[10px] text-slate-400 font-mono block mt-0.5">
+                                SKU: {item.product.sku}{' '}
+                                {item.color ? `• ${item.color}` : ''} • Size: UK {item.size}
+                              </span>
                             </div>
-                          </td>
-                          <td className="p-3.5 text-right font-mono font-bold text-slate-900 dark:text-white">
-                            ₹{(itemPrice * item.qty).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-                          </td>
-                          <td className="p-3.5 text-right">
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <Input
+                            type="number"
+                            step="0.01"
+                            value={item.customPrice !== undefined ? item.customPrice : ''}
+                            placeholder={(item.product.price / 100).toString()}
+                            onChange={(e) => updateCustomPrice(idx, e.target.value)}
+                            className="w-24 h-8 text-right font-mono text-xs"
+                          />
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center justify-center gap-1.5">
                             <button
-                              onClick={() => removeFromCart(idx)}
-                              className="text-slate-400 hover:text-rose-600 p-1 transition-colors"
+                              onClick={() => updateQty(idx, -1)}
+                              className="w-6 h-6 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg flex items-center justify-center text-slate-700 dark:text-slate-300 font-bold"
                             >
-                              <Trash2 className="w-4 h-4" />
+                              −
                             </button>
-                          </td>
-                        </tr>
-                      );
-                    })
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </div>
+                            <span className="text-xs font-bold font-mono text-slate-900 dark:text-white w-5 text-center">
+                              {item.qty}
+                            </span>
+                            <button
+                              onClick={() => updateQty(idx, 1)}
+                              className="w-6 h-6 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg flex items-center justify-center text-slate-700 dark:text-slate-300"
+                            >
+                              <Plus className="w-3 h-3" />
+                            </button>
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-right font-mono font-bold text-slate-900 dark:text-white">
+                          ₹{(itemPrice * item.qty).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <button
+                            onClick={() => removeFromCart(idx)}
+                            className="text-slate-400 hover:text-rose-600 p-1 transition-colors"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })
+                )}
+              </TableBody>
+            </Table>
+          </Card>
         </div>
 
         {/* RIGHT: Checkout & Summary Panel (4 cols) */}
-        <div className="lg:col-span-4 bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl shadow-xs p-4 space-y-4">
+        <Card className="lg:col-span-4 p-4 space-y-4">
           {/* Customer Details */}
           <div className="p-3.5 bg-slate-50 dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-700/60 rounded-xl space-y-2.5">
             <span className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
               <User className="w-3.5 h-3.5 text-indigo-600" /> Customer Information
             </span>
             <div className="space-y-2">
-              <input
+              <Input
                 type="text"
                 placeholder="Customer Name"
                 value={customerName}
                 onChange={(e) => setCustomerName(e.target.value)}
-                className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-slate-900 dark:text-white focus:outline-none"
+                className="bg-white dark:bg-slate-900"
               />
               <div className="grid grid-cols-2 gap-2">
-                <input
+                <Input
                   type="text"
                   placeholder="Phone (+91...)"
                   maxLength={10}
                   value={customerPhone}
                   onChange={(e) => setCustomerPhone(e.target.value.replace(/\D/g, ''))}
-                  className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-slate-900 dark:text-white focus:outline-none font-mono"
+                  className="bg-white dark:bg-slate-900 font-mono"
                 />
-                <input
+                <Input
                   type="email"
                   placeholder="Email"
                   value={customerEmail}
                   onChange={(e) => setCustomerEmail(e.target.value)}
-                  className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-slate-900 dark:text-white focus:outline-none"
+                  className="bg-white dark:bg-slate-900"
                 />
               </div>
             </div>
 
             {/* Quick Share Links */}
             {(saleChannel === 'whatsapp' || saleChannel === 'instagram') && (
-              <button
+              <Button
                 onClick={handleShareWhatsApp}
-                className={`w-full py-2 rounded-lg text-xs font-bold flex items-center justify-center gap-2 transition-all ${
+                className={`w-full text-xs font-bold ${
                   saleChannel === 'whatsapp'
                     ? 'bg-emerald-600 hover:bg-emerald-700 text-white'
                     : 'bg-purple-600 hover:bg-purple-700 text-white'
                 }`}
               >
                 {saleChannel === 'whatsapp' ? (
-                  <MessageCircle className="w-3.5 h-3.5" />
+                  <MessageCircle className="w-3.5 h-3.5 mr-1" />
                 ) : (
-                  <InstagramIcon className="w-3.5 h-3.5" />
+                  <InstagramIcon className="w-3.5 h-3.5 mr-1" />
                 )}
                 Share Cart via {saleChannel === 'whatsapp' ? 'WhatsApp' : 'Instagram'}
-              </button>
+              </Button>
             )}
           </div>
 
           {/* Coupons & Manual Discount */}
           <div className="grid grid-cols-2 gap-2.5">
             <div className="space-y-1">
-              <label className="block text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
-                Promo Coupon
-              </label>
+              <Label className="text-[9px]">Promo Coupon</Label>
               <div className="flex gap-1">
-                <input
+                <Input
                   type="text"
                   placeholder="CODE"
                   value={couponCode}
                   onChange={(e) => setCouponCode(e.target.value)}
-                  className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-2 py-1.5 text-[10px] uppercase text-slate-900 dark:text-white focus:outline-none font-mono"
+                  className="uppercase font-mono text-[10px]"
                 />
-                <button
+                <Button
+                  size="sm"
+                  variant="secondary"
                   onClick={handleApplyCoupon}
-                  className="px-2.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-lg text-[9px] font-bold transition-colors"
+                  className="px-2.5 text-[9px] font-bold"
                 >
                   Apply
-                </button>
+                </Button>
               </div>
               {appliedCoupon && (
                 <p className="text-[9px] text-emerald-600 font-bold flex items-center gap-1">
@@ -865,15 +891,13 @@ export default function PosTerminal({ products, categories, coupons, onOrderCrea
               )}
             </div>
             <div className="space-y-1">
-              <label className="block text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
-                Flat Discount (₹)
-              </label>
-              <input
+              <Label className="text-[9px]">Flat Discount (₹)</Label>
+              <Input
                 type="number"
                 placeholder="0"
                 value={customDiscount || ''}
                 onChange={(e) => setCustomDiscount(Math.max(0, parseFloat(e.target.value) || 0))}
-                className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-1.5 text-xs text-right text-slate-900 dark:text-white focus:outline-none font-mono"
+                className="text-right font-mono text-xs"
               />
             </div>
           </div>
@@ -881,13 +905,11 @@ export default function PosTerminal({ products, categories, coupons, onOrderCrea
           {/* GST & Payment Selector */}
           <div className="grid grid-cols-2 gap-2.5 border-t border-slate-100 dark:border-slate-800 pt-3">
             <div className="space-y-1">
-              <label className="block text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
-                GST Rate
-              </label>
+              <Label className="text-[9px]">GST Rate</Label>
               <select
                 value={gstRate}
                 onChange={(e) => setGstRate(Number(e.target.value))}
-                className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-2 py-1.5 text-xs text-slate-900 dark:text-white focus:outline-none"
+                className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-2 py-1.5 text-xs text-slate-900 dark:text-white focus:outline-none"
               >
                 <option value="0">0% Exempt</option>
                 <option value="5">5% GST (Footwear)</option>
@@ -896,13 +918,11 @@ export default function PosTerminal({ products, categories, coupons, onOrderCrea
               </select>
             </div>
             <div className="space-y-1">
-              <label className="block text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
-                Payment Mode
-              </label>
+              <Label className="text-[9px]">Payment Mode</Label>
               <select
                 value={paymentMethod}
                 onChange={(e) => setPaymentMethod(e.target.value as PaymentMethod)}
-                className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-2 py-1.5 text-xs text-slate-900 dark:text-white focus:outline-none"
+                className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-2 py-1.5 text-xs text-slate-900 dark:text-white focus:outline-none"
               >
                 <option value="cash">💵 Cash Payment</option>
                 <option value="upi">📱 UPI / QR Scan</option>
@@ -940,10 +960,10 @@ export default function PosTerminal({ products, categories, coupons, onOrderCrea
           </div>
 
           {/* Complete Checkout Button */}
-          <button
+          <Button
             onClick={handleCheckout}
             disabled={cart.length === 0}
-            className={`w-full py-3.5 text-white font-bold rounded-xl text-xs uppercase tracking-wider transition-all shadow-xs disabled:opacity-40 flex items-center justify-center gap-2 ${
+            className={`w-full py-3.5 text-white font-bold text-xs uppercase tracking-wider ${
               saleChannel === 'whatsapp'
                 ? 'bg-emerald-600 hover:bg-emerald-700'
                 : saleChannel === 'instagram'
@@ -952,123 +972,96 @@ export default function PosTerminal({ products, categories, coupons, onOrderCrea
             }`}
           >
             {paymentIcons[paymentMethod]}
-            {saleChannel === 'whatsapp'
-              ? 'Confirm WhatsApp Sale'
-              : saleChannel === 'instagram'
-              ? 'Confirm Instagram Sale'
-              : 'Complete Sale & Print'}
-          </button>
-        </div>
+            <span className="ml-1.5">
+              {saleChannel === 'whatsapp'
+                ? 'Confirm WhatsApp Sale'
+                : saleChannel === 'instagram'
+                ? 'Confirm Instagram Sale'
+                : 'Complete Sale & Print'}
+            </span>
+          </Button>
+        </Card>
       </div>
 
-      {/* Cash Drawer Modal */}
-      {showDrawerManager && (
-        <div className="fixed inset-0 z-50 flex justify-end">
-          <div
-            onClick={() => setShowDrawerManager(false)}
-            className="absolute inset-0 bg-slate-900/60 backdrop-blur-xs"
-          />
-          <div className="w-full max-w-md bg-white dark:bg-slate-900 border-l border-slate-200 dark:border-slate-800 shadow-2xl relative z-10 p-6 flex flex-col justify-between h-full overflow-y-auto">
-            <div className="space-y-5">
-              <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-4">
-                <h3 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
-                  <DollarSign className="w-4 h-4 text-emerald-500" /> Cash Drawer Ledger
-                </h3>
-                <button
-                  onClick={() => setShowDrawerManager(false)}
-                  className="p-1 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              </div>
+      {/* Cash Drawer Dialog */}
+      <Dialog open={showDrawerManager} onOpenChange={setShowDrawerManager}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-1.5 text-sm">
+              <DollarSign className="w-4 h-4 text-emerald-500" /> Cash Drawer Ledger
+            </DialogTitle>
+            <DialogDescription>Track daily opening float and cash outflows</DialogDescription>
+          </DialogHeader>
 
-              <div className="grid grid-cols-2 gap-3">
-                <div className="bg-slate-50 dark:bg-slate-800/60 p-3.5 border border-slate-200/60 dark:border-slate-700/60 rounded-xl">
-                  <span className="block text-[9px] font-bold text-slate-400 uppercase tracking-wider">
-                    Opening Float
-                  </span>
-                  <input
-                    type="number"
-                    value={drawerStartCash}
-                    onChange={(e) =>
-                      setDrawerStartCash(Math.max(0, parseFloat(e.target.value) || 0))
-                    }
-                    className="w-full bg-transparent border-b border-slate-200 dark:border-slate-700 text-lg font-bold font-mono text-slate-900 dark:text-white mt-1 py-0.5 focus:outline-none"
-                  />
-                </div>
-                <div className="bg-emerald-50 dark:bg-emerald-950/40 p-3.5 border border-emerald-200/60 dark:border-emerald-800/50 rounded-xl">
-                  <span className="block text-[9px] font-bold text-emerald-700 dark:text-emerald-400 uppercase tracking-wider">
-                    Drawer Balance
-                  </span>
-                  <span className="block text-lg font-bold font-mono text-emerald-700 dark:text-emerald-400 mt-1">
-                    ₹{currentDrawerCash.toFixed(0)}
-                  </span>
-                </div>
-              </div>
-
-              <form
-                onSubmit={handleAddCashDrop}
-                className="p-3.5 bg-slate-50 dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-700/60 rounded-xl space-y-3"
-              >
-                <span className="block text-[10px] font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
-                  Record Outflow / Drop
+          <div className="space-y-4 my-2 text-xs">
+            <div className="grid grid-cols-2 gap-3">
+              <div className="bg-slate-50 dark:bg-slate-800/60 p-3.5 border border-slate-200/60 dark:border-slate-700/60 rounded-xl">
+                <span className="block text-[9px] font-bold text-slate-400 uppercase tracking-wider">
+                  Opening Float
                 </span>
-                <div>
-                  <label className="block text-[9px] font-bold text-slate-400 uppercase mb-1">
-                    Amount (₹)
-                  </label>
-                  <input
-                    type="number"
-                    required
-                    value={dropAmount || ''}
-                    onChange={(e) =>
-                      setDropAmount(Math.max(0, parseFloat(e.target.value) || 0))
-                    }
-                    placeholder="0.00"
-                    className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-2.5 py-1.5 text-xs font-mono text-slate-900 dark:text-white focus:outline-none"
-                  />
-                </div>
-                <div>
-                  <label className="block text-[9px] font-bold text-slate-400 uppercase mb-1">
-                    Reason
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={dropReason}
-                    onChange={(e) => setDropReason(e.target.value)}
-                    placeholder="e.g. Bank deposit, vendor payout"
-                    className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-slate-900 dark:text-white focus:outline-none"
-                  />
-                </div>
-                <button
-                  type="submit"
-                  className="w-full py-2 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-lg text-xs uppercase tracking-wider transition-colors"
-                >
-                  Record Outflow
-                </button>
-              </form>
+                <input
+                  type="number"
+                  value={drawerStartCash}
+                  onChange={(e) =>
+                    setDrawerStartCash(Math.max(0, parseFloat(e.target.value) || 0))
+                  }
+                  className="w-full bg-transparent border-b border-slate-200 dark:border-slate-700 text-lg font-bold font-mono text-slate-900 dark:text-white mt-1 py-0.5 focus:outline-none"
+                />
+              </div>
+              <div className="bg-emerald-50 dark:bg-emerald-950/40 p-3.5 border border-emerald-200/60 dark:border-emerald-800/50 rounded-xl">
+                <span className="block text-[9px] font-bold text-emerald-700 dark:text-emerald-400 uppercase tracking-wider">
+                  Drawer Balance
+                </span>
+                <span className="block text-lg font-bold font-mono text-emerald-700 dark:text-emerald-400 mt-1">
+                  ₹{currentDrawerCash.toFixed(0)}
+                </span>
+              </div>
             </div>
 
-            <button
-              onClick={() => setShowDrawerManager(false)}
-              className="w-full mt-6 py-2.5 bg-slate-900 hover:bg-slate-800 dark:bg-slate-800 dark:hover:bg-slate-700 text-white font-semibold rounded-xl text-xs uppercase transition-colors"
+            <form
+              onSubmit={handleAddCashDrop}
+              className="p-3.5 bg-slate-50 dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-700/60 rounded-xl space-y-3"
             >
-              Close Ledger
-            </button>
+              <span className="block text-[10px] font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
+                Record Outflow / Drop
+              </span>
+              <div>
+                <Label className="mb-1">Amount (₹)</Label>
+                <Input
+                  type="number"
+                  required
+                  value={dropAmount || ''}
+                  onChange={(e) =>
+                    setDropAmount(Math.max(0, parseFloat(e.target.value) || 0))
+                  }
+                  placeholder="0.00"
+                  className="bg-white dark:bg-slate-900 font-mono text-xs"
+                />
+              </div>
+              <div>
+                <Label className="mb-1">Reason</Label>
+                <Input
+                  type="text"
+                  required
+                  value={dropReason}
+                  onChange={(e) => setDropReason(e.target.value)}
+                  placeholder="e.g. Bank deposit, vendor payout"
+                  className="bg-white dark:bg-slate-900 text-xs"
+                />
+              </div>
+              <Button type="submit" variant="destructive" className="w-full text-xs font-bold">
+                Record Outflow
+              </Button>
+            </form>
           </div>
-        </div>
-      )}
+        </DialogContent>
+      </Dialog>
 
-      {/* Invoice Print Modal */}
-      {printedOrder && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div
-            onClick={() => setPrintedOrder(null)}
-            className="absolute inset-0 bg-slate-900/60 backdrop-blur-xs"
-          />
-          <div className="bg-white text-slate-900 p-6 w-full max-w-sm rounded-2xl shadow-2xl relative z-10 flex flex-col items-center">
-            <div className="w-full text-center space-y-1 font-mono border-b border-dashed border-slate-300 pb-4 mb-4 text-[10px]">
+      {/* Invoice Print Dialog */}
+      <Dialog open={!!printedOrder} onOpenChange={(open) => !open && setPrintedOrder(null)}>
+        {printedOrder && (
+          <DialogContent className="sm:max-w-sm bg-white text-slate-900">
+            <div className="w-full text-center space-y-1 font-mono border-b border-dashed border-slate-300 pb-4 mb-2 text-[10px]">
               <h2 className="text-sm font-bold tracking-widest uppercase">HeelsUp Boutique</h2>
               <p>DLF Phase 4, Galleria Market, Gurugram</p>
               <p>Tel: +91 99999-88888 | GSTIN: 06AAAAA1111A1Z1</p>
@@ -1081,7 +1074,7 @@ export default function PosTerminal({ products, categories, coupons, onOrderCrea
               <p>Channel: {saleChannel.toUpperCase()}</p>
             </div>
 
-            <div className="w-full text-left font-mono text-[9px] border-b border-dashed border-slate-300 pb-3 mb-3 space-y-0.5">
+            <div className="w-full text-left font-mono text-[9px] border-b border-dashed border-slate-300 pb-3 mb-2 space-y-0.5">
               <p>
                 <strong>Customer:</strong> {printedOrder.customer_name}
               </p>
@@ -1095,13 +1088,13 @@ export default function PosTerminal({ products, categories, coupons, onOrderCrea
               )}
             </div>
 
-            <div className="w-full font-mono text-[10px] border-b border-dashed border-slate-300 pb-3 mb-3">
+            <div className="w-full font-mono text-[10px] border-b border-dashed border-slate-300 pb-3 mb-2">
               <div className="flex justify-between font-bold border-b border-slate-200 pb-1 mb-1">
                 <span className="w-1/2">Item</span>
                 <span className="w-1/6 text-center">Qty</span>
                 <span className="w-1/3 text-right">Amount</span>
               </div>
-              <div className="space-y-1.5">
+              <div className="space-y-1.5 max-h-48 overflow-y-auto">
                 {printedOrder.items?.map((item: any, idx: number) => (
                   <div key={idx} className="flex justify-between text-[9px]">
                     <div className="w-1/2 min-w-0 truncate">
@@ -1119,7 +1112,7 @@ export default function PosTerminal({ products, categories, coupons, onOrderCrea
               </div>
             </div>
 
-            <div className="w-full font-mono text-[10px] space-y-1 border-b border-dashed border-slate-300 pb-3 mb-4">
+            <div className="w-full font-mono text-[10px] space-y-1 border-b border-dashed border-slate-300 pb-3 mb-2">
               <div className="flex justify-between">
                 <span>Subtotal:</span>
                 <span>₹{printedOrder.subtotal_amount?.toFixed(2)}</span>
@@ -1138,22 +1131,23 @@ export default function PosTerminal({ products, categories, coupons, onOrderCrea
             </div>
 
             <div className="flex gap-2.5 mt-2 w-full">
-              <button
+              <Button
                 onClick={() => window.print()}
-                className="flex-1 py-2.5 bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-xl text-xs uppercase tracking-wider flex items-center justify-center gap-1.5 transition-colors"
+                className="flex-1 text-xs font-bold uppercase tracking-wider"
               >
-                <Printer className="w-3.5 h-3.5" /> Print
-              </button>
-              <button
+                <Printer className="w-3.5 h-3.5 mr-1" /> Print
+              </Button>
+              <Button
+                variant="outline"
                 onClick={() => setPrintedOrder(null)}
-                className="flex-1 py-2.5 border border-slate-200 text-slate-700 font-bold rounded-xl text-xs uppercase tracking-wider hover:bg-slate-50 transition-colors"
+                className="flex-1 text-xs font-bold uppercase tracking-wider"
               >
                 Done
-              </button>
+              </Button>
             </div>
-          </div>
-        </div>
-      )}
+          </DialogContent>
+        )}
+      </Dialog>
     </div>
   );
 }

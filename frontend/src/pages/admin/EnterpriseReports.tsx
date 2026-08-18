@@ -13,6 +13,11 @@ import {
   Bar,
   Cell,
 } from 'recharts';
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '../../components/ui/card';
+import { Badge } from '../../components/ui/badge';
+import { Button } from '../../components/ui/button';
+import { Input } from '../../components/ui/input';
+import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from '../../components/ui/table';
 
 interface EnterpriseReportsProps {
   orders: any[];
@@ -142,303 +147,244 @@ export default function EnterpriseReports({ orders, products }: EnterpriseReport
         dailyData[dateStr] = (dailyData[dateStr] || 0) + o.total_amount;
       }
     });
-    return Object.keys(dailyData)
-      .sort()
-      .map((d) => ({
-        date: d,
-        Revenue: dailyData[d],
-      }));
+
+    return Object.entries(dailyData)
+      .map(([date, revenue]) => ({
+        date: date.slice(5),
+        revenue: Math.round(revenue),
+      }))
+      .sort((a, b) => a.date.localeCompare(b.date));
   }, [orders, dateFrom, dateTo]);
 
-  const rechartsBarData = useMemo(() => {
-    const counts: { [key: string]: number } = {};
-    products.forEach((p) => {
-      counts[p.category] = (counts[p.category] || 0) + 1;
-    });
-    return Object.keys(counts)
-      .slice(0, 5)
-      .map((cat) => ({
-        name: cat,
-        Products: counts[cat],
-      }));
-  }, [products]);
-
-  // CSV Exporter
-  const exportCsv = () => {
+  // Export CSV
+  const handleExportCsv = () => {
     if (compiledData.length === 0) return;
     const headers = Object.keys(compiledData[0]);
     const csvContent = [
       headers.join(','),
       ...compiledData.map((row) =>
-        headers.map((header) => `"${String(row[header]).replace(/"/g, '""')}"`).join(',')
+        headers
+          .map((h) => `"${String(row[h] || '').replace(/"/g, '""')}"`)
+          .join(',')
       ),
     ].join('\n');
 
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
     link.href = URL.createObjectURL(blob);
-    link.setAttribute('download', `heelsup_${reportType}_report.csv`);
+    link.setAttribute('download', `heelsup_${reportType}_report_${dateFrom}_to_${dateTo}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-    showToast('success', 'CSV Saved', `Successfully exported compiled report.`);
+    showToast('success', 'Report Downloaded', 'CSV report saved to your disk.');
   };
 
   return (
     <div className="space-y-5 antialiased">
-      {/* Top Header Card with Filters */}
-      <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 p-5 rounded-2xl shadow-xs flex flex-wrap items-center justify-between gap-4">
+      {/* Header Bar */}
+      <Card className="p-5 flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h2 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+          <CardTitle className="text-lg flex items-center gap-2">
             <BarChart3 className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
             Enterprise Analytics & Financial Reports
-          </h2>
-          <p className="text-xs text-slate-500 dark:text-slate-400">
-            Export gross revenue metrics, inventory asset valuations, and sales velocity logs
-          </p>
+          </CardTitle>
+          <CardDescription>
+            Gross merchandise value (GMV), inventory valuation, and multi-channel reconciliation
+          </CardDescription>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2.5">
-          <select
-            value={reportType}
-            onChange={(e) => {
-              setReportType(e.target.value as any);
-              setCompiledData([]);
-            }}
-            className="bg-slate-50 dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700 rounded-xl px-3 py-2 text-xs font-semibold text-slate-900 dark:text-white focus:outline-none"
-          >
-            <option value="sales">Sales Volume Report</option>
-            <option value="inventory">Inventory Asset Summary</option>
-          </select>
+        <div className="flex items-center gap-2">
+          {compiledData.length > 0 && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleExportCsv}
+              className="text-xs font-semibold"
+            >
+              <Download className="w-3.5 h-3.5 mr-1" /> Export CSV
+            </Button>
+          )}
 
-          <div className="flex items-center gap-1.5 text-xs text-slate-500">
-            <input
-              type="date"
-              value={dateFrom}
-              onChange={(e) => setDateFrom(e.target.value)}
-              className="bg-slate-50 dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700 rounded-xl px-2.5 py-1.5 text-xs text-slate-900 dark:text-white font-mono"
-            />
-            <span>to</span>
-            <input
-              type="date"
-              value={dateTo}
-              onChange={(e) => setDateTo(e.target.value)}
-              className="bg-slate-50 dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700 rounded-xl px-2.5 py-1.5 text-xs text-slate-900 dark:text-white font-mono"
-            />
-          </div>
-
-          <button
+          <Button
+            size="sm"
             onClick={handleCompileReport}
-            className="px-4 py-2 bg-slate-900 hover:bg-slate-800 dark:bg-indigo-600 dark:hover:bg-indigo-700 text-white font-bold rounded-xl text-xs flex items-center gap-1.5 transition-colors shadow-xs"
+            disabled={loading}
+            className="text-xs font-bold"
           >
-            Generate Report
-          </button>
+            <RefreshCw className={`w-3.5 h-3.5 mr-1 ${loading ? 'animate-spin' : ''}`} />
+            Compile Report
+          </Button>
         </div>
-      </div>
+      </Card>
 
-      {/* Aggregate Cards Grid */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 p-4 rounded-2xl shadow-xs">
-          <span className="block text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
+      {/* KPI Cards */}
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-3.5">
+        <Card className="p-4">
+          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
             Gross Revenue
           </span>
-          <span className="block text-xl font-bold font-mono text-slate-900 dark:text-white mt-1">
-            ₹{stats.totalSales.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+          <span className="text-xl font-bold font-mono text-slate-900 dark:text-white mt-1 block">
+            ₹{stats.totalSales.toLocaleString('en-IN', { maximumFractionDigits: 0 })}
           </span>
-          <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold mt-0.5 block">
-            Completed order turnover
-          </span>
-        </div>
+        </Card>
 
-        <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 p-4 rounded-2xl shadow-xs">
-          <span className="block text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
-            Total Orders
+        <Card className="p-4">
+          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+            Orders Count
           </span>
-          <span className="block text-xl font-bold font-mono text-slate-900 dark:text-white mt-1">
+          <span className="text-xl font-bold font-mono text-slate-900 dark:text-white mt-1 block">
             {stats.totalOrders}
           </span>
-          <span className="text-[10px] text-slate-400 mt-0.5 block">In selected time window</span>
-        </div>
+        </Card>
 
-        <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 p-4 rounded-2xl shadow-xs">
-          <span className="block text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
-            Average Ticket Size (AOV)
+        <Card className="p-4">
+          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+            Units Sold
           </span>
-          <span className="block text-xl font-bold font-mono text-slate-900 dark:text-white mt-1">
-            ₹{stats.avgOrder.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+          <span className="text-xl font-bold font-mono text-slate-900 dark:text-white mt-1 block">
+            {stats.totalQty}
           </span>
-          <span className="text-[10px] text-indigo-600 dark:text-indigo-400 font-semibold mt-0.5 block">
-            Per fulfilled basket
-          </span>
-        </div>
+        </Card>
 
-        <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 p-4 rounded-2xl shadow-xs">
-          <span className="block text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
+        <Card className="p-4">
+          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+            Avg Order Value
+          </span>
+          <span className="text-xl font-bold font-mono text-slate-900 dark:text-white mt-1 block">
+            ₹{stats.avgOrder.toFixed(0)}
+          </span>
+        </Card>
+
+        <Card className="p-4">
+          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
             Cancellation Rate
           </span>
-          <span className="block text-xl font-bold font-mono text-rose-600 dark:text-rose-400 mt-1">
+          <span className="text-xl font-bold font-mono text-rose-600 dark:text-rose-400 mt-1 block">
             {stats.cancelRate.toFixed(1)}%
           </span>
-          <span className="text-[10px] text-rose-600/80 font-semibold mt-0.5 block">Bounced / RTO orders</span>
-        </div>
+        </Card>
       </div>
 
-      {/* Visual Charts Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
-        {/* Sales trend area chart */}
-        <div className="lg:col-span-8 bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-5 shadow-xs space-y-3">
-          <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
-            <h3 className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-1.5">
-              <TrendingUp className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
-              Daily Revenue Trajectory
-            </h3>
-            <span className="text-[10px] font-mono text-slate-400">Timeframe: {dateFrom} to {dateTo}</span>
-          </div>
-
-          <div className="h-56 relative pt-2">
-            {rechartsDailyData.length === 0 ? (
-              <div className="h-full flex items-center justify-center text-xs text-slate-400 italic">
-                No revenue transactions recorded in target timeframe.
-              </div>
-            ) : (
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={rechartsDailyData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
-                  <defs>
-                    <linearGradient id="colorReportRevenue" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#4f46e5" stopOpacity={0.3} />
-                      <stop offset="95%" stopColor="#4f46e5" stopOpacity={0.0} />
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(148, 163, 184, 0.15)" />
-                  <XAxis dataKey="date" stroke="#94a3b8" fontSize={10} tickLine={false} axisLine={false} />
-                  <YAxis
-                    stroke="#94a3b8"
-                    fontSize={10}
-                    tickLine={false}
-                    axisLine={false}
-                    tickFormatter={(val) => `₹${val >= 1000 ? `${(val / 1000).toFixed(0)}k` : val}`}
-                  />
-                  <Tooltip
-                    contentStyle={{
-                      backgroundColor: 'rgba(15, 23, 42, 0.95)',
-                      borderRadius: '12px',
-                      color: '#ffffff',
-                      border: '1px solid rgba(255,255,255,0.1)',
-                      fontSize: '11px',
-                    }}
-                    formatter={(value: any) => [`₹${value.toLocaleString('en-IN')}`, 'Revenue']}
-                  />
-                  <Area
-                    type="monotone"
-                    dataKey="Revenue"
-                    stroke="#4f46e5"
-                    strokeWidth={2}
-                    fillOpacity={1}
-                    fill="url(#colorReportRevenue)"
-                  />
-                </AreaChart>
-              </ResponsiveContainer>
-            )}
-          </div>
-        </div>
-
-        {/* Category distribution bar chart */}
-        <div className="lg:col-span-4 bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-5 shadow-xs space-y-3">
-          <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
-            <h3 className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-1.5">
-              <Tag className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
-              Category Inventory Share
-            </h3>
-          </div>
-
-          <div className="h-56 relative pt-2">
-            {rechartsBarData.length === 0 ? (
-              <div className="h-full flex items-center justify-center text-xs text-slate-400 italic">
-                No product styles cataloged.
-              </div>
-            ) : (
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={rechartsBarData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(148, 163, 184, 0.15)" />
-                  <XAxis dataKey="name" stroke="#94a3b8" fontSize={9} tickLine={false} axisLine={false} />
-                  <YAxis stroke="#94a3b8" fontSize={10} tickLine={false} axisLine={false} />
-                  <Tooltip
-                    contentStyle={{
-                      backgroundColor: 'rgba(15, 23, 42, 0.95)',
-                      borderRadius: '12px',
-                      color: '#ffffff',
-                      border: '1px solid rgba(255,255,255,0.1)',
-                      fontSize: '11px',
-                    }}
-                  />
-                  <Bar dataKey="Products" radius={[6, 6, 0, 0]}>
-                    {rechartsBarData.map((entry, index) => {
-                      const COLORS = ['#4f46e5', '#06b6d4', '#10b981', '#f59e0b', '#ec4899'];
-                      return <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />;
-                    })}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* Compiled Dataset Table Card */}
-      <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl overflow-hidden shadow-xs">
-        <div className="flex justify-between items-center p-4 bg-slate-50/80 dark:bg-slate-800/60 border-b border-slate-200/80 dark:border-slate-800">
-          <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-            Compiled Dataset ({compiledData.length} records)
-          </span>
-          {compiledData.length > 0 && (
-            <button
-              onClick={exportCsv}
-              className="px-3 py-1.5 bg-slate-900 hover:bg-slate-800 dark:bg-indigo-600 dark:hover:bg-indigo-700 text-white text-xs font-bold rounded-xl flex items-center gap-1.5 transition-colors shadow-xs"
+      {/* Date Range & Segment Selectors */}
+      <Card className="p-4 flex flex-wrap items-center justify-between gap-4">
+        <div className="flex items-center gap-1.5 flex-wrap">
+          {(['sales', 'inventory', 'returns'] as const).map((t) => (
+            <Button
+              key={t}
+              size="sm"
+              variant={reportType === t ? 'default' : 'outline'}
+              onClick={() => {
+                setReportType(t);
+                setCompiledData([]);
+              }}
+              className="text-xs font-semibold capitalize"
             >
-              <Download className="w-3.5 h-3.5" /> Export Dataset (CSV)
-            </button>
-          )}
+              {t} Breakdown
+            </Button>
+          ))}
         </div>
 
-        {loading ? (
-          <div className="py-20 text-center text-xs text-slate-400 flex items-center justify-center gap-2">
-            <RefreshCw className="w-4 h-4 animate-spin text-indigo-600" /> Aggregating records...
+        <div className="flex items-center gap-2 text-xs">
+          <span className="text-slate-400 font-semibold">Period:</span>
+          <Input
+            type="date"
+            value={dateFrom}
+            onChange={(e) => setDateFrom(e.target.value)}
+            className="w-36 h-8 text-xs font-mono"
+          />
+          <span className="text-slate-400">to</span>
+          <Input
+            type="date"
+            value={dateTo}
+            onChange={(e) => setDateTo(e.target.value)}
+            className="w-36 h-8 text-xs font-mono"
+          />
+        </div>
+      </Card>
+
+      {/* Revenue Trend Chart */}
+      <Card className="p-5">
+        <div className="flex items-center justify-between mb-4">
+          <CardTitle className="text-xs font-bold uppercase tracking-wider flex items-center gap-1.5">
+            <TrendingUp className="w-4 h-4 text-indigo-600" />
+            Revenue Velocity Trend
+          </CardTitle>
+          <Badge variant="secondary" className="font-mono text-[10px]">
+            Daily GMV (INR)
+          </Badge>
+        </div>
+
+        <div className="h-64 w-full">
+          <ResponsiveContainer width="100%" height="100%">
+            <AreaChart data={rechartsDailyData}>
+              <defs>
+                <linearGradient id="colorReportsRev" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#4f46e5" stopOpacity={0.3} />
+                  <stop offset="95%" stopColor="#4f46e5" stopOpacity={0} />
+                </linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="3 3" stroke="#334155" opacity={0.15} />
+              <XAxis dataKey="date" stroke="#94a3b8" fontSize={10} tickLine={false} />
+              <YAxis
+                stroke="#94a3b8"
+                fontSize={10}
+                tickLine={false}
+                tickFormatter={(val) => `₹${val / 1000}k`}
+              />
+              <Tooltip
+                contentStyle={{
+                  backgroundColor: '#0f172a',
+                  borderColor: '#1e293b',
+                  borderRadius: '0.75rem',
+                  fontSize: '11px',
+                  color: '#fff',
+                }}
+                formatter={(val: any) => [`₹${Number(val).toLocaleString('en-IN')}`, 'Revenue']}
+              />
+              <Area
+                type="monotone"
+                dataKey="revenue"
+                stroke="#4f46e5"
+                strokeWidth={2}
+                fillOpacity={1}
+                fill="url(#colorReportsRev)"
+              />
+            </AreaChart>
+          </ResponsiveContainer>
+        </div>
+      </Card>
+
+      {/* Compiled Data Table */}
+      {compiledData.length > 0 && (
+        <Card className="overflow-hidden">
+          <div className="px-5 py-3.5 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/40">
+            <h3 className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider">
+              {reportType.toUpperCase()} DATASET ({compiledData.length} ROWS)
+            </h3>
           </div>
-        ) : compiledData.length === 0 ? (
-          <div className="py-20 text-center text-xs text-slate-400 flex flex-col items-center gap-2">
-            <Info className="w-5 h-5 text-slate-400" />
-            No report dataset compiled yet. Click "Generate Report" above.
-          </div>
-        ) : (
-          <div className="overflow-x-auto max-h-[45vh]">
-            <table className="w-full text-xs text-left border-collapse font-mono">
-              <thead>
-                <tr className="bg-slate-50/80 dark:bg-slate-800/60 text-slate-500 dark:text-slate-400 border-b border-slate-200/80 dark:border-slate-800">
-                  {Object.keys(compiledData[0] || {}).map((k) => (
-                    <th key={k} className="p-3 font-semibold uppercase tracking-wider">
-                      {k}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100 dark:divide-slate-800/80 font-sans">
-                {compiledData.map((row, idx) => (
-                  <tr
-                    key={idx}
-                    className="hover:bg-slate-50/60 dark:hover:bg-slate-800/40 transition-colors text-slate-900 dark:text-white text-xs"
-                  >
-                    {Object.keys(row).map((k) => (
-                      <td key={k} className="p-3 max-w-xs truncate font-mono">
-                        {String(row[k] ?? '0')}
-                      </td>
-                    ))}
-                  </tr>
+
+          <Table>
+            <TableHeader>
+              <TableRow>
+                {Object.keys(compiledData[0]).map((h) => (
+                  <TableHead key={h}>{h}</TableHead>
                 ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {compiledData.map((row, idx) => (
+                <TableRow key={idx}>
+                  {Object.keys(row).map((k) => (
+                    <TableCell key={k} className="font-mono text-xs">
+                      {row[k]}
+                    </TableCell>
+                  ))}
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </Card>
+      )}
     </div>
   );
 }

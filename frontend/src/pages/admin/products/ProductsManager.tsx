@@ -6,6 +6,7 @@ import React, { useState } from 'react';
 import ProductList from './ProductList';
 import ProductForm from './ProductForm';
 import BulkImport from './BulkImport';
+import ProductDetail from './ProductDetail';
 import type { AdminProduct, Category } from './productTypes';
 import type { Product } from '../types';
 

@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
-import { ChevronLeft, ChevronRight, Star, Heart, ArrowRight, X } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Star, Heart, ArrowRight, X, MessageSquareQuote } from 'lucide-react'
 import { useWishlistStore } from '../store/useWishlistStore'
 import { useCartStore } from '../store/useCartStore'
 import { useToastStore } from '../store/useToastStore'
 import { GoogleReviewsWidget } from '../components/GoogleReviewsWidget'
+import HeicImage from '../components/HeicImage'
 import { useQuery } from '@tanstack/react-query'
 import { cacheProductData, prefetchProductApi } from '../utils/productCache'
 

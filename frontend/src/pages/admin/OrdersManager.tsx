@@ -20,6 +20,14 @@ import {
   User,
   CreditCard
 } from 'lucide-react';
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '../../components/ui/card';
+import { Badge } from '../../components/ui/badge';
+import { Button } from '../../components/ui/button';
+import { Input } from '../../components/ui/input';
+import { Label } from '../../components/ui/label';
+import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from '../../components/ui/table';
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '../../components/ui/sheet';
+import { Separator } from '../../components/ui/separator';
 
 interface OrderItem {
   id: any;
@@ -147,136 +155,113 @@ export default function OrdersManager({ orders, token, onRefresh }: OrdersManage
           courier_name: courierName.trim(),
         }),
       });
+
       const data = await res.json();
-      if (data.success) {
-        showToast('success', 'Order Saved', `Order #${selectedOrder.order_number} record updated.`);
-        setSelectedOrder(null);
-        onRefresh();
-      } else {
-        showToast('error', 'Update Error', data.error || 'Server rejected changes.');
+      if (!data.success) {
+        throw new Error(data.error || 'Failed to update order');
       }
-    } catch {
-      showToast('error', 'Connection Failure', 'Failed to connect to billing server.');
+
+      showToast('success', 'Order Synchronized', `Order #${selectedOrder.order_number} status updated.`);
+      setSelectedOrder(null);
+      onRefresh();
+    } catch (err: any) {
+      showToast('error', 'Update Error', err.message || 'Could not update order status');
     } finally {
       setUpdatingStatus(false);
     }
   };
 
-  // Helper: Print invoice
-  const handlePrintInvoice = (order: Order) => {
+  const formatCurrency = (val: number) => {
+    return new Intl.NumberFormat('en-IN', {
+      style: 'currency',
+      currency: 'INR',
+      maximumFractionDigits: 0,
+    }).format(val / 100);
+  };
+
+  const printInvoice = (order: Order) => {
     const printWindow = window.open('', '_blank');
     if (!printWindow) return;
 
-    const itemsRows = order.items
-      .map(
-        (item) => `
-      <tr style="border-bottom: 1px solid #e2e8f0; font-size: 12px;">
-        <td style="padding: 12px 0;">
-          <strong style="color: #0f172a;">${item.product_name}</strong><br/>
-          <span style="font-size: 10px; color: #64748b;">Size: UK-${item.size} ${item.color ? `&middot; ${item.color}` : ''}</span>
-        </td>
-        <td style="padding: 12px 0; text-align: center; font-family: monospace;">${item.quantity}</td>
-        <td style="padding: 12px 0; text-align: right; font-family: monospace;">₹${(item.price / 100).toFixed(2)}</td>
-        <td style="padding: 12px 0; text-align: right; font-family: monospace; font-weight: bold;">₹${((item.price * item.quantity) / 100).toFixed(2)}</td>
-      </tr>
-    `
-      )
-      .join('');
-
     printWindow.document.write(`
+      <!DOCTYPE html>
       <html>
         <head>
-          <title>Invoice - #${order.order_number}</title>
+          <title>Invoice #${order.order_number} - HeelsUp</title>
           <style>
-            body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; color: #0f172a; padding: 40px; line-height: 1.5; }
-            .header { display: flex; justify-content: space-between; border-bottom: 2px solid #0f172a; padding-bottom: 20px; }
-            .logo { font-size: 24px; font-weight: 800; text-transform: uppercase; color: #0f172a; letter-spacing: -0.02em; }
-            .invoice-title { text-align: right; }
-            .details { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; margin-top: 30px; font-size: 12px; }
-            .table-container { margin-top: 30px; }
-            table { width: 100%; border-collapse: collapse; }
-            th { border-bottom: 2px solid #cbd5e1; padding-bottom: 8px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: #475569; }
-            .totals { margin-top: 25px; margin-left: auto; width: 280px; font-size: 12px; }
-            .totals div { display: flex; justify-content: space-between; padding: 5px 0; }
-            .grand-total { border-top: 2px solid #0f172a; font-weight: 800; font-size: 14px; padding-top: 8px !important; }
-            .footer { margin-top: 60px; text-align: center; font-size: 10px; color: #94a3b8; border-top: 1px solid #e2e8f0; padding-top: 20px; }
+            body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 40px; color: #1e293b; }
+            .header { display: flex; justify-content: space-between; border-bottom: 2px solid #0f172a; padding-bottom: 20px; margin-bottom: 20px; }
+            .logo { font-size: 24px; font-weight: 900; letter-spacing: -1px; }
+            .badge { display: inline-block; padding: 4px 8px; font-size: 10px; font-weight: bold; background: #e2e8f0; border-radius: 4px; }
+            table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+            th, td { padding: 12px; text-align: left; border-bottom: 1px solid #e2e8f0; font-size: 13px; }
+            th { background: #f8fafc; font-weight: bold; }
+            .totals { margin-top: 20px; margin-left: auto; width: 300px; }
+            .totals div { display: flex; justify-content: space-between; padding: 6px 0; font-size: 13px; }
+            .grand-total { font-weight: bold; font-size: 16px; border-top: 2px solid #0f172a; padding-top: 8px; margin-top: 8px; }
           </style>
         </head>
         <body>
           <div class="header">
             <div>
-              <div class="logo">HeelsUp</div>
-              <div style="font-size: 11px; color: #64748b; margin-top: 4px;">Premium Footwear Co.</div>
-            </div>
-            <div class="invoice-title">
-              <h2 style="margin: 0; font-weight: 700; font-size: 20px;">TAX INVOICE</h2>
-              <div style="font-size: 11px; font-family: monospace; color: #64748b; margin-top: 4px;">Ref: #${order.order_number}</div>
-            </div>
-          </div>
-
-          <div class="details">
-            <div>
-              <h4 style="margin: 0 0 8px; text-transform: uppercase; font-size: 10px; color: #64748b;">Customer Details:</h4>
-              <strong>${order.customer_name}</strong><br/>
-              Phone: ${order.customer_phone}<br/>
-              ${order.customer_email ? `Email: ${order.customer_email}<br/>` : ''}
-              ${order.address_line1 || ''}<br/>
-              ${order.address_line2 || ''}<br/>
-              ${order.city || ''}, ${order.state || ''} - ${order.pincode || ''}
+              <div class="logo">HEELSUP</div>
+              <p style="font-size: 12px; color: #64748b; margin-top: 4px;">Premium Handcrafted Footwear</p>
             </div>
             <div style="text-align: right;">
-              <h4 style="margin: 0 0 8px; text-transform: uppercase; font-size: 10px; color: #64748b;">Order Metadata:</h4>
-              Date: ${new Date(order.created_at).toLocaleDateString('en-IN')}<br/>
-              Payment Method: <span style="text-transform: uppercase;">${order.payment_method}</span><br/>
-              Payment Status: <span style="text-transform: uppercase;">${order.payment_status}</span><br/>
-              Order Channel: <span style="text-transform: uppercase;">${order.source}</span>
+              <h2 style="margin: 0; font-size: 18px;">TAX INVOICE</h2>
+              <p style="font-size: 12px; margin: 4px 0 0 0; font-family: monospace;">#${order.order_number}</p>
+              <p style="font-size: 11px; color: #64748b; margin: 4px 0 0 0;">${new Date(order.created_at).toLocaleDateString()}</p>
             </div>
           </div>
 
-          <div class="table-container">
-            <table>
-              <thead>
-                <tr>
-                  <th style="text-align: left;">Item Description</th>
-                  <th style="text-align: center; width: 60px;">Qty</th>
-                  <th style="text-align: right; width: 100px;">Rate</th>
-                  <th style="text-align: right; width: 100px;">Amount</th>
-                </tr>
-              </thead>
-              <tbody>
-                ${itemsRows}
-              </tbody>
-            </table>
+          <div style="display: flex; justify-content: space-between; margin-bottom: 24px; font-size: 12px;">
+            <div>
+              <strong>Billed To:</strong><br/>
+              ${order.customer_name}<br/>
+              ${order.customer_phone}<br/>
+              ${order.customer_email || ''}
+            </div>
+            <div style="text-align: right;">
+              <strong>Delivery Address:</strong><br/>
+              ${order.address_line1 || ''} ${order.address_line2 || ''}<br/>
+              ${order.city || ''} ${order.state || ''} ${order.pincode || ''}
+            </div>
           </div>
+
+          <table>
+            <thead>
+              <tr>
+                <th>Item & Size</th>
+                <th>Qty</th>
+                <th>Price</th>
+                <th style="text-align: right;">Total</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${(order.items || [])
+                .map(
+                  (it) => `
+                <tr>
+                  <td>${it.product_name} <span class="badge">${it.size}</span></td>
+                  <td>${it.quantity}</td>
+                  <td>₹${(it.price / 100).toFixed(2)}</td>
+                  <td style="text-align: right;">₹${((it.price * it.quantity) / 100).toFixed(2)}</td>
+                </tr>
+              `
+                )
+                .join('')}
+            </tbody>
+          </table>
 
           <div class="totals">
-            <div>
-              <span>Subtotal:</span>
-              <span style="font-family: monospace;">₹${(order.subtotal_amount / 100).toFixed(2)}</span>
-            </div>
-            <div>
-              <span>Shipping:</span>
-              <span style="font-family: monospace;">₹${(order.shipping_amount / 100).toFixed(2)}</span>
-            </div>
+            <div><span>Subtotal:</span><span>₹${(order.subtotal_amount / 100).toFixed(2)}</span></div>
+            <div><span>Shipping:</span><span>₹${(order.shipping_amount / 100).toFixed(2)}</span></div>
             ${
               order.discount_amount > 0
-                ? `
-              <div style="color: #e11d48;">
-                <span>Discounts:</span>
-                <span style="font-family: monospace;">-₹${(order.discount_amount / 100).toFixed(2)}</span>
-              </div>
-            `
+                ? `<div><span>Discount:</span><span>-₹${(order.discount_amount / 100).toFixed(2)}</span></div>`
                 : ''
             }
-            <div class="grand-total">
-              <span>Total Payable:</span>
-              <span style="font-family: monospace;">₹${(order.total_amount / 100).toFixed(2)}</span>
-            </div>
-          </div>
-
-          <div class="footer">
-            Thank you for shopping with HeelsUp. For returns or queries, contact support@heelsup.in.<br/>
-            This is a computer generated invoice. No signature required.
+            <div class="grand-total"><span>Total Paid:</span><span>₹${(order.total_amount / 100).toFixed(2)}</span></div>
           </div>
 
           <script>
@@ -288,406 +273,427 @@ export default function OrdersManager({ orders, token, onRefresh }: OrdersManage
     printWindow.document.close();
   };
 
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case 'delivered':
-        return 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800/50';
-      case 'shipped':
-        return 'bg-indigo-50 text-indigo-700 dark:bg-indigo-950/50 dark:text-indigo-400 border-indigo-200 dark:border-indigo-800/50';
-      case 'confirmed':
-        return 'bg-blue-50 text-blue-700 dark:bg-blue-950/50 dark:text-blue-400 border-blue-200 dark:border-blue-800/50';
-      case 'cancelled':
-        return 'bg-rose-50 text-rose-700 dark:bg-rose-950/50 dark:text-rose-400 border-rose-200 dark:border-rose-800/50';
-      default:
-        return 'bg-amber-50 text-amber-700 dark:bg-amber-950/50 dark:text-amber-400 border-amber-200 dark:border-amber-800/50';
-    }
-  };
-
   return (
     <div className="space-y-5 antialiased">
-      {/* Header Overview Card */}
-      <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-5 shadow-xs space-y-4">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <h2 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
-              <ShoppingBag className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
-              Orders Registry & Fulfillment
-            </h2>
-            <p className="text-xs text-slate-500 dark:text-slate-400">
-              Manage transactions, courier dispatch, invoice printing, and fulfillment lifecycle
-            </p>
-          </div>
-
-          <div className="flex items-center gap-2 text-xs">
-            <span className="px-3 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 font-semibold text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
-              Total: {orders.length}
-            </span>
-          </div>
+      {/* Top Header Card */}
+      <Card className="p-5 flex flex-wrap items-center justify-between gap-4">
+        <div>
+          <CardTitle className="text-lg flex items-center gap-2">
+            <ShoppingBag className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
+            Orders & Shipments Registry
+          </CardTitle>
+          <CardDescription>
+            Manage live e-commerce, WhatsApp, Instagram & POS counter orders
+          </CardDescription>
         </div>
 
-        {/* Status Filter Tabs */}
-        <div className="flex flex-wrap items-center gap-1.5 pt-2 border-t border-slate-100 dark:border-slate-800">
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" onClick={onRefresh} className="text-xs font-semibold">
+            Refresh Pipeline
+          </Button>
+        </div>
+      </Card>
+
+      {/* Filter & Status Navigation */}
+      <Card className="p-4 space-y-4">
+        {/* Status Tabs Bar */}
+        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
           {[
             { id: 'all', label: 'All Orders', count: counts.all },
-            { id: 'placed', label: 'Placed (Queue)', count: counts.placed },
+            { id: 'placed', label: 'Placed (New)', count: counts.placed },
             { id: 'confirmed', label: 'Confirmed', count: counts.confirmed },
-            { id: 'shipped', label: 'Shipped', count: counts.shipped },
+            { id: 'shipped', label: 'In Transit', count: counts.shipped },
             { id: 'delivered', label: 'Delivered', count: counts.delivered },
             { id: 'cancelled', label: 'Cancelled', count: counts.cancelled },
-          ].map((tab) => {
-            const isActive = statusFilter === tab.id;
-            return (
-              <button
-                key={tab.id}
-                onClick={() => {
-                  setStatusFilter(tab.id);
-                  setPage(0);
-                }}
-                className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors flex items-center gap-1.5 ${
-                  isActive
-                    ? 'bg-slate-900 text-white dark:bg-indigo-600 dark:text-white shadow-xs'
-                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800'
+          ].map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => {
+                setStatusFilter(tab.id);
+                setPage(0);
+              }}
+              className={`flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all ${
+                statusFilter === tab.id
+                  ? 'bg-slate-900 text-white dark:bg-indigo-600 dark:text-white shadow-xs'
+                  : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700'
+              }`}
+            >
+              <span>{tab.label}</span>
+              <Badge
+                variant={statusFilter === tab.id ? 'default' : 'secondary'}
+                className={`px-1.5 py-0 text-[10px] font-mono ${
+                  statusFilter === tab.id ? 'bg-white/20 text-white border-0' : ''
                 }`}
               >
-                <span>{tab.label}</span>
-                <span
-                  className={`px-1.5 py-0.2 rounded-md text-[10px] ${
-                    isActive
-                      ? 'bg-white/20 text-white'
-                      : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400'
-                  }`}
-                >
-                  {tab.count}
-                </span>
-              </button>
-            );
-          })}
+                {tab.count}
+              </Badge>
+            </button>
+          ))}
         </div>
-      </div>
 
-      {/* Search & Channel Filter Bar */}
-      <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-4 shadow-xs flex flex-wrap items-center justify-between gap-3">
-        <div className="flex flex-wrap items-center gap-3 flex-1 min-w-[280px]">
-          <div className="relative flex-1 min-w-[200px]">
+        <Separator />
+
+        {/* Search & Source Filter Bar */}
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="relative flex-1 min-w-[240px] max-w-md">
             <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-            <input
+            <Input
               type="text"
               value={searchQuery}
               onChange={(e) => {
                 setSearchQuery(e.target.value);
                 setPage(0);
               }}
-              placeholder="Search by order #, customer name, phone, email..."
-              className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700 rounded-xl pl-9 pr-4 py-2 text-xs text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+              placeholder="Search by order #, customer, phone, or email..."
+              className="pl-9 text-xs"
             />
           </div>
 
-          <select
-            value={sourceFilter}
-            onChange={(e) => {
-              setSourceFilter(e.target.value);
-              setPage(0);
-            }}
-            className="bg-slate-50 dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-700 dark:text-slate-300 focus:outline-none"
-          >
-            <option value="all">All Channels</option>
-            <option value="web">Web Storefront</option>
-            <option value="pos">In-store POS</option>
-            <option value="whatsapp">WhatsApp Order</option>
-            <option value="instagram">Instagram</option>
-          </select>
+          <div className="flex items-center gap-2">
+            <span className="text-[11px] text-slate-400 font-bold uppercase tracking-wider">Channel:</span>
+            <select
+              value={sourceFilter}
+              onChange={(e) => {
+                setSourceFilter(e.target.value);
+                setPage(0);
+              }}
+              className="bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-1.5 text-xs text-slate-700 dark:text-slate-200 focus:outline-none"
+            >
+              <option value="all">All Channels</option>
+              <option value="web">Storefront (Web)</option>
+              <option value="pos">In-Store POS</option>
+              <option value="whatsapp">WhatsApp</option>
+              <option value="instagram">Instagram</option>
+            </select>
+          </div>
         </div>
+      </Card>
 
-        {/* Pagination Controls */}
-        <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
-          <button
-            disabled={page === 0}
-            onClick={() => setPage((p) => p - 1)}
-            className="p-1.5 rounded-lg bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-200/60 dark:border-slate-700 disabled:opacity-30 transition-colors"
-          >
-            <ChevronLeft className="w-4 h-4" />
-          </button>
-          <span className="font-semibold text-slate-700 dark:text-slate-300">
-            Page {page + 1} of {Math.ceil(filteredOrders.length / itemsPerPage) || 1}
-          </span>
-          <button
-            disabled={(page + 1) * itemsPerPage >= filteredOrders.length}
-            onClick={() => setPage((p) => p + 1)}
-            className="p-1.5 rounded-lg bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-200/60 dark:border-slate-700 disabled:opacity-30 transition-colors"
-          >
-            <ChevronRight className="w-4 h-4" />
-          </button>
-        </div>
-      </div>
-
-      {/* Orders Table Grid */}
-      <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl overflow-hidden shadow-xs">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse text-xs">
-            <thead>
-              <tr className="bg-slate-50/80 dark:bg-slate-800/60 text-slate-500 dark:text-slate-400 border-b border-slate-200/80 dark:border-slate-800 font-semibold">
-                <th className="py-3 px-4">Order #</th>
-                <th className="py-3 px-4">Date</th>
-                <th className="py-3 px-4">Customer</th>
-                <th className="py-3 px-4">Total Amount</th>
-                <th className="py-3 px-4">Channel</th>
-                <th className="py-3 px-4">Fulfillment Status</th>
-                <th className="py-3 px-4">Payment</th>
-                <th className="py-3 px-4 text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100 dark:divide-slate-800/80">
-              {paginatedOrders.map((o) => (
-                <tr
-                  key={o.id}
-                  className="hover:bg-slate-50/60 dark:hover:bg-slate-800/40 transition-colors"
-                >
-                  <td className="py-3.5 px-4 font-mono font-bold text-indigo-600 dark:text-indigo-400">
-                    #{o.order_number}
-                  </td>
-                  <td className="py-3.5 px-4 text-slate-600 dark:text-slate-400 font-mono text-[11px]">
-                    {new Date(o.created_at).toLocaleDateString('en-IN', {
-                      day: '2-digit',
+      {/* Orders Table */}
+      <Card className="overflow-hidden">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Order Details</TableHead>
+              <TableHead>Customer</TableHead>
+              <TableHead>Items & Sizing</TableHead>
+              <TableHead>Channel</TableHead>
+              <TableHead>Total Amount</TableHead>
+              <TableHead>Order Status</TableHead>
+              <TableHead>Payment</TableHead>
+              <TableHead className="text-right">Action</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {paginatedOrders.map((ord) => (
+              <TableRow key={ord.id}>
+                <TableCell>
+                  <div className="font-mono font-bold text-xs text-indigo-600 dark:text-indigo-400">
+                    #{ord.order_number}
+                  </div>
+                  <div className="text-[10px] text-slate-400 font-medium mt-0.5">
+                    {new Date(ord.created_at).toLocaleDateString('en-IN', {
+                      day: 'numeric',
                       month: 'short',
                       year: 'numeric',
+                      hour: '2-digit',
+                      minute: '2-digit',
                     })}
-                  </td>
-                  <td className="py-3.5 px-4">
-                    <div className="min-w-[140px]">
-                      <p className="font-semibold text-slate-900 dark:text-white text-xs">{o.customer_name}</p>
-                      <p className="text-[10px] text-slate-400 font-mono">{o.customer_phone}</p>
-                    </div>
-                  </td>
-                  <td className="py-3.5 px-4 font-bold text-slate-900 dark:text-white font-mono text-xs">
-                    ₹{(o.total_amount / 100).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-                  </td>
-                  <td className="py-3.5 px-4">
-                    <span
-                      className={`px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider ${
-                        o.source === 'pos'
-                          ? 'bg-sky-50 text-sky-700 dark:bg-sky-950/60 dark:text-sky-400 border border-sky-200/60 dark:border-sky-800/60'
-                          : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
-                      }`}
-                    >
-                      {o.source}
-                    </span>
-                  </td>
-                  <td className="py-3.5 px-4">
-                    <span
-                      className={`inline-block px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border ${getStatusBadge(
-                        o.order_status
-                      )}`}
-                    >
-                      {o.order_status}
-                    </span>
-                  </td>
-                  <td className="py-3.5 px-4 uppercase text-[10px] font-mono font-bold">
-                    <span className={o.payment_status === 'paid' ? 'text-emerald-600' : 'text-amber-500'}>
-                      {o.payment_status} &middot; {o.payment_method}
-                    </span>
-                  </td>
-                  <td className="py-3.5 px-4 text-right">
-                    <div className="flex items-center justify-end gap-1.5">
-                      <button
-                        onClick={() => handleOpenDetails(o)}
-                        className="p-1.5 rounded-lg text-slate-500 hover:text-indigo-600 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
-                        title="View & Edit Order Details"
-                      >
-                        <Eye className="w-4 h-4" />
-                      </button>
-                      <button
-                        onClick={() => handlePrintInvoice(o)}
-                        className="p-1.5 rounded-lg text-slate-500 hover:text-indigo-600 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
-                        title="Print Invoice"
-                      >
-                        <Printer className="w-4 h-4" />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
+                  </div>
+                </TableCell>
 
-              {paginatedOrders.length === 0 && (
-                <tr>
-                  <td colSpan={8} className="py-16 text-center text-slate-400 italic">
-                    No orders match the selected filters.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
+                <TableCell>
+                  <div className="font-semibold text-slate-900 dark:text-white text-xs">
+                    {ord.customer_name}
+                  </div>
+                  <div className="text-[10px] text-slate-400 font-mono">{ord.customer_phone}</div>
+                </TableCell>
 
-      {/* Slide-over Order Details Drawer */}
-      {selectedOrder && (
-        <div className="fixed inset-0 z-50 flex justify-end">
-          <div
-            onClick={() => setSelectedOrder(null)}
-            className="absolute inset-0 bg-slate-900/60 backdrop-blur-xs transition-opacity"
-          />
-          <div className="w-full max-w-xl bg-white dark:bg-slate-900 border-l border-slate-200 dark:border-slate-800 shadow-2xl relative z-10 p-6 flex flex-col justify-between h-full overflow-y-auto">
-            <div className="space-y-5">
-              <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-4">
+                <TableCell>
+                  <div className="space-y-1">
+                    {(ord.items || []).map((it, idx) => (
+                      <div key={idx} className="flex items-center gap-1.5 text-[11px] text-slate-600 dark:text-slate-300">
+                        <span className="font-medium truncate max-w-[140px]">{it.product_name}</span>
+                        <Badge variant="outline" className="px-1.5 py-0 text-[9px] font-mono">
+                          {it.size}
+                        </Badge>
+                        <span className="text-slate-400 font-mono text-[10px]">x{it.quantity}</span>
+                      </div>
+                    ))}
+                  </div>
+                </TableCell>
+
+                <TableCell>
+                  <Badge variant="secondary" className="capitalize text-[10px]">
+                    {ord.source || 'web'}
+                  </Badge>
+                </TableCell>
+
+                <TableCell className="font-mono font-bold text-slate-900 dark:text-white">
+                  {formatCurrency(ord.total_amount)}
+                </TableCell>
+
+                <TableCell>
+                  <Badge
+                    variant={
+                      ord.order_status === 'delivered' || ord.order_status === 'Completed'
+                        ? 'success'
+                        : ord.order_status === 'shipped'
+                        ? 'info'
+                        : ord.order_status === 'cancelled'
+                        ? 'destructive'
+                        : 'warning'
+                    }
+                  >
+                    {ord.order_status}
+                  </Badge>
+                </TableCell>
+
+                <TableCell>
+                  <Badge
+                    variant={ord.payment_status === 'paid' ? 'success' : 'warning'}
+                    className="capitalize font-mono"
+                  >
+                    {ord.payment_status || 'Pending'}
+                  </Badge>
+                </TableCell>
+
+                <TableCell className="text-right">
+                  <div className="flex items-center justify-end gap-1.5">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => handleOpenDetails(ord)}
+                      title="View & Edit Order"
+                      className="text-slate-500 hover:text-indigo-600"
+                    >
+                      <Eye className="w-4 h-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => printInvoice(ord)}
+                      title="Print Invoice"
+                      className="text-slate-500 hover:text-slate-900 dark:hover:text-white"
+                    >
+                      <Printer className="w-4 h-4" />
+                    </Button>
+                  </div>
+                </TableCell>
+              </TableRow>
+            ))}
+
+            {paginatedOrders.length === 0 && (
+              <TableRow>
+                <TableCell colSpan={8} className="py-20 text-center text-slate-400 italic">
+                  No orders match current filter parameters.
+                </TableCell>
+              </TableRow>
+            )}
+          </TableBody>
+        </Table>
+
+        {/* Pagination Bar */}
+        {filteredOrders.length > itemsPerPage && (
+          <div className="p-4 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-xs">
+            <span className="text-slate-500">
+              Showing {page * itemsPerPage + 1} to{' '}
+              {Math.min((page + 1) * itemsPerPage, filteredOrders.length)} of {filteredOrders.length} orders
+            </span>
+
+            <div className="flex items-center gap-1.5">
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={page === 0}
+                onClick={() => setPage((p) => p - 1)}
+              >
+                <ChevronLeft className="w-3.5 h-3.5 mr-1" /> Previous
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={(page + 1) * itemsPerPage >= filteredOrders.length}
+                onClick={() => setPage((p) => p + 1)}
+              >
+                Next <ChevronRight className="w-3.5 h-3.5 ml-1" />
+              </Button>
+            </div>
+          </div>
+        )}
+      </Card>
+
+      {/* Slide-over Order Details Drawer using Sheet */}
+      <Sheet open={!!selectedOrder} onOpenChange={(open) => !open && setSelectedOrder(null)}>
+        {selectedOrder && (
+          <SheetContent side="right" className="w-full sm:max-w-xl">
+            <SheetHeader>
+              <div className="flex items-center justify-between">
                 <div>
-                  <h3 className="text-base font-bold text-slate-900 dark:text-white">
-                    Order Details #{selectedOrder.order_number}
-                  </h3>
-                  <p className="text-xs text-slate-400">
+                  <SheetTitle>Order #{selectedOrder.order_number}</SheetTitle>
+                  <SheetDescription>
                     Placed on {new Date(selectedOrder.created_at).toLocaleString('en-IN')}
-                  </p>
+                  </SheetDescription>
                 </div>
-                <button
-                  onClick={() => setSelectedOrder(null)}
-                  className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => printInvoice(selectedOrder)}
+                  className="text-xs font-semibold mr-6"
                 >
-                  <X className="w-5 h-5" />
-                </button>
+                  <Printer className="w-3.5 h-3.5 mr-1.5" /> Print Tax Invoice
+                </Button>
+              </div>
+            </SheetHeader>
+
+            <form onSubmit={handleSaveOrder} className="space-y-5 my-4 text-xs">
+              {/* Order Status & Pipeline Update */}
+              <div className="p-4 bg-slate-50 dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-700/60 rounded-2xl space-y-3">
+                <h4 className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">
+                  Fulfillment Status Pipeline
+                </h4>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <Label htmlFor="orderStatus">Order Status</Label>
+                    <select
+                      id="orderStatus"
+                      value={orderStatusVal}
+                      onChange={(e) => setOrderStatusVal(e.target.value)}
+                      className="w-full mt-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-900 dark:text-white focus:outline-none"
+                    >
+                      <option value="placed">Placed (New)</option>
+                      <option value="confirmed">Confirmed</option>
+                      <option value="shipped">In Transit (Shipped)</option>
+                      <option value="delivered">Delivered</option>
+                      <option value="cancelled">Cancelled</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <Label htmlFor="paymentStatus">Payment Status</Label>
+                    <select
+                      id="paymentStatus"
+                      value={paymentStatusVal}
+                      onChange={(e) => setPaymentStatusVal(e.target.value)}
+                      className="w-full mt-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-900 dark:text-white focus:outline-none"
+                    >
+                      <option value="pending">Pending Payment</option>
+                      <option value="paid">Paid (Confirmed)</option>
+                      <option value="refunded">Refunded</option>
+                      <option value="failed">Payment Failed</option>
+                    </select>
+                  </div>
+                </div>
               </div>
 
-              {/* Items List */}
-              <div className="space-y-2.5">
-                <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">
-                  Purchased Items ({selectedOrder.items?.length || 0})
+              {/* Courier Logistics Tracking */}
+              <div className="p-4 bg-slate-50 dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-700/60 rounded-2xl space-y-3">
+                <h4 className="text-[10px] uppercase font-bold text-slate-400 tracking-wider flex items-center gap-1.5">
+                  <Truck className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
+                  Courier Logistics Tracking
                 </h4>
-                <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
-                  {selectedOrder.items?.map((item, idx) => (
-                    <div
-                      key={idx}
-                      className="flex justify-between items-center p-3 bg-slate-50 dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-700/60 rounded-xl text-xs"
-                    >
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <Label>Courier Partner</Label>
+                    <Input
+                      type="text"
+                      value={courierName}
+                      onChange={(e) => setCourierName(e.target.value)}
+                      placeholder="e.g. Bluedart, Delhivery"
+                      className="mt-1 bg-white dark:bg-slate-900"
+                    />
+                  </div>
+
+                  <div>
+                    <Label>Tracking AWB #</Label>
+                    <Input
+                      type="text"
+                      value={trackingNumber}
+                      onChange={(e) => setTrackingNumber(e.target.value)}
+                      placeholder="AWB123456789"
+                      className="mt-1 bg-white dark:bg-slate-900 font-mono"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <Label>Public Tracking URL</Label>
+                  <Input
+                    type="url"
+                    value={trackingUrl}
+                    onChange={(e) => setTrackingUrl(e.target.value)}
+                    placeholder="https://track.courier.com/..."
+                    className="mt-1 bg-white dark:bg-slate-900 text-xs"
+                  />
+                </div>
+              </div>
+
+              {/* Ordered Items List */}
+              <div className="space-y-2">
+                <h4 className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">
+                  Purchased Products
+                </h4>
+                <div className="divide-y divide-slate-100 dark:divide-slate-800 border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden bg-white dark:bg-slate-900">
+                  {(selectedOrder.items || []).map((it, idx) => (
+                    <div key={idx} className="p-3 flex items-center justify-between text-xs">
                       <div>
-                        <p className="font-bold text-slate-900 dark:text-white">{item.product_name}</p>
-                        <p className="text-[10px] text-slate-400 font-mono mt-0.5">
-                          Size UK-{item.size} {item.color ? `• ${item.color}` : ''} • Qty: {item.quantity}
+                        <p className="font-semibold text-slate-900 dark:text-white">{it.product_name}</p>
+                        <div className="flex items-center gap-2 mt-0.5">
+                          <Badge variant="outline" className="text-[9px] font-mono px-1.5 py-0">
+                            Size: {it.size}
+                          </Badge>
+                          {it.color && <span className="text-[10px] text-slate-400">Color: {it.color}</span>}
+                        </div>
+                      </div>
+                      <div className="text-right font-mono">
+                        <p className="font-bold text-slate-900 dark:text-white">
+                          {formatCurrency(it.price * it.quantity)}
+                        </p>
+                        <p className="text-[10px] text-slate-400">
+                          {it.quantity} x {formatCurrency(it.price)}
                         </p>
                       </div>
-                      <span className="font-mono font-bold text-slate-900 dark:text-white">
-                        ₹{((item.price * item.quantity) / 100).toFixed(2)}
-                      </span>
                     </div>
                   ))}
                 </div>
               </div>
 
-              {/* Customer Address Details Card */}
-              <div className="bg-slate-50 dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-700/60 rounded-xl p-4 space-y-2 text-xs">
-                <h4 className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-slate-700 pb-1.5 flex items-center gap-1.5">
-                  <MapPin className="w-3.5 h-3.5 text-indigo-600" /> Shipping & Customer Details
-                </h4>
-                <div className="space-y-1 text-slate-700 dark:text-slate-300">
-                  <p className="font-bold text-slate-900 dark:text-white">{selectedOrder.customer_name}</p>
-                  <p className="flex items-center gap-1 text-[11px]">
-                    <Phone className="w-3 h-3 text-slate-400" /> {selectedOrder.customer_phone}
-                  </p>
+              {/* Customer & Address Details */}
+              <div className="grid grid-cols-2 gap-3 text-xs">
+                <div className="p-3 bg-slate-50 dark:bg-slate-800/60 rounded-xl border border-slate-200/60 dark:border-slate-700/60 space-y-1">
+                  <span className="text-[10px] uppercase font-bold text-slate-400 flex items-center gap-1">
+                    <User className="w-3 h-3" /> Customer Contact
+                  </span>
+                  <p className="font-semibold text-slate-900 dark:text-white">{selectedOrder.customer_name}</p>
+                  <p className="text-slate-500 font-mono text-[11px]">{selectedOrder.customer_phone}</p>
                   {selectedOrder.customer_email && (
-                    <p className="flex items-center gap-1 text-[11px]">
-                      <Mail className="w-3 h-3 text-slate-400" /> {selectedOrder.customer_email}
-                    </p>
+                    <p className="text-slate-500 text-[11px] truncate">{selectedOrder.customer_email}</p>
                   )}
-                  <p className="text-[11px] text-slate-600 dark:text-slate-400 pt-1">
-                    {selectedOrder.address_line1} {selectedOrder.address_line2}
+                </div>
+
+                <div className="p-3 bg-slate-50 dark:bg-slate-800/60 rounded-xl border border-slate-200/60 dark:border-slate-700/60 space-y-1">
+                  <span className="text-[10px] uppercase font-bold text-slate-400 flex items-center gap-1">
+                    <MapPin className="w-3 h-3" /> Shipping Address
+                  </span>
+                  <p className="text-slate-700 dark:text-slate-300 leading-relaxed text-[11px]">
+                    {selectedOrder.address_line1 || '—'} {selectedOrder.address_line2 || ''}
                     <br />
-                    {selectedOrder.city}, {selectedOrder.state} - {selectedOrder.pincode}
+                    {selectedOrder.city || ''}, {selectedOrder.state || ''} {selectedOrder.pincode || ''}
                   </p>
                 </div>
-                {selectedOrder.notes && (
-                  <div className="mt-2 p-2 bg-amber-50 dark:bg-amber-950/40 border border-amber-200/60 dark:border-amber-800/50 rounded-lg text-[11px] text-amber-800 dark:text-amber-300 italic">
-                    Note: "{selectedOrder.notes}"
-                  </div>
-                )}
               </div>
 
-              {/* Status Update Form */}
-              <form onSubmit={handleSaveOrder} className="space-y-4 text-xs">
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-[10px] uppercase font-bold text-slate-400 dark:text-slate-500 mb-1">
-                      Fulfillment Status
-                    </label>
-                    <select
-                      value={orderStatusVal}
-                      onChange={(e) => setOrderStatusVal(e.target.value)}
-                      className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-indigo-500"
-                    >
-                      <option value="placed">Placed / In Queue</option>
-                      <option value="confirmed">Confirmed / Processing</option>
-                      <option value="shipped">Shipped / Dispatched</option>
-                      <option value="delivered">Delivered / Completed</option>
-                      <option value="cancelled">Cancelled</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-[10px] uppercase font-bold text-slate-400 dark:text-slate-500 mb-1">
-                      Payment Status
-                    </label>
-                    <select
-                      value={paymentStatusVal}
-                      onChange={(e) => setPaymentStatusVal(e.target.value)}
-                      className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-indigo-500"
-                    >
-                      <option value="pending">Pending Payment</option>
-                      <option value="paid">Paid / Settled</option>
-                      <option value="failed">Failed / Refunded</option>
-                    </select>
-                  </div>
-                </div>
-
-                {/* Courier & Tracking */}
-                <div className="bg-slate-50 dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-700/60 rounded-xl p-3.5 space-y-3">
-                  <h4 className="text-[10px] uppercase font-bold text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-slate-700 pb-1.5 flex items-center gap-1.5">
-                    <Truck className="w-3.5 h-3.5 text-indigo-600" /> Dispatch & AWB Tracking
-                  </h4>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="block text-[9px] uppercase font-mono text-slate-400 mb-1">
-                        Courier Partner
-                      </label>
-                      <input
-                        type="text"
-                        value={courierName}
-                        onChange={(e) => setCourierName(e.target.value)}
-                        placeholder="e.g. Delhivery, BlueDart"
-                        className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-2.5 py-1.5 text-slate-900 dark:text-white focus:outline-none"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-[9px] uppercase font-mono text-slate-400 mb-1">AWB Number</label>
-                      <input
-                        type="text"
-                        value={trackingNumber}
-                        onChange={(e) => setTrackingNumber(e.target.value)}
-                        placeholder="e.g. 123456789"
-                        className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-2.5 py-1.5 text-slate-900 dark:text-white focus:outline-none font-mono"
-                      />
-                    </div>
-                  </div>
-                  <div>
-                    <label className="block text-[9px] uppercase font-mono text-slate-400 mb-1">
-                      Tracking URL
-                    </label>
-                    <input
-                      type="url"
-                      value={trackingUrl}
-                      onChange={(e) => setTrackingUrl(e.target.value)}
-                      placeholder="https://delhivery.com/track/..."
-                      className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-2.5 py-1.5 text-slate-900 dark:text-white focus:outline-none font-mono text-[11px]"
-                    />
-                  </div>
-                </div>
-
-                <button
-                  type="submit"
-                  disabled={updatingStatus}
-                  className="w-full py-2.5 bg-slate-900 hover:bg-slate-800 dark:bg-indigo-600 dark:hover:bg-indigo-700 text-white font-bold text-xs rounded-xl transition-all shadow-xs disabled:opacity-50"
-                >
-                  {updatingStatus ? 'Updating...' : 'Save Order Changes'}
-                </button>
-              </form>
-            </div>
-          </div>
-        </div>
-      )}
+              <Button
+                type="submit"
+                disabled={updatingStatus}
+                className="w-full py-2.5 font-bold text-xs"
+              >
+                {updatingStatus ? 'Updating Pipeline...' : 'Save Order & Dispatch Changes'}
+              </Button>
+            </form>
+          </SheetContent>
+        )}
+      </Sheet>
     </div>
   );
 }
