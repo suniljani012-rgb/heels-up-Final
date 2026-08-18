@@ -199,14 +199,14 @@ export default function PosTerminal({ products, onOrderCreated }: PosTerminalPro
   const changeDueRupees = Math.max(0, cashGivenNum - grandTotalRupees);
 
   // Record Final Sale in Database & Print
-  const recordFinalSale = async (methodOverride?: string) => {
+  const recordFinalSale = async (methodOverride?: string, razorpayPaymentId?: string) => {
     setIsSubmitting(true);
     const finalMethod = methodOverride || paymentMethod;
 
     const payload = {
       customer_name: customerName.trim() || 'Walk-in Customer',
-      customer_phone: customerPhone.trim() || '9999999999',
-      customer_email: 'pos-customer@heelsup.in',
+      customer_phone: customerPhone.trim() || null,
+      customer_email: customerPhone.trim() ? `pos-${customerPhone.trim()}@heelsup.in` : 'pos-customer@heelsup.in',
       subtotal: subtotalRupees,
       subtotal_amount: subtotalRupees,
       discount: discountAmountRupees,
@@ -217,7 +217,7 @@ export default function PosTerminal({ products, onOrderCreated }: PosTerminalPro
       sales_channel: 'POS',
       source: 'POS',
       order_status: 'delivered',
-      notes: 'In-Store POS Sale',
+      notes: razorpayPaymentId ? `In-Store POS Sale (Razorpay Ref: ${razorpayPaymentId})` : 'In-Store POS Sale',
       items: cart.map((item) => ({
         product_id: item.product.id,
         product_name: item.product.name,
@@ -248,6 +248,7 @@ export default function PosTerminal({ products, onOrderCreated }: PosTerminalPro
         setPrintedOrder({
           ...payload,
           order_number: data.data?.order_number || data.order?.order_number || `POS-${Date.now().toString().slice(-6)}`,
+          razorpay_payment_id: razorpayPaymentId || undefined,
           created_at: new Date().toISOString(),
         });
         setCart([]);
@@ -267,17 +268,28 @@ export default function PosTerminal({ products, onOrderCreated }: PosTerminalPro
     }
   };
 
-  // Complete Sale or Open UPI QR
+  // Complete Sale or Open Official Razorpay Checkout Modal
   const handleCheckout = async () => {
     if (cart.length === 0) {
       showToast('error', 'Empty Cart', 'Please add items before billing.');
       return;
     }
 
-    // If UPI selected, generate live dynamic Razorpay payment link & QR
-    if (paymentMethod === 'upi') {
+    // If Online / UPI / Card selected, open official Razorpay Checkout Modal directly
+    if (paymentMethod === 'upi' || paymentMethod === 'card') {
       setIsSubmitting(true);
       try {
+        // 1. Ensure Razorpay SDK is loaded
+        if (typeof (window as any).Razorpay === 'undefined') {
+          await new Promise<void>((resolve, reject) => {
+            const script = document.createElement('script');
+            script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+            script.onload = () => resolve();
+            script.onerror = () => reject(new Error('Failed to load Razorpay SDK'));
+            document.body.appendChild(script);
+          });
+        }
+
         const token = localStorage.getItem('heelsup_token');
         const res = await fetch('/api/admin/pos/create-upi-link', {
           method: 'POST',
@@ -287,37 +299,59 @@ export default function PosTerminal({ products, onOrderCreated }: PosTerminalPro
           },
           body: JSON.stringify({
             amount: grandTotalRupees,
-            customer_name: customerName.trim() || 'POS Walk-in',
-            customer_phone: customerPhone.trim() || '8302419219',
+            customer_name: customerName.trim() || 'In-Store Walk-in',
+            customer_phone: customerPhone.trim() || '',
           }),
         });
 
         const data = await res.json();
-        if (data.success && data.payment_link) {
-          setUpiPaymentData({
-            link: data.payment_link,
-            amount: grandTotalRupees,
-            receipt: data.receipt || `POS-${Date.now().toString().slice(-6)}`,
-          });
-          showToast('success', 'UPI QR & Link Generated 📲', `Payment Link ready for ₹${grandTotalRupees}`);
+        if (data.success && data.key) {
+          const rzpOptions = {
+            key: data.key,
+            amount: data.amount_paise || (grandTotalRupees * 100),
+            currency: 'INR',
+            name: 'HeelsUp Boutique POS',
+            description: `Counter Bill #${data.receipt || 'POS'}`,
+            image: '/logo.png',
+            order_id: data.razorpayOrder?.id,
+            prefill: {
+              name: customerName.trim() || 'Walk-in Customer',
+              contact: customerPhone.trim() || '',
+            },
+            theme: {
+              color: '#4f46e5'
+            },
+            handler: async function (response: any) {
+              showToast('success', 'Payment Received! 💳', `Razorpay ID: ${response.razorpay_payment_id}`);
+              await recordFinalSale(paymentMethod.toUpperCase(), response.razorpay_payment_id);
+            },
+            modal: {
+              ondismiss: function () {
+                showToast('info', 'Payment Cancelled', 'Razorpay checkout was dismissed.');
+                setIsSubmitting(false);
+              }
+            }
+          };
+
+          const rzp = new (window as any).Razorpay(rzpOptions);
+          rzp.open();
           return;
         } else {
-          // If credentials missing, allow direct confirm
-          showToast('warning', 'Direct UPI Mode', data.error || 'Opening direct UPI receipt.');
-          await recordFinalSale('UPI');
+          // Fallback if Razorpay credentials not present
+          await recordFinalSale(paymentMethod.toUpperCase());
           return;
         }
       } catch (e: any) {
-        showToast('error', 'UPI Error', e.message || 'Failed to generate UPI QR');
-        await recordFinalSale('UPI');
+        showToast('warning', 'Direct Billing Mode', e.message || 'Opening standard receipt.');
+        await recordFinalSale(paymentMethod.toUpperCase());
         return;
       } finally {
         setIsSubmitting(false);
       }
     }
 
-    // Cash or Card sale
-    await recordFinalSale();
+    // Cash sale
+    await recordFinalSale('CASH');
   };
 
   return (
