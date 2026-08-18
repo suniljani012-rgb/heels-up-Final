@@ -1,6 +1,34 @@
 import React, { useState } from 'react';
-import { Wallet, ShoppingCart, Footprints, RotateCcw, AlertTriangle, ArrowUpRight, TrendingUp, Sparkles } from 'lucide-react';
-import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts';
+import {
+  Wallet,
+  ShoppingCart,
+  Footprints,
+  RotateCcw,
+  AlertTriangle,
+  ArrowUpRight,
+  TrendingUp,
+  Sparkles,
+  Layers,
+  ChevronDown,
+  ChevronUp,
+  CreditCard,
+  PackagePlus,
+  Boxes,
+  Tag
+} from 'lucide-react';
+import {
+  AreaChart,
+  Area,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  PieChart,
+  Pie,
+  Cell,
+  Legend
+} from 'recharts';
 
 export interface OrderItem {
   id: number | string;
@@ -168,13 +196,13 @@ export default function DashboardView({ data, products, returns, onTabChange }: 
     return '₹' + (paise / 100).toLocaleString('en-IN', { maximumFractionDigits: 0 });
   };
 
-  // 100% Real Database Revenue Data (Zero Dummy Data)
+  // Real Database Revenue Data
   const trendData: DailySale[] = data?.daily_sales || [];
   
-  // 100% Real Database Category Share Data (Zero Dummy Data)
+  // Real Database Category Share Data
   const catShare: CategorySale[] = data?.category_sales || [];
 
-  // 100% Real Low Stock Items (from DB or state)
+  // Real Low Stock Items
   const lowStockList: LowStockItem[] = data?.lowStockItems || products.filter(p => p.stock <= 5).map(p => ({
     id: p.id,
     name: p.name,
@@ -185,175 +213,266 @@ export default function DashboardView({ data, products, returns, onTabChange }: 
     image_url: p.images && p.images.length ? p.images[0] : undefined
   }));
 
-  // 100% Real Coupon Data
+  // Real Coupon Data
   const couponsList: CouponReportItem[] = data?.topCoupons || [];
 
-  // 100% Real Recent Orders
+  // Real Recent Orders
   const recentOrdersList: Order[] = data?.recentOrders || [];
 
-  // 100% Real Top Selling Products
+  // Real Top Selling Products
   const topProductsList: TopProductItem[] = data?.topProducts || [];
 
   const totalRevenue = (data?.total_sales || 0) + (data?.total_pos_sales || 0);
   const totalOrdersCount = (data?.orders_count || 0) + (data?.pos_sales_count || 0);
   const growth = data?.revenueGrowth || 0;
 
+  const categoryColors = ['#4F46E5', '#06B6D4', '#10B981', '#F59E0B', '#EC4899', '#8B5CF6'];
+
   return (
-  return (
-    <div className="space-y-6 animate-fade-in text-[#2B3674] font-sans pb-16">
-      {/* Refined Horizon Metric Widgets (Enterprise Typography Scale) */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-        {/* Horizon Widget 1: Gross Revenue */}
-        <div className="rounded-2xl bg-white dark:bg-[#111C44] p-4.5 shadow-[0px_14px_30px_rgba(112,144,176,0.08)] border border-slate-100 dark:border-navy-700 flex items-center justify-between transition-all hover:shadow-xl">
-          <div className="flex items-center gap-3.5">
-            <div className="w-12 h-12 rounded-full bg-[#F4F7FE] dark:bg-navy-700 text-[#422AFB] dark:text-white flex items-center justify-center font-bold text-lg shrink-0">
+    <div className="space-y-6 antialiased">
+      {/* Quick Operations Launch Bar */}
+      <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-4 shadow-xs flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 flex items-center justify-center font-bold">
+            <Sparkles className="w-5 h-5" />
+          </div>
+          <div>
+            <h2 className="text-sm font-bold text-slate-900 dark:text-white">Store Command Center</h2>
+            <p className="text-xs text-slate-500 dark:text-slate-400">Quick actions and high-priority operational tasks</p>
+          </div>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            onClick={() => onTabChange('pos')}
+            className="flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs transition-colors"
+          >
+            <CreditCard className="w-3.5 h-3.5" />
+            <span>Launch POS Terminal</span>
+          </button>
+
+          <button
+            onClick={() => onTabChange('products')}
+            className="flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold bg-slate-900 hover:bg-slate-800 dark:bg-slate-800 dark:hover:bg-slate-700 text-white border border-slate-700/50 shadow-xs transition-colors"
+          >
+            <PackagePlus className="w-3.5 h-3.5" />
+            <span>Manage Products</span>
+          </button>
+
+          <button
+            onClick={() => onTabChange('stock')}
+            className="flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200/60 dark:border-slate-700/60 transition-colors"
+          >
+            <Boxes className="w-3.5 h-3.5" />
+            <span>Inventory</span>
+          </button>
+        </div>
+      </div>
+
+      {/* Modern KPI Metrics Grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        {/* KPI 1: Gross Revenue */}
+        <div className="rounded-2xl bg-white dark:bg-slate-900 p-5 shadow-xs border border-slate-200/80 dark:border-slate-800 hover:shadow-md transition-shadow">
+          <div className="flex items-center justify-between">
+            <div className="w-10 h-10 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 flex items-center justify-center">
               <Wallet className="w-5 h-5" />
             </div>
-            <div>
-              <p className="text-[10px] font-extrabold text-[#A3AED0] uppercase tracking-wider">Gross Revenue</p>
-              <h4 className="text-xl font-extrabold text-[#1B2559] dark:text-white mt-0.5 tracking-tight">
-                {formatCurrency(totalRevenue)}
-              </h4>
-            </div>
-          </div>
-          <div className="text-right">
-            <span className={`inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-full ${growth >= 0 ? 'bg-emerald-50 text-[#01B574]' : 'bg-rose-50 text-[#EE5D50]'}`}>
+            <span
+              className={`inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-full ${
+                growth >= 0
+                  ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-400'
+                  : 'bg-rose-50 text-rose-700 dark:bg-rose-950/50 dark:text-rose-400'
+              }`}
+            >
               <TrendingUp className="w-3 h-3" /> {growth >= 0 ? `+${growth}%` : `${growth}%`}
             </span>
-            <p className="text-[10px] text-[#A3AED0] font-semibold mt-0.5">Web: {formatCurrency(data?.total_sales || 0)}</p>
+          </div>
+
+          <div className="mt-4">
+            <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">
+              Total Gross Revenue
+            </p>
+            <h3 className="text-2xl font-bold text-slate-900 dark:text-white mt-0.5 tracking-tight">
+              {formatCurrency(totalRevenue)}
+            </h3>
+          </div>
+
+          <div className="mt-3 pt-3 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400">
+            <span>Online: {formatCurrency(data?.total_sales || 0)}</span>
+            <span>POS: {formatCurrency(data?.total_pos_sales || 0)}</span>
           </div>
         </div>
 
-        {/* Horizon Widget 2: Total Orders */}
-        <div className="rounded-2xl bg-white dark:bg-[#111C44] p-4.5 shadow-[0px_14px_30px_rgba(112,144,176,0.08)] border border-slate-100 dark:border-navy-700 flex items-center justify-between transition-all hover:shadow-xl">
-          <div className="flex items-center gap-3.5">
-            <div className="w-12 h-12 rounded-full bg-[#F4F7FE] dark:bg-navy-700 text-[#422AFB] dark:text-white flex items-center justify-center font-bold text-lg shrink-0">
+        {/* KPI 2: Total Orders */}
+        <div className="rounded-2xl bg-white dark:bg-slate-900 p-5 shadow-xs border border-slate-200/80 dark:border-slate-800 hover:shadow-md transition-shadow">
+          <div className="flex items-center justify-between">
+            <div className="w-10 h-10 rounded-xl bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 flex items-center justify-center">
               <ShoppingCart className="w-5 h-5" />
             </div>
-            <div>
-              <p className="text-[10px] font-extrabold text-[#A3AED0] uppercase tracking-wider">Total Orders</p>
-              <h4 className="text-xl font-extrabold text-[#1B2559] dark:text-white mt-0.5 tracking-tight">
-                {totalOrdersCount}
-              </h4>
-            </div>
-          </div>
-          <div className="text-right">
-            <span className="text-[11px] font-bold text-[#422AFB] bg-indigo-50 px-2 py-0.5 rounded-full">
+            <span className="text-[11px] font-bold text-blue-700 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/50 px-2 py-0.5 rounded-full">
               Live DB
             </span>
-            <p className="text-[10px] text-[#A3AED0] font-semibold mt-0.5">Online: {data?.orders_count || 0} | POS: {data?.pos_sales_count || 0}</p>
+          </div>
+
+          <div className="mt-4">
+            <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">
+              Total Processed Orders
+            </p>
+            <h3 className="text-2xl font-bold text-slate-900 dark:text-white mt-0.5 tracking-tight">
+              {totalOrdersCount}
+            </h3>
+          </div>
+
+          <div className="mt-3 pt-3 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400">
+            <span>Web Orders: {data?.orders_count || 0}</span>
+            <span>POS Slips: {data?.pos_sales_count || 0}</span>
           </div>
         </div>
 
-        {/* Horizon Widget 3: Average Order Value (AOV) */}
-        <div className="rounded-2xl bg-white dark:bg-[#111C44] p-4.5 shadow-[0px_14px_30px_rgba(112,144,176,0.08)] border border-slate-100 dark:border-navy-700 flex items-center justify-between transition-all hover:shadow-xl">
-          <div className="flex items-center gap-3.5">
-            <div className="w-12 h-12 rounded-full bg-[#F4F7FE] dark:bg-navy-700 text-[#422AFB] dark:text-white flex items-center justify-center font-bold text-lg shrink-0">
+        {/* KPI 3: Average Order Value */}
+        <div className="rounded-2xl bg-white dark:bg-slate-900 p-5 shadow-xs border border-slate-200/80 dark:border-slate-800 hover:shadow-md transition-shadow">
+          <div className="flex items-center justify-between">
+            <div className="w-10 h-10 rounded-xl bg-purple-50 dark:bg-purple-950/60 text-purple-600 dark:text-purple-400 flex items-center justify-center">
               <Sparkles className="w-5 h-5" />
             </div>
-            <div>
-              <p className="text-[10px] font-extrabold text-[#A3AED0] uppercase tracking-wider">Average Order Value (AOV)</p>
-              <h4 className="text-xl font-extrabold text-[#1B2559] dark:text-white mt-0.5 tracking-tight">
-                {formatCurrency(data?.aov || 0)}
-              </h4>
-            </div>
-          </div>
-          <div className="text-right">
-            <span className="text-[11px] font-bold text-purple-600 bg-purple-50 px-2 py-0.5 rounded-full">
-              Basket Size
+            <span className="text-[11px] font-bold text-purple-700 dark:text-purple-400 bg-purple-50 dark:bg-purple-950/50 px-2 py-0.5 rounded-full">
+              Basket Metric
             </span>
-            <p className="text-[10px] text-[#A3AED0] font-semibold mt-0.5">Per Paid Transaction</p>
+          </div>
+
+          <div className="mt-4">
+            <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">
+              Average Order Value (AOV)
+            </p>
+            <h3 className="text-2xl font-bold text-slate-900 dark:text-white mt-0.5 tracking-tight">
+              {formatCurrency(data?.aov || 0)}
+            </h3>
+          </div>
+
+          <div className="mt-3 pt-3 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400">
+            <span>Per Paid Transaction</span>
+            <span className="text-purple-600 dark:text-purple-400 font-semibold">Healthy Range</span>
           </div>
         </div>
 
-        {/* Horizon Widget 4: Low Stock Inventory Risk */}
-        <div className="rounded-2xl bg-white dark:bg-[#111C44] p-4.5 shadow-[0px_14px_30px_rgba(112,144,176,0.08)] border border-slate-100 dark:border-navy-700 flex items-center justify-between transition-all hover:shadow-xl">
-          <div className="flex items-center gap-3.5">
-            <div className="w-12 h-12 rounded-full bg-rose-50 dark:bg-navy-700 text-[#EE5D50] flex items-center justify-center font-bold text-lg shrink-0">
+        {/* KPI 4: Low Stock Alert */}
+        <div className="rounded-2xl bg-white dark:bg-slate-900 p-5 shadow-xs border border-slate-200/80 dark:border-slate-800 hover:shadow-md transition-shadow">
+          <div className="flex items-center justify-between">
+            <div className="w-10 h-10 rounded-xl bg-rose-50 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400 flex items-center justify-center">
               <AlertTriangle className="w-5 h-5" />
             </div>
-            <div>
-              <p className="text-[10px] font-extrabold text-[#A3AED0] uppercase tracking-wider">Low Stock Risk Items</p>
-              <h4 className="text-xl font-extrabold text-[#1B2559] dark:text-white mt-0.5 tracking-tight">
-                {lowStockList.length} <span className="text-xs font-semibold text-[#EE5D50]">Products (≤5)</span>
-              </h4>
-            </div>
-          </div>
-          <div className="text-right">
-            <button onClick={() => onTabChange('stock')} className="text-xs font-bold text-[#422AFB] hover:underline flex items-center gap-0.5">
+            <button
+              onClick={() => onTabChange('stock')}
+              className="text-xs font-bold text-rose-600 dark:text-rose-400 hover:underline flex items-center gap-1"
+            >
               Restock <ArrowUpRight className="w-3 h-3" />
             </button>
-            <p className="text-[10px] text-[#EE5D50] font-semibold mt-0.5">Action Required</p>
+          </div>
+
+          <div className="mt-4">
+            <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">
+              Low Stock Risk Items
+            </p>
+            <h3 className="text-2xl font-bold text-slate-900 dark:text-white mt-0.5 tracking-tight">
+              {lowStockList.length}{' '}
+              <span className="text-xs font-medium text-rose-600 dark:text-rose-400">(≤ 5 units left)</span>
+            </h3>
+          </div>
+
+          <div className="mt-3 pt-3 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400">
+            <span>Inventory Alert</span>
+            <span className="text-rose-600 font-semibold">{lowStockList.length > 0 ? 'Action Required' : 'All Clear'}</span>
           </div>
         </div>
 
-        {/* Horizon Widget 5: Repeat Customers */}
-        <div className="rounded-2xl bg-white dark:bg-[#111C44] p-4.5 shadow-[0px_14px_30px_rgba(112,144,176,0.08)] border border-slate-100 dark:border-navy-700 flex items-center justify-between transition-all hover:shadow-xl">
-          <div className="flex items-center gap-3.5">
-            <div className="w-12 h-12 rounded-full bg-[#F4F7FE] dark:bg-navy-700 text-[#01B574] flex items-center justify-center font-bold text-lg shrink-0">
+        {/* KPI 5: Customer Loyalty */}
+        <div className="rounded-2xl bg-white dark:bg-slate-900 p-5 shadow-xs border border-slate-200/80 dark:border-slate-800 hover:shadow-md transition-shadow">
+          <div className="flex items-center justify-between">
+            <div className="w-10 h-10 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
               <Footprints className="w-5 h-5" />
             </div>
-            <div>
-              <p className="text-[10px] font-extrabold text-[#A3AED0] uppercase tracking-wider">Repeat Customer Base</p>
-              <h4 className="text-xl font-extrabold text-[#1B2559] dark:text-white mt-0.5 tracking-tight">
-                {data?.repeatCustomers || 0} <span className="text-xs font-semibold text-[#A3AED0]">Returning</span>
-              </h4>
-            </div>
-          </div>
-          <div className="text-right">
-            <span className="text-[11px] font-bold text-[#01B574] bg-emerald-50 px-2 py-0.5 rounded-full">
-              High Loyalty
+            <span className="text-[11px] font-bold text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/50 px-2 py-0.5 rounded-full">
+              Repeat Base
             </span>
-            <p className="text-[10px] text-[#A3AED0] font-semibold mt-0.5">Multi-Order History</p>
+          </div>
+
+          <div className="mt-4">
+            <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">
+              Repeat Customers
+            </p>
+            <h3 className="text-2xl font-bold text-slate-900 dark:text-white mt-0.5 tracking-tight">
+              {data?.repeatCustomers || 0}{' '}
+              <span className="text-xs font-medium text-slate-400">Returning Buyers</span>
+            </h3>
+          </div>
+
+          <div className="mt-3 pt-3 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400">
+            <span>High Brand Retention</span>
+            <span className="text-emerald-600 font-semibold">Active</span>
           </div>
         </div>
 
-        {/* Horizon Widget 6: Pending Returns */}
-        <div className="rounded-2xl bg-white dark:bg-[#111C44] p-4.5 shadow-[0px_14px_30px_rgba(112,144,176,0.08)] border border-slate-100 dark:border-navy-700 flex items-center justify-between transition-all hover:shadow-xl">
-          <div className="flex items-center gap-3.5">
-            <div className="w-12 h-12 rounded-full bg-amber-50 dark:bg-navy-700 text-[#FFB547] flex items-center justify-center font-bold text-lg shrink-0">
+        {/* KPI 6: Pending Returns */}
+        <div className="rounded-2xl bg-white dark:bg-slate-900 p-5 shadow-xs border border-slate-200/80 dark:border-slate-800 hover:shadow-md transition-shadow">
+          <div className="flex items-center justify-between">
+            <div className="w-10 h-10 rounded-xl bg-amber-50 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 flex items-center justify-center">
               <RotateCcw className="w-5 h-5" />
             </div>
-            <div>
-              <p className="text-[10px] font-extrabold text-[#A3AED0] uppercase tracking-wider">Pending Exchanges</p>
-              <h4 className="text-xl font-extrabold text-[#1B2559] dark:text-white mt-0.5 tracking-tight">
-                {returns.filter(r => r.status === 'pending').length} <span className="text-xs font-semibold text-[#FFB547]">Requests</span>
-              </h4>
-            </div>
-          </div>
-          <div className="text-right">
-            <button onClick={() => onTabChange('returns')} className="text-xs font-bold text-[#422AFB] hover:underline flex items-center gap-0.5">
+            <button
+              onClick={() => onTabChange('returns')}
+              className="text-xs font-bold text-amber-600 dark:text-amber-400 hover:underline flex items-center gap-1"
+            >
               Review <ArrowUpRight className="w-3 h-3" />
             </button>
-            <p className="text-[10px] text-[#A3AED0] font-semibold mt-0.5">Requires Action</p>
+          </div>
+
+          <div className="mt-4">
+            <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">
+              Pending Exchanges & Returns
+            </p>
+            <h3 className="text-2xl font-bold text-slate-900 dark:text-white mt-0.5 tracking-tight">
+              {returns.filter((r) => r.status === 'pending').length}{' '}
+              <span className="text-xs font-medium text-amber-600 dark:text-amber-400">Requests</span>
+            </h3>
+          </div>
+
+          <div className="mt-3 pt-3 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400">
+            <span>Customer Service Queue</span>
+            <span className="text-amber-600 font-semibold">Needs Approval</span>
           </div>
         </div>
       </div>
 
-      {/* Horizon Analytics Charts Section */}
+      {/* Analytics Charts Row */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
-        {/* Left 2 Cols: Horizon Total Spent Revenue Area Chart */}
-        <div className="lg:col-span-2 rounded-2xl bg-white dark:bg-[#111C44] p-5 shadow-[0px_14px_30px_rgba(112,144,176,0.08)] border border-slate-100 dark:border-navy-700 space-y-3">
-          <div className="flex items-center justify-between border-b border-slate-100 dark:border-navy-700 pb-3">
+        {/* Left 2 Cols: Sales Revenue Trend */}
+        <div className="lg:col-span-2 rounded-2xl bg-white dark:bg-slate-900 p-5 shadow-xs border border-slate-200/80 dark:border-slate-800 space-y-4">
+          <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
             <div>
-              <p className="text-[10px] font-extrabold text-[#A3AED0] uppercase tracking-wider">Total Sales Stream</p>
-              <h3 className="text-lg font-bold text-[#1B2559] dark:text-white tracking-tight flex items-center gap-2.5">
-                {formatCurrency(totalRevenue)}
-                <span className="text-[10px] font-bold text-[#01B574] bg-emerald-50 px-2 py-0.5 rounded-full flex items-center gap-1">
-                  <TrendingUp className="w-3 h-3" /> Realtime D1 Sync
+              <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">
+                Revenue Inflow Curve
+              </p>
+              <div className="flex items-center gap-2.5 mt-0.5">
+                <h3 className="text-xl font-bold text-slate-900 dark:text-white tracking-tight">
+                  {formatCurrency(totalRevenue)}
+                </h3>
+                <span className="text-[10px] font-bold text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/60 px-2 py-0.5 rounded-full flex items-center gap-1 border border-emerald-200/50 dark:border-emerald-800/50">
+                  <TrendingUp className="w-3 h-3" /> Live D1 Database
                 </span>
-              </h3>
+              </div>
             </div>
+
             <button
               onClick={() => setCollapsedSalesTrend(!collapsedSalesTrend)}
-              className="text-xs font-bold text-[#422AFB] hover:underline"
+              className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+              title={collapsedSalesTrend ? 'Expand Chart' : 'Collapse Chart'}
             >
-              {collapsedSalesTrend ? 'Expand Chart' : 'Collapse Chart'}
+              {collapsedSalesTrend ? <ChevronDown className="w-4 h-4" /> : <ChevronUp className="w-4 h-4" />}
             </button>
           </div>
 
           {!collapsedSalesTrend && (
-            <div className="h-72 pt-4">
+            <div className="h-72 pt-2">
               {trendData.length > 0 ? (
                 <ResponsiveContainer width="100%" height="100%">
                   <AreaChart
@@ -364,75 +483,80 @@ export default function DashboardView({ data, products, returns, onTabChange }: 
                     margin={{ top: 10, right: 10, left: -10, bottom: 0 }}
                   >
                     <defs>
-                      <linearGradient id="colorRevenueHorizon" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#422AFB" stopOpacity={0.4}/>
-                        <stop offset="95%" stopColor="#422AFB" stopOpacity={0.0}/>
+                      <linearGradient id="colorRevenueModern" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#4F46E5" stopOpacity={0.35} />
+                        <stop offset="95%" stopColor="#4F46E5" stopOpacity={0.0} />
                       </linearGradient>
                     </defs>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" opacity={0.6} />
                     <XAxis
                       dataKey="name"
-                      stroke="#A3AED0"
+                      stroke="#94A3B8"
                       fontSize={11}
                       tickLine={false}
                       axisLine={false}
                     />
                     <YAxis
-                      stroke="#A3AED0"
+                      stroke="#94A3B8"
                       fontSize={11}
                       tickLine={false}
                       axisLine={false}
-                      tickFormatter={(val) => `₹${val >= 1000 ? `${(val/1000).toFixed(0)}k` : val}`}
+                      tickFormatter={(val) => `₹${val >= 1000 ? `${(val / 1000).toFixed(0)}k` : val}`}
                     />
                     <Tooltip
                       contentStyle={{
-                        backgroundColor: '#111C44',
-                        borderRadius: '16px',
-                        color: '#ffffff',
-                        border: 'none',
-                        boxShadow: '0 18px 40px rgba(112, 144, 176, 0.2)',
+                        backgroundColor: '#0F172A',
+                        borderRadius: '12px',
+                        color: '#FFFFFF',
+                        border: '1px solid #334155',
+                        boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.3)',
                         fontSize: '12px',
+                        padding: '8px 12px'
                       }}
-                      itemStyle={{ color: '#8171FC' }}
-                      labelStyle={{ color: '#ffffff', fontWeight: 'bold' }}
-                      formatter={(value: any) => [`₹${value.toLocaleString('en-IN')}`, 'Revenue']}
+                      itemStyle={{ color: '#818CF8' }}
+                      labelStyle={{ color: '#FFFFFF', fontWeight: 'bold' }}
+                      formatter={(value: any) => [`₹${Number(value).toLocaleString('en-IN')}`, 'Revenue']}
                     />
                     <Area
                       type="monotone"
                       dataKey="Revenue"
-                      stroke="#422AFB"
-                      strokeWidth={3.5}
+                      stroke="#4F46E5"
+                      strokeWidth={3}
                       fillOpacity={1}
-                      fill="url(#colorRevenueHorizon)"
+                      fill="url(#colorRevenueModern)"
                     />
                   </AreaChart>
                 </ResponsiveContainer>
               ) : (
-                <div className="h-full flex items-center justify-center text-xs text-[#A3AED0] italic">
-                  No sales recorded in the selected period.
+                <div className="h-full flex items-center justify-center text-xs text-slate-400 italic">
+                  No sales stream data available for current period.
                 </div>
               )}
             </div>
           )}
         </div>
 
-        {/* Right 1 Col: Horizon PieChartCard Category Share */}
-        <div className="rounded-[20px] bg-white dark:bg-[#111C44] p-6 shadow-[0px_18px_40px_rgba(112,144,176,0.12)] border border-slate-100 dark:border-navy-700 space-y-4">
-          <div className="flex items-center justify-between border-b border-slate-100 dark:border-navy-700 pb-4">
+        {/* Right 1 Col: Category Distribution */}
+        <div className="rounded-2xl bg-white dark:bg-slate-900 p-5 shadow-xs border border-slate-200/80 dark:border-slate-800 space-y-4">
+          <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
             <div>
-              <p className="text-xs font-bold text-[#A3AED0] uppercase tracking-wider">Your Categories</p>
-              <h3 className="text-lg font-bold text-[#2B3674] dark:text-white">Category Share</h3>
+              <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">
+                Catalog Share
+              </p>
+              <h3 className="text-lg font-bold text-slate-900 dark:text-white">Category Breakdown</h3>
             </div>
+
             <button
               onClick={() => setCollapsedCategoryShare(!collapsedCategoryShare)}
-              className="text-xs font-bold text-[#422AFB] hover:underline"
+              className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+              title={collapsedCategoryShare ? 'Expand' : 'Collapse'}
             >
-              {collapsedCategoryShare ? 'Expand' : 'Collapse'}
+              {collapsedCategoryShare ? <ChevronDown className="w-4 h-4" /> : <ChevronUp className="w-4 h-4" />}
             </button>
           </div>
 
           {!collapsedCategoryShare && (
-            <div className="h-72 pt-2 flex flex-col items-center justify-center">
+            <div className="h-72 pt-1 flex flex-col items-center justify-center">
               {catShare.length > 0 ? (
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
@@ -442,25 +566,24 @@ export default function DashboardView({ data, products, returns, onTabChange }: 
                       cy="45%"
                       innerRadius={55}
                       outerRadius={80}
-                      paddingAngle={5}
+                      paddingAngle={4}
                       dataKey="value"
                       nameKey="category"
                     >
-                      {catShare.map((entry: CategorySale, index: number) => {
-                        const COLORS = ['#4318FF', '#6AD2FF', '#01B574', '#FFB547', '#EE5D50', '#8B5CF6'];
-                        return <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />;
-                      })}
+                      {catShare.map((_, index: number) => (
+                        <Cell key={`cell-${index}`} fill={categoryColors[index % categoryColors.length]} />
+                      ))}
                     </Pie>
                     <Tooltip
                       contentStyle={{
-                        backgroundColor: '#111C44',
+                        backgroundColor: '#0F172A',
                         borderRadius: '12px',
-                        color: '#ffffff',
-                        border: 'none',
+                        color: '#FFFFFF',
+                        border: '1px solid #334155',
                         fontSize: '11px',
                       }}
-                      itemStyle={{ color: '#6AD2FF' }}
-                      labelStyle={{ color: '#ffffff', fontWeight: 'bold' }}
+                      itemStyle={{ color: '#38BDF8' }}
+                      labelStyle={{ color: '#FFFFFF', fontWeight: 'bold' }}
                       formatter={(value: any) => [`${value}%`, 'Share']}
                     />
                     <Legend
@@ -469,14 +592,14 @@ export default function DashboardView({ data, products, returns, onTabChange }: 
                       iconType="circle"
                       iconSize={8}
                       formatter={(value: any) => (
-                        <span className="text-xs font-semibold text-[#2B3674] dark:text-white font-sans px-1">{value}</span>
+                        <span className="text-xs font-semibold text-slate-700 dark:text-slate-200 px-1">{value}</span>
                       )}
                     />
                   </PieChart>
                 </ResponsiveContainer>
               ) : (
-                <div className="h-full flex items-center justify-center text-xs text-[#A3AED0] italic">
-                  No category sales recorded yet.
+                <div className="h-full flex items-center justify-center text-xs text-slate-400 italic">
+                  No category transactions recorded yet.
                 </div>
               )}
             </div>
@@ -484,186 +607,207 @@ export default function DashboardView({ data, products, returns, onTabChange }: 
         </div>
       </div>
 
-      {/* Horizon Complex Data Tables Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Table 1: Low Stock Risk Inventory Data Grid */}
-        <div className="rounded-[20px] bg-white dark:bg-[#111C44] p-6 shadow-[0px_18px_40px_rgba(112,144,176,0.12)] border border-slate-100 dark:border-navy-700 space-y-4">
-          <div className="flex items-center justify-between border-b border-slate-100 dark:border-navy-700 pb-3">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-rose-50 text-[#EE5D50] flex items-center justify-center font-bold">
-                <AlertTriangle className="w-5 h-5" />
+      {/* 4-Grid Actionable Tables */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+        {/* Table 1: Low Stock Alert Feed */}
+        <div className="rounded-2xl bg-white dark:bg-slate-900 p-5 shadow-xs border border-slate-200/80 dark:border-slate-800 space-y-3">
+          <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-lg bg-rose-50 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400 flex items-center justify-center font-bold">
+                <AlertTriangle className="w-4 h-4" />
               </div>
               <div>
-                <h3 className="text-base font-bold text-[#2B3674] dark:text-white">Low Stock Risk Report</h3>
-                <p className="text-xs text-[#A3AED0]">Items with ≤5 units remaining</p>
+                <h4 className="text-sm font-bold text-slate-900 dark:text-white">Low Stock Risk Alert</h4>
+                <p className="text-[11px] text-slate-400">Items requiring immediate reordering</p>
               </div>
             </div>
             <button
               onClick={() => onTabChange('stock')}
-              className="text-xs font-bold text-[#EE5D50] hover:underline flex items-center gap-1"
+              className="text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-1"
             >
-              Manage Stock <ArrowUpRight className="w-3.5 h-3.5" />
+              Manage <ArrowUpRight className="w-3 h-3" />
             </button>
           </div>
 
-          <div className="divide-y divide-slate-100 dark:divide-navy-700">
+          <div className="divide-y divide-slate-100 dark:divide-slate-800">
             {lowStockList.slice(0, 5).map((item) => (
-              <div key={item.id} className="py-3 flex items-center justify-between gap-4">
-                <div className="flex items-center gap-3 min-w-0">
+              <div key={item.id} className="py-2.5 flex items-center justify-between gap-3">
+                <div className="flex items-center gap-2.5 min-w-0">
                   {item.image_url ? (
-                    <img src={item.image_url} alt={item.name} className="w-10 h-10 rounded-xl object-cover border border-slate-100" />
+                    <img
+                      src={item.image_url}
+                      alt={item.name}
+                      className="w-9 h-9 rounded-lg object-cover border border-slate-200/60 dark:border-slate-700"
+                    />
                   ) : (
-                    <div className="w-10 h-10 rounded-xl bg-[#F4F7FE] flex items-center justify-center text-[#422AFB] font-bold text-xs">
+                    <div className="w-9 h-9 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-600 dark:text-slate-300 font-bold text-xs">
                       HU
                     </div>
                   )}
                   <div className="min-w-0">
-                    <p className="text-xs font-bold text-[#2B3674] dark:text-white truncate">{item.name}</p>
-                    <p className="text-[11px] text-[#A3AED0] font-mono">SKU: {item.sku || `PROD-${item.id}`}</p>
+                    <p className="text-xs font-bold text-slate-900 dark:text-white truncate">{item.name}</p>
+                    <p className="text-[10px] text-slate-400 font-mono">SKU: {item.sku || `PROD-${item.id}`}</p>
                   </div>
                 </div>
-                <div className="flex items-center gap-3">
-                  <span className="px-3 py-1 rounded-full text-xs font-extrabold bg-rose-50 text-[#EE5D50]">
+
+                <div className="flex items-center gap-2 shrink-0">
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-50 text-rose-700 dark:bg-rose-950/60 dark:text-rose-400 border border-rose-200/60 dark:border-rose-800/60">
                     {item.stock} left
                   </span>
                   <button
                     onClick={() => onTabChange('stock')}
-                    className="text-xs text-[#422AFB] font-bold hover:underline"
+                    className="text-xs text-indigo-600 dark:text-indigo-400 font-semibold hover:underline"
                   >
                     Restock
                   </button>
                 </div>
               </div>
             ))}
+
             {lowStockList.length === 0 && (
-              <div className="py-8 text-center text-xs text-[#A3AED0] italic">
+              <div className="py-6 text-center text-xs text-slate-400 italic">
                 All inventory stock levels are healthy.
               </div>
             )}
           </div>
         </div>
 
-        {/* Table 2: Top Active Promo Coupons */}
-        <div className="rounded-[20px] bg-white dark:bg-[#111C44] p-6 shadow-[0px_18px_40px_rgba(112,144,176,0.12)] border border-slate-100 dark:border-navy-700 space-y-4">
-          <div className="flex items-center justify-between border-b border-slate-100 dark:border-navy-700 pb-3">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-indigo-50 text-[#422AFB] flex items-center justify-center font-bold">
-                <Sparkles className="w-5 h-5" />
+        {/* Table 2: Active Promo Coupons */}
+        <div className="rounded-2xl bg-white dark:bg-slate-900 p-5 shadow-xs border border-slate-200/80 dark:border-slate-800 space-y-3">
+          <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-lg bg-purple-50 dark:bg-purple-950/60 text-purple-600 dark:text-purple-400 flex items-center justify-center font-bold">
+                <Tag className="w-4 h-4" />
               </div>
               <div>
-                <h3 className="text-base font-bold text-[#2B3674] dark:text-white">Active Promo Coupons</h3>
-                <p className="text-xs text-[#A3AED0]">Real redemption performance</p>
+                <h4 className="text-sm font-bold text-slate-900 dark:text-white">Active Promo Coupons</h4>
+                <p className="text-[11px] text-slate-400">Coupon usage and redemption performance</p>
               </div>
             </div>
             <button
               onClick={() => onTabChange('coupons')}
-              className="text-xs font-bold text-[#422AFB] hover:underline flex items-center gap-1"
+              className="text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-1"
             >
-              Coupons Manager <ArrowUpRight className="w-3.5 h-3.5" />
+              Coupons <ArrowUpRight className="w-3 h-3" />
             </button>
           </div>
 
-          <div className="divide-y divide-slate-100 dark:divide-navy-700">
-            {couponsList.map((cp) => (
-              <div key={cp.id} className="py-3 flex items-center justify-between gap-4">
+          <div className="divide-y divide-slate-100 dark:divide-slate-800">
+            {couponsList.slice(0, 5).map((cp) => (
+              <div key={cp.id} className="py-2.5 flex items-center justify-between gap-3">
                 <div className="space-y-0.5">
-                  <span className="px-3 py-1 rounded-lg bg-[#F4F7FE] text-[#422AFB] font-mono text-xs font-bold border border-indigo-100">
+                  <span className="px-2.5 py-1 rounded-md bg-slate-100 dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 font-mono text-xs font-bold border border-slate-200 dark:border-slate-700">
                     {cp.code}
                   </span>
-                  <p className="text-[11px] text-[#A3AED0] mt-1">
-                    {cp.discount}% Discount • Max Uses: {cp.max_uses || 'Unlimited'}
+                  <p className="text-[10px] text-slate-400 mt-1">
+                    {cp.discount}% Discount • Max: {cp.max_uses || 'Unlimited'}
                   </p>
                 </div>
                 <div className="text-right">
-                  <span className="text-xs font-bold text-[#2B3674] dark:text-white font-mono">{cp.used_count} Redemptions</span>
-                  <p className="text-[10px] text-[#01B574] font-semibold">Active Code</p>
+                  <span className="text-xs font-bold text-slate-900 dark:text-white font-mono">
+                    {cp.used_count} Used
+                  </span>
+                  <p className="text-[10px] text-emerald-600 font-medium">Active Code</p>
                 </div>
               </div>
             ))}
+
             {couponsList.length === 0 && (
-              <div className="py-8 text-center text-xs text-[#A3AED0] italic">
-                No active promo codes found in database.
+              <div className="py-6 text-center text-xs text-slate-400 italic">
+                No active promo codes currently configured.
               </div>
             )}
           </div>
         </div>
 
-        {/* Table 3: Recent Orders Live Log */}
-        <div className="rounded-[20px] bg-white dark:bg-[#111C44] p-6 shadow-[0px_18px_40px_rgba(112,144,176,0.12)] border border-slate-100 dark:border-navy-700 space-y-4">
-          <div className="flex items-center justify-between border-b border-slate-100 dark:border-navy-700 pb-3">
-            <h3 className="text-base font-bold text-[#2B3674] dark:text-white">Recent Customer Orders</h3>
+        {/* Table 3: Recent Customer Orders */}
+        <div className="rounded-2xl bg-white dark:bg-slate-900 p-5 shadow-xs border border-slate-200/80 dark:border-slate-800 space-y-3">
+          <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+            <h4 className="text-sm font-bold text-slate-900 dark:text-white">Recent Customer Orders</h4>
             <button
               onClick={() => onTabChange('orders')}
-              className="text-xs font-bold text-[#422AFB] hover:underline flex items-center gap-1"
+              className="text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-1"
             >
-              View Orders Registry <ArrowUpRight className="w-3.5 h-3.5" />
+              Registry <ArrowUpRight className="w-3 h-3" />
             </button>
           </div>
 
-          <div className="divide-y divide-slate-100 dark:divide-navy-700">
+          <div className="divide-y divide-slate-100 dark:divide-slate-800">
             {recentOrdersList.slice(0, 5).map((ord) => (
-              <div key={ord.id} className="py-3 flex items-center justify-between gap-4">
+              <div key={ord.id} className="py-2.5 flex items-center justify-between gap-3">
                 <div className="space-y-0.5 min-w-0">
-                  <p className="text-xs font-bold text-[#2B3674] dark:text-white font-mono">#{ord.order_number}</p>
-                  <p className="text-[11px] text-[#A3AED0] truncate">{ord.customer_name || 'Customer'}</p>
+                  <p className="text-xs font-bold text-slate-900 dark:text-white font-mono">#{ord.order_number}</p>
+                  <p className="text-[11px] text-slate-400 truncate">{ord.customer_name || 'Customer'}</p>
                 </div>
-                <div className="text-right">
-                  <p className="text-xs font-extrabold text-[#2B3674] dark:text-white">{formatCurrency(ord.total_amount || 0)}</p>
-                  <span className={`inline-block px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
-                    ord.order_status === 'delivered' ? 'bg-emerald-50 text-[#01B574]' :
-                    ord.order_status === 'cancelled' ? 'bg-rose-50 text-[#EE5D50]' : 'bg-indigo-50 text-[#422AFB]'
-                  }`}>
+                <div className="text-right shrink-0">
+                  <p className="text-xs font-bold text-slate-900 dark:text-white">
+                    {formatCurrency(ord.total_amount || 0)}
+                  </p>
+                  <span
+                    className={`inline-block px-2 py-0.5 rounded-full text-[9px] font-bold ${
+                      ord.order_status === 'delivered'
+                        ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-400'
+                        : ord.order_status === 'cancelled'
+                        ? 'bg-rose-50 text-rose-700 dark:bg-rose-950/60 dark:text-rose-400'
+                        : 'bg-indigo-50 text-indigo-700 dark:bg-indigo-950/60 dark:text-indigo-400'
+                    }`}
+                  >
                     {ord.order_status.toUpperCase()}
                   </span>
                 </div>
               </div>
             ))}
+
             {recentOrdersList.length === 0 && (
-              <div className="py-8 text-center text-xs text-[#A3AED0] italic">
-                No orders recorded yet.
-              </div>
+              <div className="py-6 text-center text-xs text-slate-400 italic">No recent orders found.</div>
             )}
           </div>
         </div>
 
         {/* Table 4: Top Selling Products */}
-        <div className="rounded-[20px] bg-white dark:bg-[#111C44] p-6 shadow-[0px_18px_40px_rgba(112,144,176,0.12)] border border-slate-100 dark:border-navy-700 space-y-4">
-          <div className="flex items-center justify-between border-b border-slate-100 dark:border-navy-700 pb-3">
-            <h3 className="text-base font-bold text-[#2B3674] dark:text-white">Top Selling Products</h3>
+        <div className="rounded-2xl bg-white dark:bg-slate-900 p-5 shadow-xs border border-slate-200/80 dark:border-slate-800 space-y-3">
+          <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+            <h4 className="text-sm font-bold text-slate-900 dark:text-white">Top Performing Products</h4>
             <button
               onClick={() => onTabChange('products')}
-              className="text-xs font-bold text-[#422AFB] hover:underline flex items-center gap-1"
+              className="text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-1"
             >
-              Products Catalog <ArrowUpRight className="w-3.5 h-3.5" />
+              Catalog <ArrowUpRight className="w-3 h-3" />
             </button>
           </div>
 
-          <div className="divide-y divide-slate-100 dark:divide-navy-700">
+          <div className="divide-y divide-slate-100 dark:divide-slate-800">
             {topProductsList.slice(0, 5).map((tp) => (
-              <div key={tp.id} className="py-3 flex items-center justify-between gap-4">
-                <div className="flex items-center gap-3 min-w-0">
+              <div key={tp.id} className="py-2.5 flex items-center justify-between gap-3">
+                <div className="flex items-center gap-2.5 min-w-0">
                   {tp.image_url ? (
-                    <img src={tp.image_url} alt={tp.name} className="w-10 h-10 rounded-xl object-cover border border-slate-100" />
+                    <img
+                      src={tp.image_url}
+                      alt={tp.name}
+                      className="w-9 h-9 rounded-lg object-cover border border-slate-200/60 dark:border-slate-700"
+                    />
                   ) : (
-                    <div className="w-10 h-10 rounded-xl bg-[#F4F7FE] flex items-center justify-center text-[#422AFB] font-bold text-xs">
+                    <div className="w-9 h-9 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-600 dark:text-slate-300 font-bold text-xs">
                       HU
                     </div>
                   )}
                   <div className="min-w-0">
-                    <p className="text-xs font-bold text-[#2B3674] dark:text-white truncate">{tp.name}</p>
-                    <p className="text-[11px] text-[#A3AED0] font-mono">{tp.sold} Units Sold</p>
+                    <p className="text-xs font-bold text-slate-900 dark:text-white truncate">{tp.name}</p>
+                    <p className="text-[10px] text-slate-400">{tp.sold} Units Sold</p>
                   </div>
                 </div>
-                <div className="text-right">
-                  <p className="text-xs font-bold text-[#2B3674] dark:text-white">{formatCurrency(tp.revenue || 0)}</p>
-                  <p className="text-[10px] text-[#01B574] font-semibold">Top Revenue</p>
+
+                <div className="text-right shrink-0">
+                  <p className="text-xs font-bold text-slate-900 dark:text-white">
+                    {formatCurrency(tp.revenue || 0)}
+                  </p>
+                  <p className="text-[10px] text-emerald-600 font-medium">Top Velocity</p>
                 </div>
               </div>
             ))}
+
             {topProductsList.length === 0 && (
-              <div className="py-8 text-center text-xs text-[#A3AED0] italic">
-                No product sales recorded yet.
-              </div>
+              <div className="py-6 text-center text-xs text-slate-400 italic">No sales recorded yet.</div>
             )}
           </div>
         </div>

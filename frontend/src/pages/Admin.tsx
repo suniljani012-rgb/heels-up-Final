@@ -1,5 +1,17 @@
 import React, { useState, useEffect } from 'react';
-import { ShoppingCart, Sliders, RefreshCw, X } from 'lucide-react';
+import {
+  ShoppingCart,
+  Menu,
+  RefreshCw,
+  X,
+  Search,
+  Radio,
+  Home,
+  ChevronRight,
+  Sparkles,
+  Command,
+  CheckCircle2
+} from 'lucide-react';
 import { useToastStore } from '../store/useToastStore';
 
 // --- Modular Admin Panel Components ---
@@ -46,7 +58,8 @@ export default function Admin() {
     localStorage.setItem('admin_active_tab', activeTab);
   }, [activeTab]);
 
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [lastSyncTime, setLastSyncTime] = useState<string>('Just now');
 
   // Lists & States for Dashboard
   const [dashboardData, setDashboardData] = useState<DashboardData | null>(null);
@@ -136,6 +149,7 @@ export default function Admin() {
     try {
       await Promise.allSettled(entries.map(({ endpoint, setter }) => fetchSec(endpoint, setter)));
       setLoadedTabs(prev => new Set([...prev, tab]));
+      setLastSyncTime(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
     } finally {
       setDataLoading(false);
     }
@@ -147,11 +161,10 @@ export default function Admin() {
     setDataLoading(true);
     setLoadedTabs(new Set()); // Reset cache
     try {
-      // Load dashboard first for instant display
       await fetchSec('/api/admin/dashboard', setDashboardData);
       setDataLoading(false);
       setLoadedTabs(new Set(['dashboard']));
-      // Load currently active tab data in background
+      setLastSyncTime(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
       const entries = TAB_DATA_MAP[activeTab] || [];
       if (activeTab !== 'dashboard' && entries.length > 0) {
         Promise.allSettled(entries.map(({ endpoint, setter }) => fetchSec(endpoint, setter))).then(() => {
@@ -194,7 +207,7 @@ export default function Admin() {
             const diff = fetchedOrders.length - lastOrderCount;
             const latest = fetchedOrders[0];
             playAlertSound();
-            setShowOrderBanner(`New Order! #${latest.order_number} placed by ${latest.customer_name}`);
+            setShowOrderBanner(`New Order #${latest.order_number} (${latest.customer_name})`);
             setUnseenOrders(prev => prev + diff);
             setOrdersList(fetchedOrders);
             setLastOrderCount(fetchedOrders.length);
@@ -209,7 +222,6 @@ export default function Admin() {
     }, 30000);
     return () => clearInterval(interval);
   }, [token, lastOrderCount]);
-
 
   useEffect(() => {
     const handleUnauth = () => {
@@ -269,29 +281,61 @@ export default function Admin() {
 
   if (!user) {
     return (
-      <div className="min-h-screen bg-[#f5f5f4] flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8 font-sans relative text-neutral-900">
+      <div className="min-h-screen bg-slate-100 dark:bg-slate-950 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8 font-sans relative text-slate-900">
         <AdminAuth onAuthSuccess={setUser} />
       </div>
     );
   }
 
+  // Format tab label
+  const tabTitles: Record<string, { title: string; category: string }> = {
+    dashboard: { title: 'Executive Overview', category: 'Operations' },
+    analysis: { title: 'Business Analytics & Reports', category: 'Operations' },
+    pos: { title: 'Retail POS Terminal', category: 'Operations' },
+    products: { title: 'Products Catalog', category: 'Catalog' },
+    stock: { title: 'Inventory & Stock Level', category: 'Catalog' },
+    categories: { title: 'Product Categories', category: 'Catalog' },
+    orders: { title: 'Orders Registry', category: 'Orders' },
+    returns: { title: 'Exchanges & Returns', category: 'Orders' },
+    customers: { title: 'Customer Accounts', category: 'Clients' },
+    reviews: { title: 'Reviews Moderation', category: 'Clients' },
+    coupons: { title: 'Discount Coupons', category: 'Marketing' },
+    banners: { title: 'Homepage Hero Banners', category: 'Marketing' },
+    pages: { title: 'Content & CMS Pages', category: 'CMS' },
+    staff: { title: 'Team & Staff Permissions', category: 'Admin' },
+    audits: { title: 'Security & Audit Logs', category: 'Admin' },
+    settings: { title: 'Store Configuration', category: 'Admin' },
+  };
+
+  const currentTabMeta = tabTitles[activeTab] || { title: activeTab, category: 'Admin' };
+
   return (
-    <div className="flex h-screen overflow-hidden bg-[#F4F7FE] dark:bg-[#0B1437] text-slate-800 font-sans relative">
+    <div className="flex h-screen overflow-hidden bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-slate-100 font-sans relative antialiased">
+      {/* Realtime Order Notification Banner */}
       {showOrderBanner && (
-        <div className="fixed top-20 right-6 z-50 animate-slide-left pointer-events-auto bg-white text-slate-900 p-4 rounded-2xl shadow-2xl border border-slate-100 flex items-center gap-3 w-80 max-w-sm">
-          <div className="w-10 h-10 rounded-full bg-emerald-50 border border-emerald-200 flex items-center justify-center animate-bounce text-emerald-600">
+        <div className="fixed top-5 right-6 z-50 animate-bounce pointer-events-auto bg-slate-900 text-white dark:bg-white dark:text-slate-900 p-4 rounded-2xl shadow-2xl border border-slate-700/50 flex items-center gap-3 w-84 max-w-sm">
+          <div className="w-10 h-10 rounded-xl bg-emerald-500/20 text-emerald-400 dark:text-emerald-600 flex items-center justify-center shrink-0">
             <ShoppingCart className="w-5 h-5" />
           </div>
           <div className="flex-1 min-w-0">
-            <h5 className="text-[10px] uppercase font-extrabold text-slate-400 tracking-wider">New Realtime Order</h5>
-            <p className="text-xs font-bold text-slate-900 leading-snug mt-0.5">{showOrderBanner}</p>
+            <div className="flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
+              <h5 className="text-[10px] uppercase font-bold tracking-wider text-emerald-400 dark:text-emerald-600">
+                Incoming Order
+              </h5>
+            </div>
+            <p className="text-xs font-semibold truncate mt-0.5">{showOrderBanner}</p>
           </div>
-          <button onClick={() => setShowOrderBanner(null)} className="text-slate-400 hover:text-slate-600 transition-colors shrink-0">
+          <button
+            onClick={() => setShowOrderBanner(null)}
+            className="text-slate-400 hover:text-white dark:hover:text-slate-900 transition-colors p-1"
+          >
             <X className="w-4 h-4" />
           </button>
         </div>
       )}
 
+      {/* Navigation Sidebar */}
       <AdminSidebar
         activeTab={activeTab}
         setActiveTab={(tab) => {
@@ -305,58 +349,77 @@ export default function Admin() {
         handleLogout={handleLogout}
       />
 
-      <div className="flex-1 flex flex-col h-full overflow-y-auto min-w-0 p-4 md:p-6 space-y-6">
-        {/* Horizon UI Floating Header Navbar */}
-        <header className="sticky top-0 z-30 bg-white/80 dark:bg-navy-800/80 backdrop-blur-xl border border-white/40 dark:border-navy-700 shadow-[0px_18px_40px_rgba(112,144,176,0.12)] rounded-[20px] px-6 py-3 flex items-center justify-between transition-all">
+      {/* Main Content Area */}
+      <div className="flex-1 flex flex-col h-full overflow-y-auto min-w-0 p-3 md:p-5 space-y-5">
+        {/* Top Header Navbar */}
+        <header className="sticky top-0 z-30 bg-white/85 dark:bg-slate-900/85 backdrop-blur-md border border-slate-200/80 dark:border-slate-800 shadow-xs rounded-2xl px-5 py-3 flex items-center justify-between transition-all">
+          {/* Left: Mobile Toggle & Breadcrumbs */}
           <div className="flex items-center gap-3">
-            <button onClick={() => setSidebarOpen(!sidebarOpen)} className="md:hidden p-2 text-slate-500 hover:bg-slate-100 rounded-xl transition-colors">
-              <Sliders className="w-5 h-5 rotate-90" />
+            <button
+              onClick={() => setSidebarOpen(!sidebarOpen)}
+              className="md:hidden p-2 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors"
+              aria-label="Toggle Sidebar"
+            >
+              <Menu className="w-5 h-5" />
             </button>
+
             <div>
-              <p className="text-[11px] font-bold text-[#A3AED0] uppercase tracking-wider">
-                Pages / Admin / <span className="text-[#2B3674] dark:text-white capitalize">{activeTab}</span>
-              </p>
-              <h2 className="text-xl md:text-2xl font-bold text-[#2B3674] dark:text-white capitalize tracking-tight">
-                {activeTab === 'dashboard' ? 'Overview Dashboard' : activeTab}
-              </h2>
+              <div className="flex items-center gap-1.5 text-[11px] font-medium text-slate-400 dark:text-slate-500">
+                <Home className="w-3 h-3" />
+                <span>Admin</span>
+                <ChevronRight className="w-3 h-3 text-slate-300 dark:text-slate-600" />
+                <span className="text-slate-500 dark:text-slate-400">{currentTabMeta.category}</span>
+                <ChevronRight className="w-3 h-3 text-slate-300 dark:text-slate-600" />
+                <span className="font-semibold text-indigo-600 dark:text-indigo-400 capitalize">{activeTab}</span>
+              </div>
+              <h1 className="text-lg md:text-xl font-bold text-slate-900 dark:text-white tracking-tight mt-0.5">
+                {currentTabMeta.title}
+              </h1>
             </div>
           </div>
 
-          <div className="flex items-center gap-4">
-            {/* Search Input Bar (Horizon Style) */}
-            <div className="hidden sm:flex items-center gap-2 bg-[#F4F7FE] dark:bg-navy-900 rounded-full px-4 py-2 text-xs border border-slate-100 dark:border-navy-700 text-[#A3AED0] w-48 md:w-64">
-              <i className="fas fa-search text-slate-400"></i>
-              <input
-                type="text"
-                placeholder="Search orders, SKU..."
-                className="bg-transparent border-none outline-none text-xs text-[#2B3674] dark:text-white placeholder-[#A3AED0] w-full"
-              />
+          {/* Right: Actions & User Meta */}
+          <div className="flex items-center gap-3">
+            {/* Live Sync Status */}
+            <div className="hidden lg:flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-100/80 dark:bg-slate-800 text-[11px] font-medium text-slate-600 dark:text-slate-300 border border-slate-200/50 dark:border-slate-700/50">
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+              </span>
+              <span>Live Engine</span>
+              <span className="text-slate-400 text-[10px]">({lastSyncTime})</span>
             </div>
 
-            {/* Refresh Live Data */}
+            {/* Sync Refresh Button */}
             <button
               onClick={loadAllData}
               disabled={dataLoading}
-              title="Sync Realtime Data"
-              className="p-2.5 rounded-full bg-[#F4F7FE] hover:bg-slate-200 text-[#422AFB] transition-all flex items-center justify-center"
+              title="Sync Live Data"
+              className="p-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 transition-all flex items-center justify-center border border-slate-200/60 dark:border-slate-700/60"
             >
-              <RefreshCw className={`w-4 h-4 ${dataLoading ? 'animate-spin' : ''}`} />
+              <RefreshCw className={`w-4 h-4 ${dataLoading ? 'animate-spin text-indigo-600' : ''}`} />
             </button>
 
-            {/* User Avatar Badge */}
-            <div className="flex items-center gap-2 border-l border-slate-200 dark:border-navy-700 pl-4">
-              <div className="w-9 h-9 rounded-full bg-gradient-to-tr from-[#422AFB] to-indigo-400 text-white flex items-center justify-center font-bold text-sm shadow-md">
+            {/* User Profile Avatar Pill */}
+            <div className="flex items-center gap-2.5 pl-3 border-l border-slate-200 dark:border-slate-800">
+              <div className="w-8.5 h-8.5 rounded-xl bg-gradient-to-tr from-slate-900 to-indigo-600 text-white flex items-center justify-center font-bold text-xs shadow-sm">
                 {user.name ? user.name[0].toUpperCase() : 'A'}
               </div>
-              <div className="hidden lg:block text-left">
-                <p className="text-xs font-bold text-[#2B3674] dark:text-white leading-tight">{user.name}</p>
-                <p className="text-[10px] text-[#A3AED0] uppercase font-bold">{user.role}</p>
+              <div className="hidden sm:block text-left">
+                <p className="text-xs font-bold text-slate-900 dark:text-white leading-tight">{user.name}</p>
+                <div className="flex items-center gap-1 mt-0.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                  <span className="text-[10px] text-slate-400 dark:text-slate-500 font-semibold uppercase tracking-wider">
+                    {user.role}
+                  </span>
+                </div>
               </div>
             </div>
           </div>
         </header>
 
-        <main className="flex-1 max-w-7xl w-full mx-auto space-y-6">
+        {/* Dynamic Route Content */}
+        <main className="flex-1 max-w-7xl w-full mx-auto pb-10">
           <AdminRouter
             activeTab={activeTab}
             setActiveTab={setActiveTab}
