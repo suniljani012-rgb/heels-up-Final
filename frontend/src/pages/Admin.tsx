@@ -20,6 +20,7 @@ import AdminAuth from './admin/AdminAuth';
 import AdminSidebar from './admin/AdminSidebar';
 import AdminRouter from './admin/AdminRouter';
 import CommandPalette from './admin/CommandPalette';
+import MobileBottomNav from './admin/MobileBottomNav';
 
 // --- TypeScript Interfaces ---
 import type {
@@ -559,7 +560,7 @@ const ADMIN_API_CACHE = new Map<string, any>();
         </header>
 
         {/* Dynamic Route Content */}
-        <main className="flex-1 w-full mx-auto pb-6">
+        <main className="flex-1 w-full mx-auto pb-20 md:pb-6">
           <AdminRouter
             activeTab={activeTab}
             setActiveTab={setActiveTab}
@@ -584,6 +585,19 @@ const ADMIN_API_CACHE = new Map<string, any>();
           />
         </main>
       </div>
+
+      {/* ── MOBILE 4+1 BOTTOM NAVIGATION BAR ─────────────────────────── */}
+      <MobileBottomNav
+        activeTab={activeTab}
+        setActiveTab={(tab) => {
+          setActiveTab(tab as ActiveTab);
+          if (tab === 'orders') setUnseenOrders(0);
+        }}
+        unseenOrders={unseenOrders}
+        lowStockCount={productsList.filter((p) => p.stock <= 5).length}
+        pendingReturnsCount={returnsList.filter(r => r.status === 'pending').length}
+        handleLogout={handleLogout}
+      />
 
       {/* Global Shopify Command Palette (Ctrl+K) */}
       <CommandPalette
