@@ -1,6 +1,6 @@
 // frontend/src/pages/admin/products/ProductForm.tsx
 import React, { useMemo, useState } from 'react';
-import { X, Box, RefreshCw, Sparkles, Image as ImageIcon, Search, Tag } from 'lucide-react';
+import { X, Box, RefreshCw, Sparkles, Image as ImageIcon, Search, Tag, Minus, Plus } from 'lucide-react';
 import { useToastStore } from '../../../store/useToastStore';
 import { createProduct, updateProduct } from './productApi';
 import { validateProduct, toErrorMessage } from './productValidation';
@@ -87,8 +87,35 @@ function emptyForm(): FormState {
 }
 
 function loadFromProduct(p: AdminProduct): FormState {
-  const sizeMap = new Map((p.size_stock || []).map((s) => [s.size_label, s.stock]));
+  const sizeMap = new Map((p.size_stock || []).map((s) => [String(s.size_label).trim(), s.stock]));
   const altByUrl = new Map((p.image_records || []).map((r) => [r.url, r.alt]));
+
+  // Calculate size stock mapping for both EU (36-41) and UK (6-11)
+  const sizeStockList = EU_SIZES.map((sz) => {
+    const alt = String(Number(sz) - 30); // '36' -> '6', '37' -> '7', etc.
+    let stock = sizeMap.get(sz) ?? sizeMap.get(alt);
+    if (stock === undefined) {
+      if (p.sizes && (p.sizes.includes(sz) || p.sizes.includes(alt))) {
+        stock = Math.max(1, Math.floor((p.stock || 0) / (p.sizes.length || 1)));
+      } else {
+        stock = 0;
+      }
+    }
+    return {
+      size_label: sz,
+      stock: Number(stock) || 0,
+    };
+  });
+
+  // If all sizes are 0 but p.stock > 0, distribute p.stock
+  const totalCalculated = sizeStockList.reduce((sum, s) => sum + s.stock, 0);
+  if (totalCalculated === 0 && (p.stock || 0) > 0) {
+    const perSize = Math.max(1, Math.floor(p.stock / EU_SIZES.length));
+    sizeStockList.forEach((s) => {
+      s.stock = perSize;
+    });
+  }
+
   return {
     name: p.name,
     sku: p.sku,
@@ -108,10 +135,7 @@ function loadFromProduct(p: AdminProduct): FormState {
     is_new: p.is_new,
     is_trending: p.is_trending,
     show_mrp: p.show_mrp,
-    size_stock: EU_SIZES.map((sz) => ({
-      size_label: sz,
-      stock: sizeMap.get(sz) ?? 0,
-    })),
+    size_stock: sizeStockList,
     images: (p.images || []).map((url) => ({ url, alt: altByUrl.get(url) || '' })),
     tags: p.tags || [],
     meta_title: p.meta_title || '',
@@ -133,6 +157,12 @@ export default function ProductForm({
   const [activeTab, setActiveTab] = useState<Tab>('basic');
   const [saving, setSaving] = useState(false);
   const [tagInput, setTagInput] = useState('');
+
+  React.useEffect(() => {
+    if (product) {
+      setForm(loadFromProduct(product));
+    }
+  }, [product]);
 
   const set = (patch: Partial<FormState>) => setForm((f) => ({ ...f, ...patch }));
 
@@ -528,28 +558,53 @@ export default function ProductForm({
                   </h4>
                   <p className="text-[10px] text-slate-400 mt-0.5">Specify stock counts per size</p>
                 </div>
-                <Badge variant="secondary" className="font-mono text-xs">
-                  Total: {totalStock} units
+                <Badge variant={totalStock <= 0 ? 'destructive' : totalStock <= 5 ? 'warning' : 'secondary'} className="font-mono text-xs">
+                  TOTAL: {totalStock} UNITS
                 </Badge>
               </div>
-              <div className="grid grid-cols-3 gap-3">
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                 {EU_SIZES.map((sz) => {
                   const row = form.size_stock.find((s) => s.size_label === sz);
+                  const currentQty = row?.stock ?? 0;
+                  const ukAlt = String(Number(sz) - 30);
+
                   return (
                     <div
                       key={sz}
-                      className="bg-slate-50 dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-700/60 rounded-xl p-3 flex flex-col justify-between items-center text-center"
+                      className="bg-slate-50 dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-700/60 rounded-xl p-3 flex flex-col justify-between items-center text-center space-y-2"
                     >
-                      <Label className="font-mono mb-1">
-                        Size {sz}
-                      </Label>
-                      <Input
-                        type="number"
-                        min={0}
-                        value={row?.stock ?? 0}
-                        onChange={(e) => handleStockChange(sz, parseInt(e.target.value) || 0)}
-                        className="text-center font-mono font-bold text-xs"
-                      />
+                      <div className="flex items-center justify-between w-full px-1">
+                        <Label className="font-mono text-[11px] font-bold text-slate-700 dark:text-slate-200">
+                          UK {sz} ({ukAlt})
+                        </Label>
+                        <span className={`text-[9px] font-mono font-bold px-1.5 py-0.2 rounded ${currentQty > 0 ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-400' : 'bg-slate-200 text-slate-500'}`}>
+                          {currentQty > 0 ? 'In Stock' : 'Out'}
+                        </span>
+                      </div>
+
+                      <div className="flex items-center border border-slate-200 dark:border-slate-700 rounded-lg overflow-hidden bg-white dark:bg-slate-900 w-full h-8">
+                        <button
+                          type="button"
+                          onClick={() => handleStockChange(sz, currentQty - 1)}
+                          className="px-2.5 h-full hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors"
+                        >
+                          <Minus className="w-3 h-3" />
+                        </button>
+                        <input
+                          type="number"
+                          min={0}
+                          value={currentQty}
+                          onChange={(e) => handleStockChange(sz, parseInt(e.target.value) || 0)}
+                          className="flex-1 text-center font-mono font-bold text-xs bg-transparent focus:outline-none"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => handleStockChange(sz, currentQty + 1)}
+                          className="px-2.5 h-full hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors"
+                        >
+                          <Plus className="w-3 h-3" />
+                        </button>
+                      </div>
                     </div>
                   );
                 })}

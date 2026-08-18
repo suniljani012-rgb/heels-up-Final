@@ -53,11 +53,14 @@ export default function ProductsManager({ categories, token, onRefresh }: Produc
           onComplete={onRefresh}
         />
       )}
-      {view === 'detail' && (
+      {view === 'detail' && selectedProduct && (
         <ProductDetail
-          id={selectedProduct!.id}
+          id={selectedProduct.id}
+          initialProduct={selectedProduct}
           categories={categories}
           token={token}
+          onBack={() => setView('list')}
+          onEdit={() => setView('form')}
         />
       )}
     </>

@@ -10,7 +10,8 @@ import {
   ChevronRight,
   Sparkles,
   Command,
-  CheckCircle2
+  CheckCircle2,
+  ExternalLink
 } from 'lucide-react';
 import { useToastStore } from '../store/useToastStore';
 
@@ -18,6 +19,7 @@ import { useToastStore } from '../store/useToastStore';
 import AdminAuth from './admin/AdminAuth';
 import AdminSidebar from './admin/AdminSidebar';
 import AdminRouter from './admin/AdminRouter';
+import CommandPalette from './admin/CommandPalette';
 
 // --- TypeScript Interfaces ---
 import type {
@@ -26,7 +28,7 @@ import type {
   Setting, DashboardData
 } from './admin/types';
 
-type ActiveTab = 'dashboard' | 'products' | 'stock' | 'orders' | 'categories' | 'customers' | 'reviews' | 'coupons' | 'banners' | 'pages' | 'settings' | 'pos' | 'audits' | 'returns' | 'analysis' | 'staff';
+type ActiveTab = 'dashboard' | 'products' | 'stock' | 'orders' | 'categories' | 'customers' | 'reviews' | 'coupons' | 'banners' | 'pages' | 'settings' | 'pos' | 'audits' | 'returns' | 'analysis' | 'staff' | 'payments' | 'logistics';
 
 export default function Admin() {
   const showToast = useToastStore((state) => state.showToast);
@@ -40,15 +42,6 @@ export default function Admin() {
     return null;
   });
 
-  // ── Auth guard ─────────────────────────────────────────────
-  if (!user) {
-    return (
-      <div className="min-h-screen bg-[#f5f5f4] flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8 font-sans relative text-neutral-900">
-        <AdminAuth onAuthSuccess={setUser} />
-      </div>
-    );
-  }
-
   // Active Panel Navigation Tab
   const [activeTab, setActiveTab] = useState<ActiveTab>(() => {
     return (localStorage.getItem('admin_active_tab') as ActiveTab) || 'dashboard';
@@ -61,11 +54,31 @@ export default function Admin() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [lastSyncTime, setLastSyncTime] = useState<string>('Just now');
 
-  // Lists & States for Dashboard
-  const [dashboardData, setDashboardData] = useState<DashboardData | null>(null);
-  const [productsList, setProductsList] = useState<Product[]>([]);
-  const [ordersList, setOrdersList] = useState<Order[]>([]);
-  const [categoriesList, setCategoriesList] = useState<Category[]>([]);
+  // Lists & States for Dashboard - Hydrated instantly from local session cache
+  const [dashboardData, setDashboardData] = useState<DashboardData | null>(() => {
+    try {
+      const s = sessionStorage.getItem('heelsup_cache_dashboard');
+      return s ? JSON.parse(s) : null;
+    } catch { return null; }
+  });
+  const [productsList, setProductsList] = useState<Product[]>(() => {
+    try {
+      const s = sessionStorage.getItem('heelsup_cache_products');
+      return s ? JSON.parse(s) : [];
+    } catch { return []; }
+  });
+  const [ordersList, setOrdersList] = useState<Order[]>(() => {
+    try {
+      const s = sessionStorage.getItem('heelsup_cache_orders');
+      return s ? JSON.parse(s) : [];
+    } catch { return []; }
+  });
+  const [categoriesList, setCategoriesList] = useState<Category[]>(() => {
+    try {
+      const s = sessionStorage.getItem('heelsup_cache_categories');
+      return s ? JSON.parse(s) : [];
+    } catch { return []; }
+  });
   const [couponsList, setCouponsList] = useState<Coupon[]>([]);
   const [bannersList, setBannersList] = useState<Banner[]>([]);
   const [pagesList, setPageConfigsList] = useState<PageConfig[]>([]);
@@ -76,23 +89,85 @@ export default function Admin() {
   const [settingsList, setSettingsList] = useState<Setting[]>([]);
   const [auditLogs, setAuditLogs] = useState<AuditLog[]>([]);
   const [posSalesList, setPosSalesList] = useState<PosSale[]>([]);
+  const [paymentsList, setPaymentsList] = useState<any[]>([]);
+
+  // Update session caches on change
+  useEffect(() => {
+    if (dashboardData) sessionStorage.setItem('heelsup_cache_dashboard', JSON.stringify(dashboardData));
+  }, [dashboardData]);
+
+  useEffect(() => {
+    if (ordersList.length > 0) sessionStorage.setItem('heelsup_cache_orders', JSON.stringify(ordersList));
+  }, [ordersList]);
+
+  useEffect(() => {
+    if (productsList.length > 0) sessionStorage.setItem('heelsup_cache_products', JSON.stringify(productsList));
+  }, [productsList]);
+
+  useEffect(() => {
+    if (categoriesList.length > 0) sessionStorage.setItem('heelsup_cache_categories', JSON.stringify(categoriesList));
+  }, [categoriesList]);
 
   // Real-time alerts states
   const [unseenOrders, setUnseenOrders] = useState<number>(0);
   const [lastOrderCount, setLastOrderCount] = useState<number | null>(null);
   const [showOrderBanner, setShowOrderBanner] = useState<string | null>(null);
   const [dataLoading, setDataLoading] = useState(false);
+  const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
 
   const token = localStorage.getItem('heelsup_token');
 
-  const fetchSec = async (endpoint: string, setter: Function) => {
-    if (!token) return;
+  // Global Ctrl+K / Cmd+K listener
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+        e.preventDefault();
+        setCommandPaletteOpen((prev) => !prev);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
+// Global In-Memory Cache for Instant 0-ms Admin Navigation & Tab Switching
+const ADMIN_API_CACHE = new Map<string, any>();
+
+// In Admin.tsx component
+  const fetchSec = async (endpoint: string, setter: Function, silent = false) => {
+    // 1. Instant Cache Hit (0ms UI Render)
+    if (ADMIN_API_CACHE.has(endpoint)) {
+      const cached = ADMIN_API_CACHE.get(endpoint);
+      setter(cached);
+    }
+
     try {
-      const res = await fetch(endpoint, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
+      const headers: Record<string, string> = {};
+      if (token) headers['Authorization'] = `Bearer ${token}`;
+
+      let res = await fetch(endpoint, { headers });
+      
+      // Fallback for catalog endpoints if admin router is restricted
+      if (!res.ok && endpoint.startsWith('/api/admin/')) {
+        const fallbackEndpoint = endpoint.replace('/api/admin/', '/api/');
+        try {
+          const fallbackRes = await fetch(fallbackEndpoint);
+          if (fallbackRes.ok) res = fallbackRes;
+        } catch (_) {}
+      }
+
       const data = await res.json();
-      if (data.success && data.data) setter(data.data);
+      if (data && data.success !== false) {
+        let payload = data;
+        if (data.data !== undefined) payload = data.data;
+        else if (data.results !== undefined) payload = data.results;
+        else if (data.products !== undefined) payload = data.products;
+        else if (data.orders !== undefined) payload = data.orders;
+        else if (data.customers !== undefined) payload = data.customers;
+
+        // Update memory cache & state
+        ADMIN_API_CACHE.set(endpoint, payload);
+        setter(payload);
+      }
     } catch (e) {
       console.error(`Fetch error at ${endpoint}:`, e);
     }
@@ -113,12 +188,18 @@ export default function Admin() {
     }
   };
 
-  // Track which tabs have already been loaded (avoid repeat API calls)
+  // Track which tabs have already been loaded
   const [loadedTabs, setLoadedTabs] = useState<Set<string>>(new Set());
 
   // Map: tab name → API endpoint + setter
   const TAB_DATA_MAP: Record<string, { endpoint: string; setter: Function }[]> = {
-    dashboard: [{ endpoint: '/api/admin/dashboard', setter: setDashboardData }],
+    dashboard: [
+      { endpoint: '/api/admin/dashboard', setter: setDashboardData },
+      { endpoint: '/api/admin/orders?limit=250', setter: setOrdersList },
+      { endpoint: '/api/admin/products?limit=250&all=true', setter: setProductsList },
+      { endpoint: '/api/admin/returns', setter: setReturnsList },
+      { endpoint: '/api/admin/categories', setter: setCategoriesList },
+    ],
     products:  [{ endpoint: '/api/admin/products?limit=250&all=true', setter: setProductsList }],
     stock:     [{ endpoint: '/api/admin/products?limit=250&all=true', setter: setProductsList }],
     orders:    [{ endpoint: '/api/admin/orders?limit=250', setter: setOrdersList }],
@@ -133,19 +214,24 @@ export default function Admin() {
     returns:   [{ endpoint: '/api/admin/returns', setter: setReturnsList }],
     pos:       [{ endpoint: '/api/admin/pos/sales?all=true', setter: setPosSalesList }],
     audits:    [{ endpoint: '/api/admin/audit-logs', setter: setAuditLogs }],
+    payments:  [{ endpoint: '/api/admin/payments', setter: setPaymentsList }],
+    logistics: [{ endpoint: '/api/admin/orders?limit=250', setter: setOrdersList }],
     analysis:  [
       { endpoint: '/api/admin/orders?limit=250', setter: setOrdersList },
       { endpoint: '/api/admin/products?limit=250&all=true', setter: setProductsList },
     ],
   };
 
-  // Load data for a specific tab (called when tab is clicked)
+  // Load data for a specific tab with 0ms cache rendering
   const loadTabData = async (tab: string, force = false) => {
-    if (!token) return;
-    if (!force && loadedTabs.has(tab)) return; // Already loaded, skip
     const entries = TAB_DATA_MAP[tab];
     if (!entries) return;
-    setDataLoading(true);
+
+    const hasAnyCache = entries.every(e => ADMIN_API_CACHE.has(e.endpoint));
+    if (!hasAnyCache && !force) {
+      setDataLoading(true);
+    }
+
     try {
       await Promise.allSettled(entries.map(({ endpoint, setter }) => fetchSec(endpoint, setter)));
       setLoadedTabs(prev => new Set([...prev, tab]));
@@ -155,24 +241,64 @@ export default function Admin() {
     }
   };
 
-  // Full refresh (called by Refresh button)
+  // Single-Trip Ultra-Fast Bootstrap (One single round trip for all admin data)
   const loadAllData = async () => {
-    if (!token) return;
-    setDataLoading(true);
-    setLoadedTabs(new Set()); // Reset cache
+    const hasInitialCache = ADMIN_API_CACHE.has('/api/admin/bootstrap');
+    if (!hasInitialCache) setDataLoading(true);
+
     try {
-      await fetchSec('/api/admin/dashboard', setDashboardData);
-      setDataLoading(false);
-      setLoadedTabs(new Set(['dashboard']));
-      setLastSyncTime(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
-      const entries = TAB_DATA_MAP[activeTab] || [];
-      if (activeTab !== 'dashboard' && entries.length > 0) {
-        Promise.allSettled(entries.map(({ endpoint, setter }) => fetchSec(endpoint, setter))).then(() => {
-          setLoadedTabs(prev => new Set([...prev, activeTab]));
-        });
+      const headers: Record<string, string> = {};
+      if (token) headers['Authorization'] = `Bearer ${token}`;
+
+      const res = await fetch('/api/admin/bootstrap', { headers });
+      const data = await res.json();
+
+      if (data && data.success && data.data) {
+        const d = data.data;
+        ADMIN_API_CACHE.set('/api/admin/bootstrap', d);
+        if (d.dashboard) setDashboardData(d.dashboard);
+        if (d.orders) setOrdersList(d.orders);
+        if (d.products) setProductsList(d.products);
+        if (d.categories) setCategoriesList(d.categories);
+        if (d.customers) setCustomersList(d.customers);
+        if (d.returns) setReturnsList(d.returns);
+        if (d.coupons) setCouponsList(d.coupons);
+        if (d.banners) setBannersList(d.banners);
+        if (d.settings) setSettingsList(d.settings);
+        if (d.reviews) setReviewsList(d.reviews);
+        if (d.payments) setPaymentsList(d.payments);
+
+        // Pre-warm individual API endpoint caches so tab switches never need any network fetch
+        if (d.dashboard) ADMIN_API_CACHE.set('/api/admin/dashboard', d.dashboard);
+        if (d.orders) ADMIN_API_CACHE.set('/api/admin/orders?limit=250', d.orders);
+        if (d.products) ADMIN_API_CACHE.set('/api/admin/products?limit=250&all=true', d.products);
+        if (d.categories) ADMIN_API_CACHE.set('/api/admin/categories', d.categories);
+        if (d.customers) ADMIN_API_CACHE.set('/api/admin/customers?limit=250', d.customers);
+        if (d.returns) ADMIN_API_CACHE.set('/api/admin/returns', d.returns);
+        if (d.coupons) ADMIN_API_CACHE.set('/api/admin/coupons', d.coupons);
+        if (d.banners) ADMIN_API_CACHE.set('/api/admin/banners', d.banners);
+        if (d.settings) ADMIN_API_CACHE.set('/api/admin/settings', d.settings);
+        if (d.reviews) ADMIN_API_CACHE.set('/api/admin/reviews', d.reviews);
+        if (d.payments) ADMIN_API_CACHE.set('/api/admin/payments', d.payments);
+
+        setLoadedTabs(new Set([
+          'dashboard', 'products', 'stock', 'orders', 'returns', 'categories',
+          'customers', 'coupons', 'banners', 'settings', 'reviews', 'analysis', 'payments', 'logistics'
+        ]));
+        setLastSyncTime(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
+      } else {
+        // Fallback parallel fetch if bootstrap is not available
+        await Promise.allSettled([
+          fetchSec('/api/admin/dashboard', setDashboardData),
+          fetchSec('/api/admin/orders?limit=250', setOrdersList),
+          fetchSec('/api/admin/products?limit=250&all=true', setProductsList),
+          fetchSec('/api/admin/returns', setReturnsList),
+          fetchSec('/api/admin/categories', setCategoriesList),
+        ]);
       }
     } catch (e) {
-      showToast('error', 'Sync Failure', 'Failed to retrieve administrative data.');
+      console.warn('Bootstrap fetch failed, falling back:', e);
+    } finally {
       setDataLoading(false);
     }
   };
@@ -271,7 +397,7 @@ export default function Admin() {
       const allowedTabs = [
         'dashboard', 'products', 'stock', 'orders', 'categories', 'customers',
         'reviews', 'coupons', 'banners', 'pages', 'pos', 'returns',
-        'audits', 'settings', 'analysis', 'staff'
+        'audits', 'settings', 'analysis', 'staff', 'payments', 'logistics'
       ].filter(hasPermission);
       if (allowedTabs.length > 0 && !allowedTabs.includes(activeTab)) {
         setActiveTab(allowedTabs[0] as ActiveTab);
@@ -279,6 +405,7 @@ export default function Admin() {
     }
   }, [user, activeTab]);
 
+  // Auth Guard
   if (!user) {
     return (
       <div className="min-h-screen bg-slate-100 dark:bg-slate-950 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8 font-sans relative text-slate-900">
@@ -305,89 +432,105 @@ export default function Admin() {
     staff: { title: 'Team & Staff Permissions', category: 'Admin' },
     audits: { title: 'Security & Audit Logs', category: 'Admin' },
     settings: { title: 'Store Configuration', category: 'Admin' },
+    payments: { title: 'Bank Settlements & Razorpay Ledger', category: 'Finance' },
+    logistics: { title: 'Delhivery Shipping & Logistics', category: 'Logistics' },
   };
 
   const currentTabMeta = tabTitles[activeTab] || { title: activeTab, category: 'Admin' };
 
   return (
-    <div className="flex h-screen overflow-hidden bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-slate-100 font-sans relative antialiased">
-      {/* Realtime Order Notification Banner */}
+    <div className="flex h-screen max-h-screen w-full bg-slate-100/70 dark:bg-slate-950 font-sans text-slate-900 dark:text-slate-100 overflow-hidden">
+      {/* Floating alert banner for incoming real-time orders */}
       {showOrderBanner && (
-        <div className="fixed top-5 right-6 z-50 animate-bounce pointer-events-auto bg-slate-900 text-white dark:bg-white dark:text-slate-900 p-4 rounded-2xl shadow-2xl border border-slate-700/50 flex items-center gap-3 w-84 max-w-sm">
-          <div className="w-10 h-10 rounded-xl bg-emerald-500/20 text-emerald-400 dark:text-emerald-600 flex items-center justify-center shrink-0">
-            <ShoppingCart className="w-5 h-5" />
-          </div>
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-1.5">
-              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
-              <h5 className="text-[10px] uppercase font-bold tracking-wider text-emerald-400 dark:text-emerald-600">
-                Incoming Order
-              </h5>
-            </div>
-            <p className="text-xs font-semibold truncate mt-0.5">{showOrderBanner}</p>
-          </div>
+        <div className="fixed top-4 right-4 z-50 animate-in slide-in-from-top-4 duration-300 bg-slate-900 text-white dark:bg-indigo-600 px-4 py-2.5 rounded-xl shadow-xl flex items-center gap-3 border border-slate-700 dark:border-indigo-500">
+          <div className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
+          <span className="text-xs font-semibold">{showOrderBanner}</span>
           <button
-            onClick={() => setShowOrderBanner(null)}
-            className="text-slate-400 hover:text-white dark:hover:text-slate-900 transition-colors p-1"
+            onClick={() => {
+              setActiveTab('orders');
+              setShowOrderBanner(null);
+            }}
+            className="text-xs font-bold underline ml-1 hover:text-indigo-200"
           >
-            <X className="w-4 h-4" />
+            View Order
           </button>
         </div>
       )}
 
-      {/* Navigation Sidebar */}
+      {/* Modern Sidebar (Collapsible & High-Density) */}
       <AdminSidebar
         activeTab={activeTab}
         setActiveTab={(tab) => {
-          setActiveTab(tab);
+          setActiveTab(tab as ActiveTab);
           if (tab === 'orders') setUnseenOrders(0);
         }}
         unseenOrders={unseenOrders}
+        pendingReturnsCount={returnsList.filter(r => r.status === 'pending').length}
+        lowStockCount={productsList.filter((p) => p.stock <= 5).length}
         sidebarOpen={sidebarOpen}
         setSidebarOpen={setSidebarOpen}
         hasPermission={hasPermission}
         handleLogout={handleLogout}
       />
 
-      {/* Main Content Area */}
-      <div className="flex-1 flex flex-col h-full overflow-y-auto min-w-0 p-3 md:p-5 space-y-5">
-        {/* Top Header Navbar */}
-        <header className="sticky top-0 z-30 bg-white/85 dark:bg-slate-900/85 backdrop-blur-md border border-slate-200/80 dark:border-slate-800 shadow-xs rounded-2xl px-5 py-3 flex items-center justify-between transition-all">
-          {/* Left: Mobile Toggle & Breadcrumbs */}
-          <div className="flex items-center gap-3">
+      {/* Main Content Area - Guaranteed Scrollable */}
+      <div className="flex-1 flex flex-col h-screen max-h-screen overflow-y-auto min-w-0 p-3 md:p-4 space-y-3.5">
+        {/* Top Header Navbar - Professional SaaS Standard */}
+        <header className="sticky top-0 z-30 shrink-0 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border border-slate-200/80 dark:border-slate-800 shadow-xs rounded-xl px-4 py-2.5 flex items-center justify-between gap-4 transition-all">
+          {/* Left: Mobile Toggle & Clean Heading */}
+          <div className="flex items-center gap-3 shrink-0">
             <button
               onClick={() => setSidebarOpen(!sidebarOpen)}
-              className="md:hidden p-2 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors"
+              className="md:hidden p-1.5 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
               aria-label="Toggle Sidebar"
             >
-              <Menu className="w-5 h-5" />
+              <Menu className="w-4 h-4" />
             </button>
 
             <div>
-              <div className="flex items-center gap-1.5 text-[11px] font-medium text-slate-400 dark:text-slate-500">
-                <Home className="w-3 h-3" />
-                <span>Admin</span>
-                <ChevronRight className="w-3 h-3 text-slate-300 dark:text-slate-600" />
-                <span className="text-slate-500 dark:text-slate-400">{currentTabMeta.category}</span>
-                <ChevronRight className="w-3 h-3 text-slate-300 dark:text-slate-600" />
-                <span className="font-semibold text-indigo-600 dark:text-indigo-400 capitalize">{activeTab}</span>
-              </div>
-              <h1 className="text-lg md:text-xl font-bold text-slate-900 dark:text-white tracking-tight mt-0.5">
+              <h1 className="text-sm md:text-base font-bold text-slate-900 dark:text-white tracking-tight leading-tight">
                 {currentTabMeta.title}
               </h1>
+              <p className="text-[10px] text-slate-400 font-medium leading-none mt-0.5">
+                HeelsUp Boutique Management
+              </p>
             </div>
           </div>
 
+          {/* Center: Clean Search Bar */}
+          <div className="flex-1 max-w-md hidden sm:block">
+            <button
+              type="button"
+              onClick={() => setCommandPaletteOpen(true)}
+              className="w-full h-8 px-3 rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 text-slate-400 flex items-center justify-between text-xs transition-all shadow-2xs"
+            >
+              <div className="flex items-center gap-2 truncate">
+                <Search className="w-3.5 h-3.5 text-slate-400" />
+                <span className="truncate">Search orders, products, customers...</span>
+              </div>
+              <kbd className="hidden lg:inline-flex items-center px-1.5 py-0.5 text-[10px] font-mono font-bold bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded text-slate-500">
+                Ctrl K
+              </kbd>
+            </button>
+          </div>
+
           {/* Right: Actions & User Meta */}
-          <div className="flex items-center gap-3">
-            {/* Live Sync Status */}
-            <div className="hidden lg:flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-100/80 dark:bg-slate-800 text-[11px] font-medium text-slate-600 dark:text-slate-300 border border-slate-200/50 dark:border-slate-700/50">
-              <span className="relative flex h-2 w-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-              </span>
-              <span>Live Engine</span>
-              <span className="text-slate-400 text-[10px]">({lastSyncTime})</span>
+          <div className="flex items-center gap-2 shrink-0">
+            {/* View Live Store */}
+            <a
+              href="/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hidden md:flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold bg-slate-50 hover:bg-slate-100 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 transition-colors border border-slate-200 dark:border-slate-700"
+            >
+              <span>Live Store</span>
+              <ExternalLink className="w-3 h-3 text-slate-400" />
+            </a>
+
+            {/* Live Indicator */}
+            <div className="hidden lg:flex items-center gap-1.5 px-2 py-1 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 text-[11px] font-semibold text-emerald-700 dark:text-emerald-400 border border-emerald-200/60 dark:border-emerald-800/40">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+              <span>Live</span>
             </div>
 
             {/* Sync Refresh Button */}
@@ -395,31 +538,28 @@ export default function Admin() {
               onClick={loadAllData}
               disabled={dataLoading}
               title="Sync Live Data"
-              className="p-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 transition-all flex items-center justify-center border border-slate-200/60 dark:border-slate-700/60"
+              className="p-1.5 rounded-lg bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 transition-all flex items-center justify-center border border-slate-200 dark:border-slate-700"
             >
-              <RefreshCw className={`w-4 h-4 ${dataLoading ? 'animate-spin text-indigo-600' : ''}`} />
+              <RefreshCw className={`w-3.5 h-3.5 ${dataLoading ? 'animate-spin text-indigo-600' : ''}`} />
             </button>
 
-            {/* User Profile Avatar Pill */}
-            <div className="flex items-center gap-2.5 pl-3 border-l border-slate-200 dark:border-slate-800">
-              <div className="w-8.5 h-8.5 rounded-xl bg-gradient-to-tr from-slate-900 to-indigo-600 text-white flex items-center justify-center font-bold text-xs shadow-sm">
+            {/* User Profile Pill */}
+            <div className="flex items-center gap-2 pl-2 border-l border-slate-200 dark:border-slate-800">
+              <div className="w-7 h-7 rounded-lg bg-gradient-to-tr from-slate-900 to-indigo-600 text-white flex items-center justify-center font-bold text-xs shadow-xs">
                 {user.name ? user.name[0].toUpperCase() : 'A'}
               </div>
-              <div className="hidden sm:block text-left">
+              <div className="hidden xl:block text-left">
                 <p className="text-xs font-bold text-slate-900 dark:text-white leading-tight">{user.name}</p>
-                <div className="flex items-center gap-1 mt-0.5">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-                  <span className="text-[10px] text-slate-400 dark:text-slate-500 font-semibold uppercase tracking-wider">
-                    {user.role}
-                  </span>
-                </div>
+                <span className="text-[9px] text-slate-400 font-semibold uppercase tracking-wider block">
+                  {user.role}
+                </span>
               </div>
             </div>
           </div>
         </header>
 
         {/* Dynamic Route Content */}
-        <main className="flex-1 max-w-7xl w-full mx-auto pb-10">
+        <main className="flex-1 w-full mx-auto pb-6">
           <AdminRouter
             activeTab={activeTab}
             setActiveTab={setActiveTab}
@@ -436,6 +576,7 @@ export default function Admin() {
             returnsList={returnsList}
             settingsList={settingsList}
             auditLogs={auditLogs}
+            paymentsList={paymentsList}
             token={token || ""}
             dataLoading={dataLoading}
             loadAllData={loadAllData}
@@ -443,6 +584,15 @@ export default function Admin() {
           />
         </main>
       </div>
+
+      {/* Global Shopify Command Palette (Ctrl+K) */}
+      <CommandPalette
+        isOpen={commandPaletteOpen}
+        onClose={() => setCommandPaletteOpen(false)}
+        onNavigate={(tab) => setActiveTab(tab as ActiveTab)}
+        products={productsList}
+        orders={ordersList}
+      />
     </div>
   );
 }

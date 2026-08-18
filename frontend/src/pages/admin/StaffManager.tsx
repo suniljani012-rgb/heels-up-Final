@@ -154,40 +154,33 @@ export default function StaffManager({ staff, token, onRefresh }: StaffManagerPr
   };
 
   return (
-    <div className="space-y-5 antialiased">
-      {/* Top Header Card */}
-      <Card className="p-5 flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <CardTitle className="text-lg flex items-center gap-2">
-            <Shield className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
-            Staff Team & Role-Based Access Control (RBAC)
-          </CardTitle>
-          <CardDescription>
-            Manage employee administrator credentials, cash desk operators, and permission privileges
-          </CardDescription>
+    <div className="space-y-2.5 antialiased">
+      {/* Unified Compact Control Bar */}
+      <Card className="p-2.5 flex flex-wrap items-center justify-between gap-2">
+        <div className="flex flex-wrap items-center gap-2 flex-1 min-w-[280px]">
+          <div className="flex items-center gap-1.5 mr-1">
+            <Shield className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+            <span className="text-xs font-bold text-slate-900 dark:text-white">Staff Team</span>
+            <span className="px-1.5 py-0 rounded text-[9px] font-bold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
+              {filtered.length}
+            </span>
+          </div>
+
+          <div className="relative flex-1 max-w-xs min-w-[180px]">
+            <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" />
+            <Input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search staff, email..."
+              className="pl-8 h-7 text-xs"
+            />
+          </div>
         </div>
 
-        <Button onClick={handleOpenAdd} className="text-xs font-bold">
-          <Plus className="w-4 h-4 mr-1" /> Add Staff Member
+        <Button onClick={handleOpenAdd} size="sm" className="h-7 text-xs px-2.5 font-bold bg-indigo-600 hover:bg-indigo-500 text-white">
+          <Plus className="w-3.5 h-3.5 mr-1" /> Add Staff Member
         </Button>
-      </Card>
-
-      {/* Filter Row */}
-      <Card className="p-4 flex items-center justify-between gap-3">
-        <div className="relative flex-1 max-w-md">
-          <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-          <Input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search staff by email or name..."
-            className="pl-9 text-xs"
-          />
-        </div>
-
-        <span className="text-xs text-slate-500 font-medium">
-          {filtered.length} team members registered
-        </span>
       </Card>
 
       {/* Staff Table */}

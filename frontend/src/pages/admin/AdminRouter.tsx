@@ -15,6 +15,8 @@ import ReturnsManager from './ReturnsManager';
 import ReviewsModeration from './ReviewsModeration';
 import AuditLogs from './AuditLogs';
 import EnterpriseReports from './EnterpriseReports';
+import PaymentsManager from './PaymentsManager';
+import LogisticsManager from './LogisticsManager';
 
 import type {
   Product, Order, Category, Coupon, Banner, PageConfig,
@@ -38,6 +40,7 @@ interface RouterProps {
   returnsList: ReturnRequest[];
   settingsList: Setting[];
   auditLogs: AuditLog[];
+  paymentsList?: any[];
   token: string;
   dataLoading: boolean;
   loadAllData: () => void;
@@ -60,6 +63,7 @@ export default function AdminRouter({
   returnsList,
   settingsList,
   auditLogs,
+  paymentsList = [],
   token,
   dataLoading,
   loadAllData,
@@ -67,7 +71,17 @@ export default function AdminRouter({
 }: RouterProps) {
   switch (activeTab) {
     case 'dashboard':
-      return <DashboardView data={dashboardData} products={productsList} returns={returnsList} onTabChange={setActiveTab} />;
+      return (
+        <DashboardView
+          data={dashboardData}
+          orders={ordersList}
+          products={productsList}
+          returns={returnsList}
+          onTabChange={setActiveTab}
+          onRefresh={loadAllData}
+          dataLoading={dataLoading}
+        />
+      );
     case 'products':
       return <ProductsManager products={productsList} categories={categoriesList} token={token} onRefresh={loadAllData} />;
     case 'stock':
@@ -110,8 +124,19 @@ export default function AdminRouter({
       return <ReviewsModeration reviews={reviewsList} onRefresh={loadAllData} />;
     case 'audits':
       return <AuditLogs logs={auditLogs} loading={dataLoading} onRefresh={loadAllData} />;
+    case 'payments':
+      return <PaymentsManager payments={paymentsList} orders={ordersList} token={token} onRefresh={loadAllData} />;
+    case 'logistics':
+      return <LogisticsManager orders={ordersList} token={token} onRefresh={loadAllData} />;
     case 'analysis':
-      return <EnterpriseReports orders={ordersList} products={productsList} />;
+      return (
+        <EnterpriseReports
+          orders={ordersList}
+          products={productsList}
+          customers={customersList}
+          returns={returnsList}
+        />
+      );
     default:
       return null;
   }

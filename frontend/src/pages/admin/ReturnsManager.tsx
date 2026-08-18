@@ -109,60 +109,51 @@ export default function ReturnsManager({ returns, onRefresh }: ReturnsManagerPro
   };
 
   return (
-    <div className="space-y-5 antialiased">
-      {/* Top Header Card */}
-      <Card className="p-5 flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <CardTitle className="text-lg flex items-center gap-2">
-            <ArrowRightLeft className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
-            Exchanges & Returns Pipeline
-          </CardTitle>
-          <CardDescription>
-            Track customer size exchange claims, inspect return conditions, and process refunds
-          </CardDescription>
-        </div>
+    <div className="space-y-2.5 antialiased">
+      {/* Unified Compact Control Bar */}
+      <Card className="p-2.5 flex flex-wrap items-center justify-between gap-2">
+        <div className="flex flex-wrap items-center gap-2 flex-1 min-w-[280px]">
+          <div className="flex items-center gap-1.5 mr-1">
+            <ArrowRightLeft className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+            <span className="text-xs font-bold text-slate-900 dark:text-white">Returns</span>
+            <span className="px-1.5 py-0 rounded text-[9px] font-bold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
+              {filteredReturns.length}
+            </span>
+          </div>
 
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={onRefresh}
-          className="text-xs font-semibold"
-        >
-          <RefreshCw className="w-3.5 h-3.5 mr-1" /> Refresh Pipeline
-        </Button>
-      </Card>
-
-      {/* Search and Filters Bar */}
-      <Card className="p-4 flex flex-wrap items-center justify-between gap-3">
-        <div className="flex flex-wrap items-center gap-3 flex-1 min-w-[280px]">
-          <div className="relative flex-1 min-w-[200px]">
-            <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+          <div className="relative flex-1 max-w-xs min-w-[180px]">
+            <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" />
             <Input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search by order number, customer phone, reason..."
-              className="pl-9 text-xs"
+              placeholder="Search order #, phone, reason..."
+              className="pl-8 h-7 text-xs"
             />
           </div>
 
           <select
             value={filterStatus}
             onChange={(e) => setFilterStatus(e.target.value)}
-            className="bg-slate-50 dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-700 dark:text-slate-300 focus:outline-none"
+            className="bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-md px-2 py-1 text-xs text-slate-700 dark:text-slate-300 focus:outline-none h-7"
           >
             <option value="">All Statuses</option>
             <option value="pending">Pending Claims</option>
-            <option value="approved">Approved For Return</option>
-            <option value="received">Parcel Received</option>
-            <option value="completed">Completed & Settled</option>
-            <option value="rejected">Rejected Claims</option>
+            <option value="approved">Approved</option>
+            <option value="received">Received</option>
+            <option value="completed">Completed</option>
+            <option value="rejected">Rejected</option>
           </select>
         </div>
 
-        <span className="text-xs text-slate-500 font-medium">
-          {filteredReturns.length} return claims
-        </span>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={onRefresh}
+          className="h-7 text-xs px-2 font-medium shrink-0"
+        >
+          <RefreshCw className="w-3 h-3 mr-1" /> Refresh
+        </Button>
       </Card>
 
       {/* Returns Table */}

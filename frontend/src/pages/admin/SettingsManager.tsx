@@ -69,29 +69,24 @@ export default function SettingsManager({ settings, token, onRefresh }: Settings
   const hasUnsavedChanges = Object.keys(localValues).length > 0;
 
   return (
-    <div className="space-y-5 antialiased">
-      {/* Top Header Card */}
-      <Card className="p-5 flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <CardTitle className="text-lg flex items-center gap-2">
-            <Settings2 className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
-            Global System Configurations
-          </CardTitle>
-          <CardDescription>
-            Configure payment gateways, identity authenticators, worker parameters, and security policies
-          </CardDescription>
+    <div className="space-y-2.5 antialiased">
+      {/* Top Header Card - Compact */}
+      <Card className="p-2.5 flex flex-wrap items-center justify-between gap-2">
+        <div className="flex items-center gap-1.5 mr-1">
+          <Settings2 className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+          <span className="text-xs font-bold text-slate-900 dark:text-white">Store Settings</span>
         </div>
 
         {hasUnsavedChanges && (
-          <Badge variant="warning" className="animate-pulse">
+          <Badge variant="warning" className="animate-pulse text-[9px] px-1.5 py-0">
             Unsaved Changes Pending
           </Badge>
         )}
       </Card>
 
-      <form onSubmit={handleSaveSettings} className="grid grid-cols-1 lg:grid-cols-3 gap-5 items-start">
+      <form onSubmit={handleSaveSettings} className="grid grid-cols-1 lg:grid-cols-3 gap-3 items-start">
         {/* Core Credentials & Integrations */}
-        <Card className="lg:col-span-2 p-5 space-y-4">
+        <Card className="lg:col-span-2 p-3.5 space-y-3">
           <CardTitle className="text-xs font-bold uppercase tracking-wider border-b border-slate-100 dark:border-slate-800 pb-3 flex items-center gap-2">
             <Key className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
             Payment Gateway & API Credentials

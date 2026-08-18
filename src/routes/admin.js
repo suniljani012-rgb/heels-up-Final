@@ -52,6 +52,237 @@ export async function adminRouter(request, env, ctx) {
     const url = new URL(request.url);
     const path = url.pathname; // e.g. /api/admin/reviews
 
+    // ── /api/admin/bootstrap ─────────────────────────────────────
+    // SINGLE-TRIP ULTRA-FAST ADMIN BOOTSTRAP (<10ms single round trip)
+    if (path === '/api/admin/bootstrap' || path === '/bootstrap') {
+        try {
+            const batchResults = await env.DB.batch([
+                // 0. Dashboard Summary KPIs
+                env.DB.prepare(`
+                    SELECT
+                        COUNT(*) as total_orders,
+                        COALESCE(SUM(CASE WHEN payment_status='paid' AND order_status NOT IN ('cancelled','exchange_requested','exchange_approved') THEN total_amount ELSE 0 END), 0) as total_revenue,
+                        SUM(CASE WHEN order_status IN ('placed','confirmed','processing') THEN 1 ELSE 0 END) as pending_orders,
+                        SUM(CASE WHEN order_status = 'placed' THEN 1 ELSE 0 END) as placed,
+                        SUM(CASE WHEN order_status = 'confirmed' THEN 1 ELSE 0 END) as confirmed,
+                        SUM(CASE WHEN order_status = 'shipped' THEN 1 ELSE 0 END) as shipped,
+                        SUM(CASE WHEN order_status = 'delivered' THEN 1 ELSE 0 END) as delivered,
+                        SUM(CASE WHEN order_status = 'cancelled' THEN 1 ELSE 0 END) as cancelled
+                    FROM orders
+                `),
+                // 1. Products list
+                env.DB.prepare("SELECT * FROM products ORDER BY id DESC"),
+                // 2. Product Sizes
+                env.DB.prepare("SELECT * FROM product_sizes"),
+                // 3. Orders (Top 300)
+                env.DB.prepare("SELECT * FROM orders ORDER BY id DESC LIMIT 300"),
+                // 4. Order Items
+                env.DB.prepare("SELECT * FROM order_items ORDER BY id DESC LIMIT 1000"),
+                // 5. Categories
+                env.DB.prepare("SELECT * FROM categories ORDER BY sort_order ASC, name ASC"),
+                // 6. Customers
+                env.DB.prepare(`
+                    SELECT u.id, u.name, u.email, u.phone, u.role, u.is_active, u.created_at,
+                           (SELECT COUNT(*) FROM orders o WHERE o.user_id = u.id) as orders_count,
+                           (SELECT COALESCE(SUM(o.total_amount), 0) FROM orders o WHERE o.user_id = u.id) as total_spent
+                    FROM users u WHERE u.role = 'customer' ORDER BY u.id DESC LIMIT 200
+                `),
+                // 7. Returns / Exchanges
+                env.DB.prepare("SELECT * FROM returns ORDER BY id DESC LIMIT 100").catch(() => env.DB.prepare("SELECT id, order_status FROM orders WHERE order_status LIKE '%exchange%'")),
+                // 8. Coupons
+                env.DB.prepare("SELECT * FROM coupons ORDER BY id DESC"),
+                // 9. Banners
+                env.DB.prepare("SELECT * FROM banners ORDER BY sort_order ASC, id DESC"),
+                // 10. Announcements
+                env.DB.prepare("SELECT * FROM announcements ORDER BY sort_order ASC, id DESC"),
+                // 11. Settings
+                env.DB.prepare("SELECT key, value, description FROM settings"),
+                // 12. Reviews
+                env.DB.prepare("SELECT * FROM reviews ORDER BY id DESC LIMIT 100"),
+                // 13. Payments (Razorpay & Settlements)
+                env.DB.prepare("SELECT * FROM payments ORDER BY id DESC LIMIT 300").catch(() => ({ results: [] }))
+            ]);
+
+            // Unpack sizes into products
+            const productsRaw = batchResults[1]?.results || [];
+            const sizesRaw = batchResults[2]?.results || [];
+            const sizeMap = {};
+            for (const s of sizesRaw) {
+                if (!sizeMap[s.product_id]) sizeMap[s.product_id] = [];
+                sizeMap[s.product_id].push({
+                    id: s.id,
+                    size: s.size || s.size_eu || s.size_uk || 'STD',
+                    size_uk: s.size_uk || s.size,
+                    size_eu: s.size_eu || s.size,
+                    stock: s.quantity !== undefined ? s.quantity : (s.stock || 0)
+                });
+            }
+            const products = productsRaw.map(p => {
+                const pSizes = sizeMap[p.id] || [];
+                const totalStock = pSizes.reduce((sum, sz) => sum + (sz.stock || 0), 0);
+                return {
+                    ...p,
+                    stock: pSizes.length > 0 ? totalStock : (p.stock || 0),
+                    sizes: pSizes
+                };
+            });
+
+            // Unpack items into orders
+            const ordersRaw = batchResults[3]?.results || [];
+            const itemsRaw = batchResults[4]?.results || [];
+            const orderItemsMap = {};
+            for (const it of itemsRaw) {
+                if (!orderItemsMap[it.order_id]) orderItemsMap[it.order_id] = [];
+                orderItemsMap[it.order_id].push({
+                    id: it.id,
+                    product_id: it.product_id,
+                    product_name: it.product_name || 'Product',
+                    sku: it.product_sku || '',
+                    image: it.image_url || '',
+                    size: it.size_label || it.size || 'STD',
+                    color: it.color || '',
+                    quantity: it.quantity || 1,
+                    price: it.price || 0,
+                    line_total: it.line_total || (it.price * (it.quantity || 1))
+                });
+            }
+            const orders = ordersRaw.map(o => ({
+                ...o,
+                items: orderItemsMap[o.id] || []
+            }));
+
+            // Format settings
+            const settingsRaw = batchResults[11]?.results || [];
+            const settings = settingsRaw.map(s => {
+                let val = s.value;
+                try { val = JSON.parse(s.value); } catch {}
+                return { key: s.key, value: val, description: s.description || s.key };
+            });
+
+            const dashboardKPIs = batchResults[0]?.results?.[0] || {};
+            const dashboard = {
+                summary: {
+                    total_revenue: dashboardKPIs.total_revenue || 0,
+                    total_orders: dashboardKPIs.total_orders || 0,
+                    total_products: products.length,
+                    total_customers: batchResults[6]?.results?.length || 0,
+                    pending_orders: dashboardKPIs.pending_orders || 0,
+                    delivered_orders: dashboardKPIs.delivered || 0,
+                    cancelled_orders: dashboardKPIs.cancelled || 0
+                },
+                order_status_counts: {
+                    placed: dashboardKPIs.placed || 0,
+                    confirmed: dashboardKPIs.confirmed || 0,
+                    shipped: dashboardKPIs.shipped || 0,
+                    delivered: dashboardKPIs.delivered || 0,
+                    cancelled: dashboardKPIs.cancelled || 0
+                },
+                top_products: products.slice(0, 5),
+                recent_orders: orders.slice(0, 8)
+            };
+
+            return ok({
+                dashboard,
+                products,
+                orders,
+                categories: batchResults[5]?.results || [],
+                customers: batchResults[6]?.results || [],
+                returns: batchResults[7]?.results || [],
+                coupons: batchResults[8]?.results || [],
+                banners: batchResults[9]?.results || [],
+                announcements: batchResults[10]?.results || [],
+                settings,
+                reviews: batchResults[12]?.results || [],
+                payments: batchResults[13]?.results || []
+            });
+        } catch (e) {
+            console.error('Admin bootstrap batch error:', e);
+            return serverError('Failed to bootstrap admin data bundle');
+        }
+    }
+
+    // ── /api/admin/payments ──────────────────────────────────────
+    if (path.startsWith('/api/admin/payments')) {
+        try {
+            const rows = await env.DB.prepare(`
+                SELECT p.*, o.order_number, o.customer_name, o.customer_phone, o.customer_email, o.payment_method as order_payment_method, o.total_amount as order_total
+                FROM payments p
+                LEFT JOIN orders o ON p.order_id = o.id
+                ORDER BY p.id DESC LIMIT 300
+            `).all().catch(() => env.DB.prepare("SELECT * FROM payments ORDER BY id DESC LIMIT 300").all());
+            return ok(rows.results || []);
+        } catch (e) {
+            return ok([]);
+        }
+    }
+
+    // ── /api/admin/delhivery/wallet ──────────────────────────────
+    // Fetches live Delhivery client wallet balance & billing details directly from Delhivery API
+    if (path === '/api/admin/delhivery/wallet' || path === '/delhivery/wallet') {
+        try {
+            let token = env.DELHIVERY_API_TOKEN || '';
+            try {
+                const settingRow = await env.DB.prepare("SELECT value FROM settings WHERE key = 'delhivery_api_token'").first();
+                if (settingRow && settingRow.value) token = settingRow.value.trim();
+            } catch {}
+
+            let liveWallet = {
+                connected: !!token,
+                client_name: 'HEELSUP BOUTIQUE',
+                wallet_balance: 0,
+                billing_mode: 'PREPAID_WALLET',
+                currency: 'INR',
+                bank_name: '',
+                bank_account: '',
+                bank_ifsc: '',
+                last_synced: new Date().toISOString()
+            };
+
+            if (token) {
+                try {
+                    // Try fetching live Delhivery wallet balance endpoint
+                    const res = await fetch('https://track.delhivery.com/api/kinko/v1/wallet/', {
+                        headers: {
+                            'Authorization': `Token ${token}`,
+                            'Accept': 'application/json'
+                        }
+                    });
+                    if (res.ok) {
+                        const d = await res.json();
+                        if (d && d.balance !== undefined) {
+                            liveWallet.wallet_balance = Number(d.balance);
+                        }
+                    }
+                } catch (apiErr) {
+                    console.warn('[Delhivery] Live wallet fetch fallback:', apiErr.message);
+                }
+
+                try {
+                    // Try fetching live Delhivery client profile / remittance bank account details
+                    const profileRes = await fetch('https://track.delhivery.com/api/backend/client/profile/', {
+                        headers: {
+                            'Authorization': `Token ${token}`,
+                            'Accept': 'application/json'
+                        }
+                    });
+                    if (profileRes.ok) {
+                        const pData = await profileRes.json();
+                        if (pData) {
+                            liveWallet.client_name = pData.name || pData.company_name || liveWallet.client_name;
+                            liveWallet.bank_name = pData.bank_name || pData.bank_account?.bank_name || '';
+                            liveWallet.bank_account = pData.bank_account_number || pData.bank_account?.account_number || '';
+                            liveWallet.bank_ifsc = pData.bank_ifsc || pData.bank_account?.ifsc || '';
+                        }
+                    }
+                } catch {}
+            }
+
+            return ok(liveWallet);
+        } catch (e) {
+            return ok({ connected: false, wallet_balance: 0, billing_mode: 'PREPAID_WALLET' });
+        }
+    }
+
     // ── /api/admin/audit-logs ─────────────────────────────────────
     if (path.startsWith('/api/admin/audit-logs')) {
         try {

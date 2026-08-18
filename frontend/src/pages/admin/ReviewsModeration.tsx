@@ -149,110 +149,98 @@ export default function ReviewsModeration({ reviews, onRefresh }: ReviewsModerat
   };
 
   return (
-    <div className="space-y-5 antialiased">
-      {/* Top Header Card */}
-      <Card className="p-5 flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <CardTitle className="text-lg flex items-center gap-2">
-            <Star className="w-5 h-5 text-indigo-600 dark:text-indigo-400 fill-indigo-600 dark:fill-indigo-400" />
-            Reviews & UGC Feedback Moderation
-          </CardTitle>
-          <CardDescription>
-            Approve verified buyer ratings, reply with official merchant notes, and manage social proof
-          </CardDescription>
-        </div>
-
-        <Button variant="outline" size="sm" onClick={onRefresh} className="text-xs font-semibold">
-          Refresh Feed
-        </Button>
-      </Card>
-
-      {/* Aggregate Score KPI Cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3.5">
-        <Card className="p-4">
-          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
-            Average Score
-          </span>
-          <div className="flex items-center gap-1.5 mt-1">
-            <Star className="w-5 h-5 text-amber-500 fill-amber-500" />
-            <span className="text-2xl font-bold font-mono text-slate-900 dark:text-white">
-              {stats.avg}
+    <div className="space-y-2.5 antialiased">
+      {/* Unified Compact Control Bar */}
+      <Card className="p-2.5 flex flex-wrap items-center justify-between gap-2">
+        <div className="flex flex-wrap items-center gap-2 flex-1 min-w-[280px]">
+          <div className="flex items-center gap-1.5 mr-1">
+            <Star className="w-4 h-4 text-amber-500 fill-amber-500" />
+            <span className="text-xs font-bold text-slate-900 dark:text-white">Reviews</span>
+            <span className="px-1.5 py-0 rounded text-[9px] font-bold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
+              {stats.avg} ★ ({stats.total})
             </span>
-            <span className="text-xs text-slate-400">/ 5.0</span>
           </div>
-        </Card>
 
-        <Card className="p-4">
-          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
-            Total Reviews
-          </span>
-          <span className="text-2xl font-bold font-mono text-slate-900 dark:text-white mt-1 block">
-            {stats.total}
-          </span>
-        </Card>
-
-        <Card className="p-4">
-          <span className="text-[10px] font-bold text-amber-600 uppercase tracking-wider block">
-            Pending Queue
-          </span>
-          <span className="text-2xl font-bold font-mono text-amber-600 mt-1 block">
-            {stats.pending}
-          </span>
-        </Card>
-
-        <Card className="p-4">
-          <span className="text-[10px] font-bold text-emerald-600 uppercase tracking-wider block">
-            Live on Store
-          </span>
-          <span className="text-2xl font-bold font-mono text-emerald-600 mt-1 block">
-            {stats.approved}
-          </span>
-        </Card>
-      </div>
-
-      {/* Filters Toolbar */}
-      <Card className="p-4 flex flex-wrap items-center justify-between gap-3">
-        <div className="flex flex-wrap items-center gap-3 flex-1 min-w-[280px]">
-          <div className="relative flex-1 min-w-[200px]">
+          <div className="relative flex-1 max-w-xs min-w-[180px]">
             <Input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search by buyer name, review text, product..."
-              className="text-xs"
+              placeholder="Search reviewer, product..."
+              className="h-7 text-xs"
             />
           </div>
 
           {/* Star Filter */}
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-0.5">
             {[0, 5, 4, 3, 2, 1].map((r) => (
               <Button
                 key={r}
                 size="sm"
                 variant={filterRating === r ? 'default' : 'outline'}
                 onClick={() => setFilterRating(r)}
-                className="h-8 px-2.5 text-xs font-bold font-mono"
+                className={`h-6 text-[10px] px-1.5 font-bold ${
+                  filterRating === r ? 'bg-slate-900 text-white dark:bg-indigo-600' : ''
+                }`}
               >
                 {r === 0 ? 'All' : `${r}★`}
               </Button>
             ))}
           </div>
-
-          <select
-            value={filterStatus}
-            onChange={(e) => setFilterStatus(e.target.value as any)}
-            className="bg-slate-50 dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700 rounded-xl px-3 py-1.5 text-xs text-slate-700 dark:text-slate-300 focus:outline-none"
-          >
-            <option value="all">All Moderation Statuses</option>
-            <option value="pending">Pending Approval</option>
-            <option value="approved">Approved & Published</option>
-          </select>
         </div>
 
-        <span className="text-xs text-slate-500 font-medium">
-          {filteredReviews.length} matching reviews
-        </span>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={onRefresh}
+          className="h-7 text-xs px-2 font-medium shrink-0"
+        >
+          Refresh
+        </Button>
       </Card>
+
+      {/* Aggregate Score KPI Cards - Compact */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+        <Card className="p-2.5">
+          <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block">
+            Avg Score
+          </span>
+          <div className="flex items-center gap-1 mt-0.5">
+            <Star className="w-4 h-4 text-amber-500 fill-amber-500" />
+            <span className="text-base font-bold font-mono text-slate-900 dark:text-white">
+              {stats.avg}
+            </span>
+            <span className="text-[10px] text-slate-400">/ 5.0</span>
+          </div>
+        </Card>
+
+        <Card className="p-2.5">
+          <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block">
+            Total Reviews
+          </span>
+          <span className="text-base font-bold font-mono text-slate-900 dark:text-white mt-0.5 block">
+            {stats.total}
+          </span>
+        </Card>
+
+        <Card className="p-2.5">
+          <span className="text-[9px] font-bold text-amber-600 uppercase tracking-wider block">
+            Pending Queue
+          </span>
+          <span className="text-base font-bold font-mono text-amber-600 mt-0.5 block">
+            {stats.pending}
+          </span>
+        </Card>
+
+        <Card className="p-2.5">
+          <span className="text-[9px] font-bold text-emerald-600 uppercase tracking-wider block">
+            Live on Store
+          </span>
+          <span className="text-base font-bold font-mono text-emerald-600 mt-0.5 block">
+            {stats.approved}
+          </span>
+        </Card>
+      </div>
 
       {/* Reviews Cards List */}
       <div className="space-y-3">

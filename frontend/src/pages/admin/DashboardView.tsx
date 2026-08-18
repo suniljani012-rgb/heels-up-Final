@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   Wallet,
   ShoppingCart,
@@ -185,68 +185,178 @@ export default function DashboardView({
 }: DashboardViewProps) {
   const [salesTimeframe, setSalesTimeframe] = useState<'7d' | '30d'>('7d');
 
-  const formatCurrency = (valInPaise: number) => {
+  // Format currency from paise to INR (e.g. 229900 paise -> ₹2,299)
+  const formatPaise = (valInPaise: number | string) => {
+    const num = (typeof valInPaise === 'string' ? parseFloat(valInPaise) : Number(valInPaise) || 0) / 100;
     return new Intl.NumberFormat('en-IN', {
       style: 'currency',
       currency: 'INR',
       maximumFractionDigits: 0
-    }).format(valInPaise / 100);
+    }).format(num);
   };
 
-  const totalRevenue = (data?.total_sales || 0) + (data?.total_pos_sales || 0);
-  const totalOrdersCount = (data?.orders_count || 0) + (data?.pos_sales_count || 0);
-  const growth = data?.salesGrowth ?? 12.4;
+  // 100% Live Real GMV Revenue in paise from non-cancelled orders
+  const totalRevenuePaise = useMemo(() => {
+    if (orders && orders.length > 0) {
+      return orders
+        .filter((o) => o.order_status !== 'cancelled')
+        .reduce((acc, o) => acc + (Number(o.total_amount) || 0), 0);
+    }
+    const apiRev = Number(data?.total_sales || (data as any)?.totalRevenue || 0);
+    return apiRev > 10000 ? apiRev : apiRev * 100;
+  }, [orders, data]);
 
-  const lowStockList = (products || []).filter((p) => p.stock <= 5);
+  const totalOrdersCount =
+    orders && orders.length > 0
+      ? orders.length
+      : Number(data?.orders_count || (data as any)?.totalOrders || 0) + Number(data?.pos_sales_count || 0);
 
-  const chartData = data?.daily_sales && data.daily_sales.length > 0
-    ? data.daily_sales.map((item) => ({
+  const aovValuePaise =
+    totalOrdersCount > 0
+      ? Math.round(totalRevenuePaise / totalOrdersCount)
+      : Number(data?.aov || 0) * 100;
+
+  // Real Low stock items
+  const lowStockList = useMemo(() => {
+    if (products && products.length > 0) return products.filter((p) => p.stock <= 5);
+    if ((data as any)?.lowStockItems && Array.isArray((data as any).lowStockItems)) {
+      return (data as any).lowStockItems;
+    }
+    return [];
+  }, [products, data]);
+
+  // 100% Live Daily Sales Velocity Chart grouped by real order dates (in Rupees for chart axis)
+  const chartData = useMemo(() => {
+    const days = salesTimeframe === '7d' ? 7 : 30;
+    const result = [];
+    const now = new Date();
+
+    const hasRealOrders = orders && orders.length > 0;
+    if (!hasRealOrders && data?.daily_sales && data.daily_sales.length > 0) {
+      return data.daily_sales.map((item) => ({
         name: item.label,
-        revenue: item.revenue / 100
-      }))
-    : [
-        { name: 'Mon', revenue: 14500 },
-        { name: 'Tue', revenue: 22800 },
-        { name: 'Wed', revenue: 19400 },
-        { name: 'Thu', revenue: 31200 },
-        { name: 'Fri', revenue: 45000 },
-        { name: 'Sat', revenue: 58900 },
-        { name: 'Sun', revenue: 64200 }
-      ];
+        revenue: item.revenue > 1000 ? Math.round(item.revenue / 100) : item.revenue,
+        orders: 0
+      }));
+    }
 
-  const categoryDistribution = data?.category_sales && data.category_sales.length > 0
-    ? data.category_sales
-    : [
-        { category: 'Boots', value: 42 },
-        { category: 'Heels', value: 28 },
-        { category: 'Flats', value: 18 },
-        { category: 'Sneakers', value: 12 }
-      ];
+    for (let i = days - 1; i >= 0; i--) {
+      const d = new Date(now);
+      d.setDate(d.getDate() - i);
+      const dateKey = d.toISOString().split('T')[0];
+      const dayName = d.toLocaleDateString('en-US', { weekday: 'short' });
+      const dayLabel = days === 7 ? dayName : `${d.getDate()}/${d.getMonth() + 1}`;
+
+      const dayOrders = (orders || []).filter(
+        (o) => o.created_at && o.created_at.startsWith(dateKey) && o.order_status !== 'cancelled'
+      );
+      const dayRevPaise = dayOrders.reduce((sum, o) => sum + (Number(o.total_amount) || 0), 0);
+
+      result.push({
+        name: dayLabel,
+        revenue: Math.round(dayRevPaise / 100),
+        orders: dayOrders.length
+      });
+    }
+    return result;
+  }, [orders, data, salesTimeframe]);
+
+  // 100% Live Category Revenue / Catalog Distribution Normalized (0 - 100%)
+  const categoryDistribution = useMemo(() => {
+    if (data?.category_sales && data.category_sales.length > 0) {
+      const total = data.category_sales.reduce((s: number, c: any) => s + (Number(c.value) || 0), 0);
+      return data.category_sales.map((c: any) => ({
+        category: c.category,
+        value: total > 0 ? Math.round(((Number(c.value) || 0) / total) * 100) : 100,
+        amount: Math.round((Number(c.value) || 0) / 100),
+      }));
+    }
+
+    const catMap: { [cat: string]: number } = {};
+
+    (orders || []).forEach((o) => {
+      if (o.items && Array.isArray(o.items)) {
+        o.items.forEach((it) => {
+          const prod = (products || []).find((p) => p.id === it.product_id || p.name === it.product_name);
+          const cat = prod?.category || 'General';
+          catMap[cat] = (catMap[cat] || 0) + (Number(it.price) * (it.quantity || 1));
+        });
+      }
+    });
+
+    if (Object.keys(catMap).length === 0 && products && products.length > 0) {
+      products.forEach((p) => {
+        const cat = p.category || 'Footwear';
+        catMap[cat] = (catMap[cat] || 0) + 1;
+      });
+    }
+
+    const totalRaw = Object.values(catMap).reduce((a, b) => a + b, 0);
+    if (totalRaw <= 0) {
+      return [{ category: 'Catalog', value: 100, amount: 0 }];
+    }
+
+    const items = Object.entries(catMap).map(([category, rawVal]) => {
+      const pct = Math.round((rawVal / totalRaw) * 100);
+      return {
+        category,
+        value: pct,
+        amount: Math.round(rawVal / 100),
+      };
+    });
+
+    return items.length > 0 ? items : [{ category: 'Catalog', value: 100, amount: 0 }];
+  }, [orders, products, data]);
+
+  // 100% Live Repeat Customer Rate
+  const repeatCustomerRate = useMemo(() => {
+    if (data?.repeatCustomers !== undefined && data.repeatCustomers > 0) {
+      return `${data.repeatCustomers}`;
+    }
+    const custCounts: { [key: string]: number } = {};
+    (orders || []).forEach((o) => {
+      const id = o.customer_phone || o.customer_email || o.customer_name;
+      if (id) custCounts[id] = (custCounts[id] || 0) + 1;
+    });
+    const uniqueCusts = Object.keys(custCounts).length;
+    if (uniqueCusts === 0) return '0.0%';
+    const repeatCusts = Object.values(custCounts).filter((c) => c > 1).length;
+    return `${((repeatCusts / uniqueCusts) * 100).toFixed(1)}%`;
+  }, [orders, data]);
+
+  // 100% Live Return & Exchange Rate
+  const returnRate = useMemo(() => {
+    if (!orders || orders.length === 0) return '0.0%';
+    return `${(((returns?.length || 0) / orders.length) * 100).toFixed(1)}%`;
+  }, [orders, returns]);
+
+  // Recent Orders List
+  const recentOrdersList = useMemo(() => {
+    if (orders && orders.length > 0) return orders.slice(0, 5);
+    if ((data as any)?.recentOrders && Array.isArray((data as any).recentOrders)) {
+      return (data as any).recentOrders.slice(0, 5);
+    }
+    return [];
+  }, [orders, data]);
 
   return (
-    <div className="space-y-6 antialiased">
-      {/* Quick Action Operations Bar */}
-      <Card className="p-4 bg-gradient-to-r from-slate-900 via-slate-800 to-indigo-950 text-white border-0 shadow-md">
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          <div>
-            <div className="flex items-center gap-2">
-              <Badge variant="warning" className="px-2 py-0.5 text-[10px] font-mono">
-                Storefront Live
-              </Badge>
-              <h2 className="text-sm font-bold tracking-tight text-white">HeelsUp Command Center</h2>
-            </div>
-            <p className="text-xs text-slate-300 mt-0.5">
-              Live omnichannel telemetry active across storefront, POS terminal, and payment gateway.
-            </p>
+    <div className="space-y-3.5 antialiased font-sans">
+      {/* Clean Executive Action Toolbar */}
+      <Card className="p-3 bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 shadow-xs">
+        <div className="flex flex-wrap items-center justify-between gap-2.5">
+          <div className="flex items-center gap-2">
+            <h2 className="text-sm font-bold text-slate-900 dark:text-white">Store Overview</h2>
+            <span className="text-xs text-slate-400">•</span>
+            <span className="text-xs text-slate-500 font-medium">Real-time omnichannel sales & inventory</span>
           </div>
 
           <div className="flex items-center gap-2 flex-wrap">
             <Button
               onClick={() => onTabChange('pos')}
-              className="bg-indigo-600 hover:bg-indigo-500 text-white border-0 shadow-sm"
+              className="bg-indigo-600 hover:bg-indigo-500 text-white shadow-xs h-7 text-xs px-3 font-bold rounded-lg"
               size="sm"
             >
-              <CreditCard className="w-3.5 h-3.5" />
+              <CreditCard className="w-3.5 h-3.5 mr-1.5" />
               <span>Launch POS</span>
             </Button>
 
@@ -254,202 +364,152 @@ export default function DashboardView({
               onClick={() => onTabChange('products')}
               variant="outline"
               size="sm"
-              className="bg-slate-800/80 hover:bg-slate-700 text-white border-slate-700"
+              className="h-7 text-xs px-3 font-semibold rounded-lg"
             >
-              <PackagePlus className="w-3.5 h-3.5" />
-              <span>Manage Products</span>
+              <PackagePlus className="w-3.5 h-3.5 mr-1.5 text-slate-500" />
+              <span>Add Product</span>
             </Button>
 
             <Button
               onClick={() => onTabChange('stock')}
               variant="outline"
               size="sm"
-              className="bg-slate-800/80 hover:bg-slate-700 text-white border-slate-700"
+              className="h-7 text-xs px-3 font-semibold rounded-lg"
             >
-              <Boxes className="w-3.5 h-3.5" />
-              <span>Stock Matrix</span>
+              <Boxes className="w-3.5 h-3.5 mr-1.5 text-slate-500" />
+              <span>Inventory Matrix</span>
             </Button>
           </div>
         </div>
       </Card>
 
-      {/* KPI Metrics Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+      {/* KPI Metrics Cards - High Density Grid */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5">
         {/* KPI 1: Gross Revenue */}
-        <Card className="hover:shadow-md transition-shadow">
-          <CardHeader className="pb-2 flex flex-row items-center justify-between">
-            <div className="w-10 h-10 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 flex items-center justify-center">
-              <Wallet className="w-5 h-5" />
+        <Card className="p-3 hover:shadow-sm transition-shadow">
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Gross GMV</span>
+            <div className="w-6 h-6 rounded-md bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 flex items-center justify-center">
+              <Wallet className="w-3.5 h-3.5" />
             </div>
-            <Badge variant={growth >= 0 ? 'success' : 'destructive'} className="text-[11px] font-bold">
-              <TrendingUp className="w-3 h-3 mr-1 inline" /> {growth >= 0 ? `+${growth}%` : `${growth}%`}
-            </Badge>
-          </CardHeader>
-          <CardContent>
-            <CardDescription className="font-bold uppercase tracking-wider text-[10px]">
-              Total Gross Revenue
-            </CardDescription>
-            <h3 className="text-2xl font-bold text-slate-900 dark:text-white mt-1 tracking-tight">
-              {formatCurrency(totalRevenue)}
-            </h3>
-            <div className="mt-3 pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400">
-              <span>Online: {formatCurrency(data?.total_sales || 0)}</span>
-              <span>POS: {formatCurrency(data?.total_pos_sales || 0)}</span>
-            </div>
-          </CardContent>
+          </div>
+          <h3 className="text-lg font-bold text-slate-900 dark:text-white mt-1 tracking-tight font-mono">
+            {formatPaise(totalRevenuePaise)}
+          </h3>
+          <div className="mt-1 flex items-center justify-between text-[10px] text-slate-400">
+            <span>Online: {formatPaise((data as any)?.total_sales || totalRevenuePaise)}</span>
+          </div>
         </Card>
 
         {/* KPI 2: Total Processed Orders */}
-        <Card className="hover:shadow-md transition-shadow">
-          <CardHeader className="pb-2 flex flex-row items-center justify-between">
-            <div className="w-10 h-10 rounded-xl bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 flex items-center justify-center">
-              <ShoppingCart className="w-5 h-5" />
+        <Card className="p-3 hover:shadow-sm transition-shadow">
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Orders</span>
+            <div className="w-6 h-6 rounded-md bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 flex items-center justify-center">
+              <ShoppingCart className="w-3.5 h-3.5" />
             </div>
-            <Badge variant="info" className="text-[11px] font-bold">
-              Live DB
-            </Badge>
-          </CardHeader>
-          <CardContent>
-            <CardDescription className="font-bold uppercase tracking-wider text-[10px]">
-              Total Processed Orders
-            </CardDescription>
-            <h3 className="text-2xl font-bold text-slate-900 dark:text-white mt-1 tracking-tight">
-              {totalOrdersCount}
-            </h3>
-            <div className="mt-3 pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400">
-              <span>Web: {data?.orders_count || 0}</span>
-              <span>POS: {data?.pos_sales_count || 0}</span>
-            </div>
-          </CardContent>
+          </div>
+          <h3 className="text-lg font-bold text-slate-900 dark:text-white mt-1 tracking-tight font-mono">
+            {totalOrdersCount}
+          </h3>
+          <div className="mt-1 flex items-center justify-between text-[10px] text-slate-400">
+            <span>Processed: {totalOrdersCount}</span>
+          </div>
         </Card>
 
         {/* KPI 3: Average Order Value */}
-        <Card className="hover:shadow-md transition-shadow">
-          <CardHeader className="pb-2 flex flex-row items-center justify-between">
-            <div className="w-10 h-10 rounded-xl bg-purple-50 dark:bg-purple-950/60 text-purple-600 dark:text-purple-400 flex items-center justify-center">
-              <Sparkles className="w-5 h-5" />
+        <Card className="p-3 hover:shadow-sm transition-shadow">
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">AOV Basket</span>
+            <div className="w-6 h-6 rounded-md bg-purple-50 dark:bg-purple-950/60 text-purple-600 dark:text-purple-400 flex items-center justify-center">
+              <Sparkles className="w-3.5 h-3.5" />
             </div>
-            <Badge variant="secondary" className="text-[11px] font-bold">
-              Basket Metric
-            </Badge>
-          </CardHeader>
-          <CardContent>
-            <CardDescription className="font-bold uppercase tracking-wider text-[10px]">
-              Average Order Value (AOV)
-            </CardDescription>
-            <h3 className="text-2xl font-bold text-slate-900 dark:text-white mt-1 tracking-tight">
-              {formatCurrency(data?.aov || 0)}
-            </h3>
-            <div className="mt-3 pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400">
-              <span>Per Transaction</span>
-              <span className="text-purple-600 dark:text-purple-400 font-semibold">Healthy Margin</span>
-            </div>
-          </CardContent>
+          </div>
+          <h3 className="text-lg font-bold text-slate-900 dark:text-white mt-1 tracking-tight font-mono">
+            {formatPaise(aovValuePaise)}
+          </h3>
+          <div className="mt-1 text-[10px] text-purple-600 dark:text-purple-400 font-semibold">
+            Avg / Transaction
+          </div>
         </Card>
 
         {/* KPI 4: Low Stock Alert */}
-        <Card className="hover:shadow-md transition-shadow">
-          <CardHeader className="pb-2 flex flex-row items-center justify-between">
-            <div className="w-10 h-10 rounded-xl bg-rose-50 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400 flex items-center justify-center">
-              <AlertTriangle className="w-5 h-5" />
+        <Card className="p-3 hover:shadow-sm transition-shadow">
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] font-bold text-rose-500 uppercase tracking-wider">Low Stock</span>
+            <div className="w-6 h-6 rounded-md bg-rose-50 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400 flex items-center justify-center">
+              <AlertTriangle className="w-3.5 h-3.5" />
             </div>
-            <Button
-              variant="link"
-              size="sm"
+          </div>
+          <h3 className="text-lg font-bold text-rose-600 dark:text-rose-400 mt-1 tracking-tight font-mono">
+            {lowStockList.length}{' '}
+            <span className="text-[10px] font-normal text-slate-400">styles</span>
+          </h3>
+          <div className="mt-1">
+            <button
               onClick={() => onTabChange('stock')}
-              className="text-rose-600 dark:text-rose-400 p-0 h-auto text-xs font-bold"
+              className="text-[10px] font-bold text-rose-600 hover:underline inline-flex items-center"
             >
-              Restock <ArrowUpRight className="w-3 h-3 ml-0.5" />
-            </Button>
-          </CardHeader>
-          <CardContent>
-            <CardDescription className="font-bold uppercase tracking-wider text-[10px]">
-              Low Stock Risk Styles
-            </CardDescription>
-            <h3 className="text-2xl font-bold text-slate-900 dark:text-white mt-1 tracking-tight">
-              {lowStockList.length}{' '}
-              <span className="text-xs font-medium text-rose-600 dark:text-rose-400">(≤ 5 units left)</span>
-            </h3>
-            <div className="mt-3 pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400">
-              <span>Inventory State</span>
-              <span className="text-rose-600 font-semibold">
-                {lowStockList.length > 0 ? 'Action Required' : 'All Clear'}
-              </span>
-            </div>
-          </CardContent>
+              Restock <ArrowUpRight className="w-2.5 h-2.5 ml-0.5" />
+            </button>
+          </div>
         </Card>
 
         {/* KPI 5: Customer Loyalty */}
-        <Card className="hover:shadow-md transition-shadow">
-          <CardHeader className="pb-2 flex flex-row items-center justify-between">
-            <div className="w-10 h-10 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
-              <UserCheck className="w-5 h-5" />
+        <Card className="p-3 hover:shadow-sm transition-shadow">
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Retention</span>
+            <div className="w-6 h-6 rounded-md bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
+              <UserCheck className="w-3.5 h-3.5" />
             </div>
-            <Badge variant="success" className="text-[11px] font-bold">
-              Retention
-            </Badge>
-          </CardHeader>
-          <CardContent>
-            <CardDescription className="font-bold uppercase tracking-wider text-[10px]">
-              Repeat Buyers
-            </CardDescription>
-            <h3 className="text-2xl font-bold text-slate-900 dark:text-white mt-1 tracking-tight">
-              {data?.repeatCustomers || 0}{' '}
-              <span className="text-xs font-medium text-slate-400">Loyal Shoppers</span>
-            </h3>
-            <div className="mt-3 pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400">
-              <span>High Brand Affinity</span>
-              <span className="text-emerald-600 font-semibold">Active</span>
-            </div>
-          </CardContent>
+          </div>
+          <h3 className="text-lg font-bold text-slate-900 dark:text-white mt-1 tracking-tight font-mono">
+            {repeatCustomerRate}
+          </h3>
+          <div className="mt-1 text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold">
+            Repeat Customers
+          </div>
         </Card>
 
         {/* KPI 6: Pending Returns */}
-        <Card className="hover:shadow-md transition-shadow">
-          <CardHeader className="pb-2 flex flex-row items-center justify-between">
-            <div className="w-10 h-10 rounded-xl bg-amber-50 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 flex items-center justify-center">
-              <RotateCcw className="w-5 h-5" />
+        <Card className="p-3 hover:shadow-sm transition-shadow">
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Returns</span>
+            <div className="w-6 h-6 rounded-md bg-amber-50 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 flex items-center justify-center">
+              <RotateCcw className="w-3.5 h-3.5" />
             </div>
-            <Button
-              variant="link"
-              size="sm"
+          </div>
+          <h3 className="text-lg font-bold text-amber-600 dark:text-amber-400 mt-1 tracking-tight font-mono">
+            {returns?.length || 0}{' '}
+            <span className="text-[10px] font-normal text-slate-400">claims</span>
+          </h3>
+          <div className="mt-1 flex items-center justify-between text-[10px]">
+            <button
               onClick={() => onTabChange('returns')}
-              className="text-amber-600 dark:text-amber-400 p-0 h-auto text-xs font-bold"
+              className="font-bold text-amber-600 hover:underline inline-flex items-center"
             >
-              Review <ArrowUpRight className="w-3 h-3 ml-0.5" />
-            </Button>
-          </CardHeader>
-          <CardContent>
-            <CardDescription className="font-bold uppercase tracking-wider text-[10px]">
-              Pending Returns & Exchanges
-            </CardDescription>
-            <h3 className="text-2xl font-bold text-slate-900 dark:text-white mt-1 tracking-tight">
-              {returns.filter((r) => r.status === 'pending').length}{' '}
-              <span className="text-xs font-medium text-amber-600">Claims</span>
-            </h3>
-            <div className="mt-3 pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400">
-              <span>CS Queue</span>
-              <span className="text-amber-600 font-semibold">Pending Review</span>
-            </div>
-          </CardContent>
+              Review <ArrowUpRight className="w-2.5 h-2.5 ml-0.5" />
+            </button>
+            <span className="text-slate-400">{returnRate}</span>
+          </div>
         </Card>
       </div>
 
       {/* Analytics Charts Row */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
         {/* Left 2 Cols: Sales Revenue Trend AreaChart */}
-        <Card className="lg:col-span-2">
-          <CardHeader className="flex flex-row items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+        <Card className="lg:col-span-2 p-3.5">
+          <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-2.5 mb-3">
             <div>
-              <CardTitle className="text-sm font-bold">Revenue Performance Curve</CardTitle>
-              <CardDescription>Daily store & POS aggregate revenue in INR</CardDescription>
+              <CardTitle className="text-xs font-bold">Revenue Velocity Trend</CardTitle>
+              <CardDescription className="text-[10px]">Daily online & POS aggregate GMV</CardDescription>
             </div>
-            <div className="flex items-center gap-1.5 bg-slate-100 dark:bg-slate-800 p-1 rounded-xl">
+            <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 p-0.5 rounded-lg">
               <Button
                 variant={salesTimeframe === '7d' ? 'default' : 'ghost'}
                 size="sm"
                 onClick={() => setSalesTimeframe('7d')}
-                className="h-7 text-[11px] px-2.5"
+                className="h-6 text-[10px] px-2"
               >
                 7 Days
               </Button>
@@ -457,246 +517,230 @@ export default function DashboardView({
                 variant={salesTimeframe === '30d' ? 'default' : 'ghost'}
                 size="sm"
                 onClick={() => setSalesTimeframe('30d')}
-                className="h-7 text-[11px] px-2.5"
+                className="h-6 text-[10px] px-2"
               >
                 30 Days
               </Button>
             </div>
-          </CardHeader>
+          </div>
 
-          <CardContent className="pt-5">
-            <div className="h-64 w-full">
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={chartData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
-                  <defs>
-                    <linearGradient id="indigoArea" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#4f46e5" stopOpacity={0.4} />
-                      <stop offset="95%" stopColor="#4f46e5" stopOpacity={0.0} />
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />
-                  <XAxis dataKey="name" stroke="#94a3b8" fontSize={11} tickLine={false} axisLine={false} />
-                  <YAxis
-                    stroke="#94a3b8"
-                    fontSize={11}
-                    tickLine={false}
-                    axisLine={false}
-                    tickFormatter={(v) => `₹${(v / 1000).toFixed(0)}k`}
-                  />
-                  <Tooltip
-                    formatter={(val: any) => [`₹${Number(val).toLocaleString('en-IN')}`, 'Revenue']}
-                    contentStyle={{
-                      backgroundColor: '#0f172a',
-                      borderRadius: '12px',
-                      color: '#ffffff',
-                      border: 'none',
-                      fontSize: '12px'
-                    }}
-                  />
-                  <Area
-                    type="monotone"
-                    dataKey="revenue"
-                    stroke="#4f46e5"
-                    strokeWidth={2.5}
-                    fillOpacity={1}
-                    fill="url(#indigoArea)"
-                  />
-                </AreaChart>
-              </ResponsiveContainer>
-            </div>
-          </CardContent>
+          <div className="h-52 w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={chartData} margin={{ top: 5, right: 5, left: 0, bottom: 0 }}>
+                <defs>
+                  <linearGradient id="indigoArea" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#4f46e5" stopOpacity={0.3} />
+                    <stop offset="95%" stopColor="#4f46e5" stopOpacity={0.0} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} opacity={0.5} />
+                <XAxis dataKey="name" stroke="#94a3b8" fontSize={10} tickLine={false} axisLine={false} />
+                <YAxis
+                  stroke="#94a3b8"
+                  fontSize={10}
+                  tickLine={false}
+                  axisLine={false}
+                  tickFormatter={(v) => `₹${(v / 1000).toFixed(0)}k`}
+                />
+                <Tooltip
+                  formatter={(val: any) => [`₹${Number(val).toLocaleString('en-IN')}`, 'Revenue']}
+                  contentStyle={{
+                    backgroundColor: '#0f172a',
+                    borderRadius: '8px',
+                    color: '#ffffff',
+                    border: 'none',
+                    fontSize: '11px',
+                    padding: '6px 10px'
+                  }}
+                />
+                <Area
+                  type="monotone"
+                  dataKey="revenue"
+                  stroke="#4f46e5"
+                  strokeWidth={2}
+                  fillOpacity={1}
+                  fill="url(#indigoArea)"
+                />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
         </Card>
 
-        {/* Right 1 Col: Category Share Donut */}
-        <Card>
-          <CardHeader className="border-b border-slate-100 dark:border-slate-800 pb-3">
-            <CardTitle className="text-sm font-bold">Category Sales Breakdown</CardTitle>
-            <CardDescription>Product volume distribution</CardDescription>
-          </CardHeader>
+        {/* Right 1 Col: Category Share PieChart */}
+        <Card className="p-3.5 flex flex-col justify-between">
+          <div className="border-b border-slate-100 dark:border-slate-800 pb-2 mb-2">
+            <CardTitle className="text-xs font-bold">Category Distribution</CardTitle>
+            <CardDescription className="text-[10px]">Sales volume share by category</CardDescription>
+          </div>
 
-          <CardContent className="pt-5">
-            <div className="h-48 w-full flex items-center justify-center">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={categoryDistribution}
-                    innerRadius={50}
-                    outerRadius={75}
-                    paddingAngle={4}
-                    dataKey="value"
-                    nameKey="category"
-                  >
-                    {categoryDistribution.map((_, index) => (
-                      <Cell key={`cell-${index}`} fill={CATEGORY_COLORS[index % CATEGORY_COLORS.length]} />
-                    ))}
-                  </Pie>
-                  <Tooltip
-                    formatter={(val: any) => [`${val}%`, 'Share']}
-                    contentStyle={{
-                      backgroundColor: '#0f172a',
-                      borderRadius: '12px',
-                      color: '#ffffff',
-                      border: 'none',
-                      fontSize: '12px'
-                    }}
-                  />
-                </PieChart>
-              </ResponsiveContainer>
-            </div>
+          <div className="h-44 w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie
+                  data={categoryDistribution}
+                  cx="50%"
+                  cy="50%"
+                  innerRadius={40}
+                  outerRadius={62}
+                  paddingAngle={4}
+                  dataKey="value"
+                  nameKey="category"
+                >
+                  {categoryDistribution.map((entry: any, index: number) => (
+                    <Cell key={`cell-${index}`} fill={CATEGORY_COLORS[index % CATEGORY_COLORS.length]} />
+                  ))}
+                </Pie>
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: '#0f172a',
+                    borderRadius: '8px',
+                    color: '#ffffff',
+                    border: 'none',
+                    fontSize: '11px',
+                    padding: '4px 8px'
+                  }}
+                  formatter={(value: any, name: any) => [`${value}%`, name]}
+                />
+              </PieChart>
+            </ResponsiveContainer>
+          </div>
 
-            <div className="grid grid-cols-2 gap-2 mt-2 pt-3 border-t border-slate-100 dark:border-slate-800">
-              {categoryDistribution.map((item, idx) => (
-                <div key={item.category} className="flex items-center gap-2 text-xs">
-                  <span
-                    className="w-2.5 h-2.5 rounded-full"
-                    style={{ backgroundColor: CATEGORY_COLORS[idx % CATEGORY_COLORS.length] }}
-                  />
-                  <span className="text-slate-600 dark:text-slate-300 font-medium truncate">{item.category}</span>
-                  <span className="text-slate-400 font-bold ml-auto font-mono">{item.value}%</span>
-                </div>
-              ))}
-            </div>
-          </CardContent>
+          <div className="grid grid-cols-2 gap-1.5 pt-2 border-t border-slate-100 dark:border-slate-800 text-[10px]">
+            {categoryDistribution.map((cat: any, idx: number) => (
+              <div key={cat.category} className="flex items-center gap-1.5">
+                <span
+                  className="w-2 h-2 rounded-full shrink-0"
+                  style={{ backgroundColor: CATEGORY_COLORS[idx % CATEGORY_COLORS.length] }}
+                />
+                <span className="font-medium text-slate-700 dark:text-slate-300 truncate">{cat.category}</span>
+                <span className="text-slate-400 font-mono ml-auto">{cat.value}%</span>
+              </div>
+            ))}
+          </div>
         </Card>
       </div>
 
-      {/* Tables Row: Recent Orders & Stock Risk Matrix */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-        {/* Left: Recent Orders Table */}
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+      {/* Bottom Dual Tables: Recent Orders & Urgent Inventory Alert */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-3">
+        {/* Recent Orders Registry Table (8 cols) */}
+        <Card className="lg:col-span-8 overflow-hidden">
+          <div className="px-4 py-2.5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-slate-50/50 dark:bg-slate-800/40">
             <div>
-              <CardTitle className="text-sm font-bold">Recent Store & POS Orders</CardTitle>
-              <CardDescription>Live incoming customer transactions</CardDescription>
+              <h4 className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider">
+                Recent Orders Stream
+              </h4>
+              <p className="text-[10px] text-slate-400">Live order pipeline & dispatch fulfillment</p>
             </div>
             <Button
               variant="outline"
               size="sm"
               onClick={() => onTabChange('orders')}
-              className="text-xs font-semibold"
+              className="text-xs h-7 px-2.5 font-bold"
             >
-              View All <ChevronRight className="w-3.5 h-3.5 ml-1" />
+              All Orders <ChevronRight className="w-3 h-3 ml-0.5" />
             </Button>
-          </CardHeader>
+          </div>
 
-          <CardContent className="p-0">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Order #</TableHead>
-                  <TableHead>Customer</TableHead>
-                  <TableHead>Amount</TableHead>
-                  <TableHead>Status</TableHead>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="py-2">Order #</TableHead>
+                <TableHead className="py-2">Customer</TableHead>
+                <TableHead className="py-2">Channel</TableHead>
+                <TableHead className="py-2">Amount</TableHead>
+                <TableHead className="py-2">Status</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {recentOrdersList.map((ord: any) => (
+                <TableRow key={ord.id}>
+                  <TableCell className="py-2 font-mono font-bold text-indigo-600 dark:text-indigo-400 text-xs">
+                    #{ord.order_number}
+                  </TableCell>
+                  <TableCell className="py-2">
+                    <span className="font-semibold text-slate-900 dark:text-white block text-xs truncate max-w-[120px]">
+                      {ord.customer_name || 'Guest Buyer'}
+                    </span>
+                    <span className="text-[9px] text-slate-400 font-mono">{ord.customer_phone || ord.customer_email || '—'}</span>
+                  </TableCell>
+                  <TableCell className="py-2">
+                    <Badge variant="outline" className="capitalize text-[9px] px-1.5 py-0 font-mono">
+                      {ord.source || (ord.is_pos ? 'pos' : 'web')}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="py-2 font-mono font-bold text-xs text-slate-900 dark:text-white">
+                    {formatPaise(ord.total_amount)}
+                  </TableCell>
+                  <TableCell className="py-2">
+                    <Badge
+                      variant={
+                        ord.order_status === 'delivered' || ord.order_status === 'Completed'
+                          ? 'success'
+                          : ord.order_status === 'cancelled'
+                          ? 'destructive'
+                          : 'info'
+                      }
+                      className="capitalize text-[9px] px-1.5 py-0"
+                    >
+                      {ord.order_status || 'placed'}
+                    </Badge>
+                  </TableCell>
                 </TableRow>
-              </TableHeader>
-              <TableBody>
-                {orders.slice(0, 5).map((ord) => (
-                  <TableRow key={ord.id}>
-                    <TableCell className="font-mono font-bold text-xs text-indigo-600 dark:text-indigo-400">
-                      #{ord.order_number}
-                    </TableCell>
-                    <TableCell>
-                      <div className="font-semibold text-slate-900 dark:text-white">{ord.customer_name}</div>
-                      <div className="text-[10px] text-slate-400 font-mono">{ord.customer_phone}</div>
-                    </TableCell>
-                    <TableCell className="font-mono font-bold text-slate-900 dark:text-white">
-                      {formatCurrency(ord.total_amount)}
-                    </TableCell>
-                    <TableCell>
-                      <Badge
-                        variant={
-                          ord.order_status === 'delivered' || ord.order_status === 'Completed'
-                            ? 'success'
-                            : ord.order_status === 'shipped'
-                            ? 'info'
-                            : ord.order_status === 'cancelled'
-                            ? 'destructive'
-                            : 'warning'
-                        }
-                      >
-                        {ord.order_status}
-                      </Badge>
-                    </TableCell>
-                  </TableRow>
-                ))}
+              ))}
 
-                {orders.length === 0 && (
-                  <TableRow>
-                    <TableCell colSpan={4} className="py-8 text-center text-slate-400 italic">
-                      No customer orders found in record.
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
-          </CardContent>
+              {recentOrdersList.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={5} className="py-8 text-center text-slate-400 text-xs italic">
+                    No recent order records available.
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
         </Card>
 
-        {/* Right: Low Stock Critical Inventory */}
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+        {/* Low Stock Watchlist (4 cols) */}
+        <Card className="lg:col-span-4 overflow-hidden">
+          <div className="px-4 py-2.5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-slate-50/50 dark:bg-slate-800/40">
             <div>
-              <CardTitle className="text-sm font-bold">Critical Inventory Alerts</CardTitle>
-              <CardDescription>Styles nearing depletion</CardDescription>
+              <h4 className="text-xs font-bold text-rose-600 dark:text-rose-400 uppercase tracking-wider flex items-center gap-1">
+                <AlertTriangle className="w-3.5 h-3.5" /> Low Inventory Alert
+              </h4>
+              <p className="text-[10px] text-slate-400">Products requiring replenishment</p>
             </div>
             <Button
               variant="outline"
               size="sm"
               onClick={() => onTabChange('stock')}
-              className="text-xs font-semibold"
+              className="text-xs h-7 px-2 font-bold"
             >
-              Manage Stock <ChevronRight className="w-3.5 h-3.5 ml-1" />
+              Restock <ChevronRight className="w-3 h-3 ml-0.5" />
             </Button>
-          </CardHeader>
+          </div>
 
-          <CardContent className="p-0">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Style & SKU</TableHead>
-                  <TableHead>Category</TableHead>
-                  <TableHead>Available</TableHead>
-                  <TableHead className="text-right">Action</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {lowStockList.slice(0, 5).map((prod) => (
-                  <TableRow key={prod.id}>
-                    <TableCell>
-                      <div className="font-semibold text-slate-900 dark:text-white">{prod.name}</div>
-                      <div className="text-[10px] text-slate-400 font-mono">{prod.sku}</div>
-                    </TableCell>
-                    <TableCell className="text-slate-600 dark:text-slate-300 font-medium">
-                      {prod.category || 'General'}
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant="destructive" className="font-mono">
-                        {prod.stock} left
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => onTabChange('stock')}
-                        className="text-indigo-600 hover:text-indigo-700 h-7 px-2 text-xs"
-                      >
-                        Adjust
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))}
+          <div className="divide-y divide-slate-100 dark:divide-slate-800">
+            {lowStockList.slice(0, 5).map((prod: any) => (
+              <div key={prod.id} className="p-2.5 flex items-center justify-between hover:bg-slate-50/50 dark:hover:bg-slate-800/40 transition-colors">
+                <div className="min-w-0 pr-2">
+                  <span className="font-semibold text-slate-900 dark:text-white text-xs block truncate">
+                    {prod.name}
+                  </span>
+                  <span className="text-[10px] text-slate-400 font-mono">
+                    SKU: {prod.sku} • {prod.category}
+                  </span>
+                </div>
+                <Badge variant="destructive" className="font-mono text-[10px] shrink-0">
+                  {prod.stock} left
+                </Badge>
+              </div>
+            ))}
 
-                {lowStockList.length === 0 && (
-                  <TableRow>
-                    <TableCell colSpan={4} className="py-8 text-center text-slate-400 italic">
-                      All catalog products are healthy with adequate inventory.
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
-          </CardContent>
+            {lowStockList.length === 0 && (
+              <div className="py-8 text-center text-slate-400 text-xs italic">
+                All catalog inventory levels are healthy.
+              </div>
+            )}
+          </div>
         </Card>
       </div>
     </div>

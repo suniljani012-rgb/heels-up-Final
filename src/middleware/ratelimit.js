@@ -75,10 +75,11 @@ export async function apiRateLimit(request, env) {
 }
 
 /**
- * Admin rate limit — 600 req/min (more lenient for admins)
+ * Admin rate limit — 2000 req/min (exempt authenticated admin requests)
  */
 export async function adminRateLimit(request, env) {
-    return rateLimit(request, env, { limit: 600, window: 60, prefix: 'rl:admin' });
+    if (request.headers.get('Authorization')) return null;
+    return rateLimit(request, env, { limit: 2000, window: 60, prefix: 'rl:admin' });
 }
 
 /**

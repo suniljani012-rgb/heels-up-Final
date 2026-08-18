@@ -1,8 +1,9 @@
-import { useEffect, lazy, Suspense } from 'react'
+import { useEffect, lazy, Suspense, useRef } from 'react'
 import { autoPreloadStorefrontImages } from './utils/imagePreloader'
 import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { trackPageView } from './utils/analytics'
+import { initGlobalErrorTracking, logPageView } from './utils/activityTracker'
 import Header from './components/Header'
 import Footer from './components/Footer'
 import CartDrawer from './components/CartDrawer'
@@ -44,14 +45,22 @@ function AppContent() {
   const location = useLocation()
   const isAdmin = location.pathname.startsWith('/admin')
   const detectLocation = useCartStore(state => state.detectLocation)
+  const pageStartTimeRef = useRef(Date.now())
 
-  // Track SPA page navigation on route change
+  // Track SPA page navigation on route change & record visitor time on page
   useEffect(() => {
-    trackPageView(location.pathname + location.search);
-  }, [location.pathname, location.search])
+    const currentPath = location.pathname + location.search;
+    const duration = Math.round((Date.now() - pageStartTimeRef.current) / 1000);
+    pageStartTimeRef.current = Date.now();
 
+    trackPageView(currentPath);
+    if (!isAdmin) {
+      logPageView(currentPath, document.title || 'Storefront', duration > 0 && duration < 1800 ? duration : 0);
+    }
+  }, [location.pathname, location.search, isAdmin])
 
   useEffect(() => {
+    initGlobalErrorTracking();
     if ('scrollRestoration' in window.history) {
       window.history.scrollRestoration = 'manual'
     }
@@ -139,16 +148,6 @@ function AppContent() {
   return (
     <div className={isAdmin ? "w-full" : "flex flex-col min-h-screen bg-[#fcfbf9] text-[#1a1816]"}>
       {!isAdmin && <Header />}
-      {/* Inject admin-only CSS/JS dynamically — only downloaded when on /admin route.
-          Regular shoppers never see this ~500KB+ payload. */}
-      {isAdmin && (
-        <>
-          <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
-          <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css" />
-          <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/icheck-bootstrap/3.0.1/icheck-bootstrap.min.css" />
-          <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/admin-lte@3.2/dist/css/adminlte.min.css" />
-        </>
-      )}
       <main className={isAdmin ? "" : "flex-grow"}>
         <Suspense fallback={
           <div className="max-w-7xl mx-auto px-6 py-12">

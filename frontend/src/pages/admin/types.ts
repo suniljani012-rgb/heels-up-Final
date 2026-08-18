@@ -126,14 +126,18 @@ export interface Staff {
 
 export interface Customer {
   id: number;
-  first_name: string;
+  name?: string;
+  full_name?: string;
+  first_name?: string;
   last_name?: string;
   email: string;
   phone?: string;
-  orders_count: number;
-  total_spent: number;
+  order_count?: number;
+  orders_count?: number;
+  total_spent?: number;
   created_at: string;
-  is_blocked: boolean;
+  is_blocked?: boolean;
+  is_active?: number | boolean;
 }
 
 export interface ReturnItem {
