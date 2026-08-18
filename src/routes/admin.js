@@ -209,6 +209,21 @@ export async function adminRouter(request, env, ctx) {
     // ── /api/admin/payments ──────────────────────────────────────
     if (path.startsWith('/api/admin/payments')) {
         try {
+            const count = parseInt(url.searchParams.get('count') || '100');
+            const from = url.searchParams.get('from');
+            const to = url.searchParams.get('to');
+
+            // 1. Fetch live transactions from Razorpay API directly
+            let livePayments = [];
+            let liveSettlements = [];
+            try {
+                livePayments = await razorpay.fetchPaymentsList(env, { count, from, to });
+                liveSettlements = await razorpay.fetchSettlementsList(env, { count: 30, from, to });
+            } catch (err) {
+                console.warn('Razorpay live fetch error:', err);
+            }
+
+            // 2. Fetch local DB rows
             const rows = await env.DB.prepare(`
                 SELECT p.*, o.order_number, o.customer_name, o.customer_phone, o.customer_email, o.payment_method as order_payment_method, o.total_amount as order_total
                 FROM payments p
@@ -216,25 +231,16 @@ export async function adminRouter(request, env, ctx) {
                 ORDER BY p.id DESC LIMIT 300
             `).all().catch(() => env.DB.prepare("SELECT * FROM payments ORDER BY id DESC LIMIT 300").all());
 
-            const dbRows = rows.results || [];
-
-            // If live sync is queried
-            if (url.searchParams.get('live') === 'true') {
-                try {
-                    const livePayments = await razorpay.fetchPaymentsList(env, 25);
-                    const liveSettlements = await razorpay.fetchSettlementsList(env, 10);
-                    return ok({
-                        db_payments: dbRows,
-                        live_payments: livePayments,
-                        live_settlements: liveSettlements,
-                        live_synced_at: new Date().toISOString()
-                    });
-                } catch {}
-            }
-
-            return ok(dbRows);
+            return ok({
+                success: true,
+                live_payments: livePayments,
+                live_settlements: liveSettlements,
+                db_payments: rows.results || [],
+                live_synced_at: new Date().toISOString()
+            });
         } catch (e) {
-            return ok([]);
+            console.error('Payments route error:', e);
+            return ok({ success: false, live_payments: [], db_payments: [] });
         }
     }
 

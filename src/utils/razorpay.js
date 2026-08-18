@@ -88,19 +88,31 @@ export const razorpay = {
     const to = typeof options === 'object' ? options.to : null;
 
     const { keyId, keySecret } = await getRazorpayCredentials(env);
-    if (!keyId || !keySecret) return [];
+    if (!keyId || !keySecret) {
+      console.warn('Razorpay API keys missing in settings table');
+      return [];
+    }
     const credentials = btoa(`${keyId}:${keySecret}`);
     let url = `https://api.razorpay.com/v1/payments?count=${count}`;
     if (from) url += `&from=${from}`;
     if (to) url += `&to=${to}`;
 
-    const res = await fetch(url, {
-      headers: { 'Authorization': `Basic ${credentials}`, 'Accept': 'application/json' },
-      signal: AbortSignal.timeout(3500)
-    }).catch(() => null);
-    if (!res || !res.ok) return [];
-    const data = await res.json().catch(() => ({ items: [] }));
-    return data.items || [];
+    try {
+      const res = await fetch(url, {
+        headers: { 'Authorization': `Basic ${credentials}`, 'Accept': 'application/json' },
+        signal: AbortSignal.timeout(8000)
+      });
+      if (!res.ok) {
+        const errText = await res.text();
+        console.error('Razorpay fetchPaymentsList HTTP error:', res.status, errText);
+        return [];
+      }
+      const data = await res.json();
+      return data.items || [];
+    } catch (e) {
+      console.error('Razorpay fetchPaymentsList network exception:', e);
+      return [];
+    }
   },
 
   // ── Fetch Settlements List (with date range support) ────────
@@ -116,13 +128,17 @@ export const razorpay = {
     if (from) url += `&from=${from}`;
     if (to) url += `&to=${to}`;
 
-    const res = await fetch(url, {
-      headers: { 'Authorization': `Basic ${credentials}`, 'Accept': 'application/json' },
-      signal: AbortSignal.timeout(3500)
-    }).catch(() => null);
-    if (!res || !res.ok) return [];
-    const data = await res.json().catch(() => ({ items: [] }));
-    return data.items || [];
+    try {
+      const res = await fetch(url, {
+        headers: { 'Authorization': `Basic ${credentials}`, 'Accept': 'application/json' },
+        signal: AbortSignal.timeout(8000)
+      });
+      if (!res.ok) return [];
+      const data = await res.json();
+      return data.items || [];
+    } catch (e) {
+      return [];
+    }
   },
 
   // ── Initiate Refund ─────────────────────────────────────────

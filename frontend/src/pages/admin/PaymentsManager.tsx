@@ -225,7 +225,7 @@ export default function PaymentsManager({ payments = [], orders = [], token, onR
         seen.add(rp.id);
 
         const grossPaise = Number(rp.amount) || 0;
-        const feePaise = Number(rp.fee) || Math.round(grossPaise * 0.0236);
+        const feePaise = Number(rp.fee) || 0;
         const netPaise = Math.max(0, grossPaise - feePaise);
         const isCaptured = rp.status === 'captured';
 
@@ -235,10 +235,18 @@ export default function PaymentsManager({ payments = [], orders = [], token, onR
         else if (rp.method === 'netbanking') channel = `Netbanking (${rp.bank || 'Bank'})`;
         else if (rp.method === 'wallet') channel = `Wallet (${rp.wallet || 'Online'})`;
 
+        // Extract Order ID or clean Order Number
+        let orderDisplay = rp.order_id || 'N/A (Payment Link)';
+        if (rp.description && rp.description.includes('Order')) {
+          orderDisplay = rp.description.replace(/^Order\s*#?/, '').trim();
+        } else if (rp.notes?.order_number) {
+          orderDisplay = rp.notes.order_number;
+        }
+
         list.push({
           id: rp.id,
           order_id: rp.order_id || null,
-          order_number: rp.notes?.order_number || rp.description || `RZP-${rp.id.slice(-6)}`,
+          order_number: orderDisplay,
           customer_name: rp.notes?.customer_name || rp.email || 'Online Customer',
           customer_phone: rp.contact ? String(rp.contact) : (rp.notes?.customer_phone || ''),
           provider: 'RAZORPAY',
@@ -250,7 +258,7 @@ export default function PaymentsManager({ payments = [], orders = [], token, onR
           currency: rp.currency || 'INR',
           status: isCaptured ? 'settled' : rp.status,
           method: channel.trim(),
-          bank_rrn: rp.acquirer_data?.rrn || rp.acquirer_data?.bank_transaction_id || `RRN-${rp.id.slice(-8)}`,
+          bank_rrn: rp.acquirer_data?.rrn || rp.acquirer_data?.bank_transaction_id || rp.acquirer_data?.upi_transaction_id || '--',
           settlement_id: rp.settlement_id || undefined,
           created_at: rp.created_at ? new Date(rp.created_at * 1000).toISOString() : new Date().toISOString(),
         });
