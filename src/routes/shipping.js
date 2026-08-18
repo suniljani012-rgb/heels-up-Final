@@ -178,5 +178,35 @@ export async function handleShipping(request, env, path, method) {
         return ok({ methods });
     }
 
+    // ── POST /api/shipping/webhook (Delhivery Automatic Webhook Listener) ──
+    if (method === 'POST' && (path === '/api/shipping/webhook' || path === '/api/shipping/delhivery-webhook')) {
+        try {
+            const payload = await request.json();
+            const waybill = payload.waybill || payload.Shipment?.Waybill || payload.awb || payload.Waybill;
+            const statusType = (payload.Status?.StatusType || payload.Status?.Status || payload.status || '').toLowerCase();
+            
+            if (waybill && env.DB) {
+                let mappedStatus = null;
+                if (statusType.includes('dl') || statusType.includes('delivered')) mappedStatus = 'delivered';
+                else if (statusType.includes('oo') || statusType.includes('out for delivery') || statusType.includes('dispatched')) mappedStatus = 'out_for_delivery';
+                else if (statusType.includes('it') || statusType.includes('in transit') || statusType.includes('transit') || statusType.includes('hub')) mappedStatus = 'in_transit';
+                else if (statusType.includes('pu') || statusType.includes('picked up') || statusType.includes('manifest')) mappedStatus = 'picked_up';
+                else if (statusType.includes('rt') || statusType.includes('rto') || statusType.includes('return')) mappedStatus = 'returned';
+                else if (statusType.includes('ud') || statusType.includes('failed') || statusType.includes('undelivered') || statusType.includes('ndr')) mappedStatus = 'delivery_failed';
+
+                if (mappedStatus) {
+                    await env.DB.prepare(`
+                        UPDATE orders 
+                        SET order_status = ?, updated_at = ?
+                        WHERE tracking_number = ?
+                    `).bind(mappedStatus, new Date().toISOString(), String(waybill).trim()).run();
+                }
+            }
+            return ok({ success: true, message: 'Delhivery webhook processed successfully' });
+        } catch (err) {
+            return ok({ success: true, warning: err.message });
+        }
+    }
+
     return error('Not found', 404);
 }

@@ -34,7 +34,7 @@ import { Badge } from '../../components/ui/badge';
 import { Button } from '../../components/ui/button';
 import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from '../../components/ui/table';
 import { useToastStore } from '../../store/useToastStore';
-import { getDelhiveryChargesBreakdown } from './LogisticsManager';
+import { getDelhiveryChargesBreakdown } from '../../utils/delhiveryCalculations';
 import type { Order, Product, Customer, ReturnRequest } from './types';
 
 interface EnterpriseReportsProps {
@@ -100,13 +100,20 @@ export default function EnterpriseReports({
     let totalRazorpayGatewayFee = 0;
     let itemsSold = 0;
     let cancelledOrders = 0;
-    let deliveredOrders = 0;
+    let pendingBookingOrders = 0;
+    let totalBookedOrders = 0;
+    let pickedUpOrders = 0;
     let inTransitOrders = 0;
+    let outForDeliveryOrders = 0;
+    let deliveredOrders = 0;
+    let deliveryFailedOrders = 0;
+    let returnedOrders = 0;
 
     filteredOrders.forEach((o: any) => {
       const amt = Number(o.total_amount) || 0;
-      const totalRs = Math.round(amt / 100);
       const isCOD = (o.payment_method || '').toLowerCase().includes('cod') || o.cod_outstanding_amount > 0;
+      const totalRs = Math.round(amt / 100);
+      const awb = o.tracking_number || o.delhivery_waybill;
       
       grossPaise += amt;
 
@@ -116,7 +123,13 @@ export default function EnterpriseReports({
         netPaise += amt;
 
         if (o.order_status === 'delivered' || o.order_status === 'Completed') deliveredOrders++;
-        else if (o.order_status === 'shipped') inTransitOrders++;
+        else if (o.order_status === 'out_for_delivery') outForDeliveryOrders++;
+        else if (o.order_status === 'shipped' || o.order_status === 'in_transit') inTransitOrders++;
+        else if (o.order_status === 'picked_up') pickedUpOrders++;
+        else if (o.order_status === 'delivery_failed' || o.order_status === 'ndr') deliveryFailedOrders++;
+        else if (o.order_status === 'returned' || o.order_status === 'rto') returnedOrders++;
+        else if (!awb) pendingBookingOrders++;
+        else totalBookedOrders++;
 
         // 10% Online vs 90% COD
         const advRs = isCOD ? Math.round(totalRs * 0.10) : totalRs;
@@ -160,9 +173,15 @@ export default function EnterpriseReports({
       realizationMargin,
       totalOrders: filteredOrders.length,
       validOrders: filteredOrders.length - cancelledOrders,
-      cancelledOrders,
-      deliveredOrders,
+      pendingBookingOrders,
+      totalBookedOrders,
+      pickedUpOrders,
       inTransitOrders,
+      outForDeliveryOrders,
+      deliveredOrders,
+      deliveryFailedOrders,
+      returnedOrders,
+      cancelledOrders,
       itemsSold,
       aov: filteredOrders.length > 0 ? Math.round(totalNetRevenue / (filteredOrders.length - cancelledOrders || 1)) : 0,
     };
@@ -622,28 +641,69 @@ export default function EnterpriseReports({
           </div>
         )}
 
-        {/* ── Tab 2: Order Pipeline & Funnel ─────────────────────────── */}
+        {/* ── Tab 2: Order Pipeline & Funnel (Full 8 Lifecycle Stages) ─ */}
         {activeTab === 'orders_pipeline' && (
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-800 text-center">
-              <span className="text-[10px] font-bold uppercase text-slate-400">Total Bookings</span>
-              <p className="text-2xl font-black font-mono text-slate-900 dark:text-white mt-1">{pnlMetrics.totalOrders}</p>
-              <span className="text-[10px] text-slate-400">100% Processed</span>
+          <div className="space-y-3.5">
+            <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-2.5">
+              <div className="p-3 rounded-xl bg-amber-50/60 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/40 text-center">
+                <span className="text-[9px] font-bold uppercase text-amber-600">Pending Booking</span>
+                <p className="text-xl font-black font-mono text-amber-600 dark:text-amber-400 mt-0.5">{pnlMetrics.pendingBookingOrders}</p>
+                <span className="text-[9px] text-slate-400">Needs AWB</span>
+              </div>
+
+              <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-800 text-center">
+                <span className="text-[9px] font-bold uppercase text-slate-500">Total Booked</span>
+                <p className="text-xl font-black font-mono text-slate-900 dark:text-white mt-0.5">{pnlMetrics.totalBookedOrders}</p>
+                <span className="text-[9px] text-slate-400">Manifest Ready</span>
+              </div>
+
+              <div className="p-3 rounded-xl bg-purple-50/60 dark:bg-purple-950/30 border border-purple-200 dark:border-purple-800/40 text-center">
+                <span className="text-[9px] font-bold uppercase text-purple-600">Picked Up</span>
+                <p className="text-xl font-black font-mono text-purple-600 dark:text-purple-400 mt-0.5">{pnlMetrics.pickedUpOrders}</p>
+                <span className="text-[9px] text-purple-500">Warehouse Scan</span>
+              </div>
+
+              <div className="p-3 rounded-xl bg-blue-50/60 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800/40 text-center">
+                <span className="text-[9px] font-bold uppercase text-blue-600">In-Transit</span>
+                <p className="text-xl font-black font-mono text-blue-600 dark:text-blue-400 mt-0.5">{pnlMetrics.inTransitOrders}</p>
+                <span className="text-[9px] text-blue-500">Hub Movement</span>
+              </div>
+
+              <div className="p-3 rounded-xl bg-sky-50/60 dark:bg-sky-950/30 border border-sky-200 dark:border-sky-800/40 text-center">
+                <span className="text-[9px] font-bold uppercase text-sky-600">Out for Delivery</span>
+                <p className="text-xl font-black font-mono text-sky-600 dark:text-sky-400 mt-0.5">{pnlMetrics.outForDeliveryOrders}</p>
+                <span className="text-[9px] text-sky-500">Doorstep Rider</span>
+              </div>
+
+              <div className="p-3 rounded-xl bg-emerald-50/60 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800/40 text-center">
+                <span className="text-[9px] font-bold uppercase text-emerald-600">Delivered</span>
+                <p className="text-xl font-black font-mono text-emerald-600 dark:text-emerald-400 mt-0.5">{pnlMetrics.deliveredOrders}</p>
+                <span className="text-[9px] text-emerald-500">Completed</span>
+              </div>
+
+              <div className="p-3 rounded-xl bg-rose-50/60 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-800/40 text-center">
+                <span className="text-[9px] font-bold uppercase text-rose-600">Delivery Failed</span>
+                <p className="text-xl font-black font-mono text-rose-600 dark:text-rose-400 mt-0.5">{pnlMetrics.deliveryFailedOrders}</p>
+                <span className="text-[9px] text-rose-500">NDR Issue</span>
+              </div>
+
+              <div className="p-3 rounded-xl bg-orange-50/60 dark:bg-orange-950/30 border border-orange-200 dark:border-orange-800/40 text-center">
+                <span className="text-[9px] font-bold uppercase text-orange-600">RTO / Return</span>
+                <p className="text-xl font-black font-mono text-orange-600 dark:text-orange-400 mt-0.5">{pnlMetrics.returnedOrders}</p>
+                <span className="text-[9px] text-orange-500">Returned/Exchanged</span>
+              </div>
             </div>
-            <div className="p-3.5 rounded-xl bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800/40 text-center">
-              <span className="text-[10px] font-bold uppercase text-blue-600">In-Transit Delhivery</span>
-              <p className="text-2xl font-black font-mono text-blue-600 mt-1">{pnlMetrics.inTransitOrders}</p>
-              <span className="text-[10px] text-blue-500">Carrier Hub Network</span>
-            </div>
-            <div className="p-3.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800/40 text-center">
-              <span className="text-[10px] font-bold uppercase text-emerald-600">Delivered Consignments</span>
-              <p className="text-2xl font-black font-mono text-emerald-600 mt-1">{pnlMetrics.deliveredOrders}</p>
-              <span className="text-[10px] text-emerald-500">Completed at Doorstep</span>
-            </div>
-            <div className="p-3.5 rounded-xl bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-800/40 text-center">
-              <span className="text-[10px] font-bold uppercase text-rose-600">Cancelled / RTO</span>
-              <p className="text-2xl font-black font-mono text-rose-600 mt-1">{pnlMetrics.cancelledOrders}</p>
-              <span className="text-[10px] text-rose-500">0% RTO Rate</span>
+
+            {/* Pipeline Efficiency Card */}
+            <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200/80 dark:border-slate-800 flex flex-wrap items-center justify-between gap-3 text-xs">
+              <div>
+                <span className="font-bold text-slate-800 dark:text-slate-200">Delivery Success & Fulfillment Efficiency</span>
+                <p className="text-[11px] text-slate-400">Total volume of {pnlMetrics.totalOrders} customer footwear orders processed through Delhivery logistics network.</p>
+              </div>
+              <div className="flex items-center gap-3 font-mono font-bold">
+                <span className="text-emerald-600">Delivered: {pnlMetrics.totalOrders > 0 ? Math.round((pnlMetrics.deliveredOrders / pnlMetrics.totalOrders) * 100) : 0}%</span>
+                <span className="text-rose-500">RTO: {pnlMetrics.totalOrders > 0 ? Math.round((pnlMetrics.returnedOrders / pnlMetrics.totalOrders) * 100) : 0}%</span>
+              </div>
             </div>
           </div>
         )}

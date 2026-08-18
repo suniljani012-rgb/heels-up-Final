@@ -17,6 +17,7 @@ import {
   ChevronRight,
   ShieldCheck,
   AlertTriangle,
+  AlertCircle,
   Receipt,
   HelpCircle,
   Calculator,
@@ -55,7 +56,7 @@ export interface ShipmentRecord {
   is_cod: boolean;
   collect_cash_amount: number; // in rupees
   order_total: number; // in rupees
-  status: 'manifested' | 'in_transit' | 'out_for_delivery' | 'delivered' | 'cancelled';
+  status: 'pending_booking' | 'manifested' | 'picked_up' | 'in_transit' | 'out_for_delivery' | 'delivered' | 'delivery_failed' | 'returned' | 'cancelled';
   booked_at: string;
   expected_delivery?: string;
   weight_kg: number;
@@ -67,75 +68,19 @@ interface LogisticsManagerProps {
   onRefresh: () => void;
 }
 
-// Zone map for accurate Delhivery B2C Surface Express rate calculation
-const ZONE_RATES: Record<string, { zone: string; baseFreight: number; days: string }> = {
-  // Zone A — Rajasthan (Home)
-  'Rajasthan': { zone: 'A (Home)', baseFreight: 40, days: '2-3 Days' },
-  // Zone B — North India
-  'Delhi': { zone: 'B (North)', baseFreight: 49, days: '3-4 Days' },
-  'New Delhi': { zone: 'B (North)', baseFreight: 49, days: '3-4 Days' },
-  'Haryana': { zone: 'B (North)', baseFreight: 49, days: '3-4 Days' },
-  'Uttar Pradesh': { zone: 'B (North)', baseFreight: 49, days: '3-5 Days' },
-  'Punjab': { zone: 'B (North)', baseFreight: 49, days: '3-4 Days' },
-  'Madhya Pradesh': { zone: 'B (North)', baseFreight: 49, days: '4-5 Days' },
-  'Chandigarh': { zone: 'B (North)', baseFreight: 49, days: '3-4 Days' },
-  // Zone C — Metro / South / West
-  'Maharashtra': { zone: 'C (West/Metro)', baseFreight: 65, days: '4-5 Days' },
-  'Gujarat': { zone: 'C (West)', baseFreight: 65, days: '4-5 Days' },
-  'Karnataka': { zone: 'C (South)', baseFreight: 65, days: '4-6 Days' },
-  'Tamil Nadu': { zone: 'C (South)', baseFreight: 65, days: '4-6 Days' },
-  'Telangana': { zone: 'C (South)', baseFreight: 65, days: '4-6 Days' },
-  'Andhra Pradesh': { zone: 'C (South)', baseFreight: 65, days: '4-6 Days' },
-  'Goa': { zone: 'C (West)', baseFreight: 65, days: '4-6 Days' },
-  // Zone D — East India
-  'West Bengal': { zone: 'D (East)', baseFreight: 79, days: '5-7 Days' },
-  'Odisha': { zone: 'D (East)', baseFreight: 79, days: '5-7 Days' },
-  'Bihar': { zone: 'D (East)', baseFreight: 79, days: '5-7 Days' },
-  'Jharkhand': { zone: 'D (East)', baseFreight: 79, days: '5-7 Days' },
-  'Chhattisgarh': { zone: 'D (East)', baseFreight: 79, days: '5-7 Days' },
-  'Assam': { zone: 'D (East)', baseFreight: 79, days: '6-8 Days' },
-  'Himachal Pradesh': { zone: 'D (North-Hill)', baseFreight: 79, days: '5-7 Days' },
-  'Uttarakhand': { zone: 'D (North-Hill)', baseFreight: 79, days: '5-7 Days' },
-  // Zone E — Remote / North East / South Far
-  'Kerala': { zone: 'E (Far South)', baseFreight: 99, days: '6-8 Days' },
-  'Jammu and Kashmir': { zone: 'E (Special)', baseFreight: 99, days: '7-10 Days' },
-  'Jammu & Kashmir': { zone: 'E (Special)', baseFreight: 99, days: '7-10 Days' },
-  'Ladakh': { zone: 'E (Special)', baseFreight: 99, days: '8-12 Days' },
-  'Sikkim': { zone: 'E (Special)', baseFreight: 99, days: '7-10 Days' },
-  'Meghalaya': { zone: 'E (North East)', baseFreight: 99, days: '7-10 Days' },
-  'Mizoram': { zone: 'E (North East)', baseFreight: 99, days: '7-10 Days' },
-  'Nagaland': { zone: 'E (North East)', baseFreight: 99, days: '7-10 Days' },
-  'Arunachal Pradesh': { zone: 'E (North East)', baseFreight: 99, days: '7-10 Days' },
-  'Manipur': { zone: 'E (North East)', baseFreight: 99, days: '7-10 Days' },
-  'Tripura': { zone: 'E (North East)', baseFreight: 99, days: '7-10 Days' },
-};
+import { ZONE_RATES, getDelhiveryChargesBreakdown } from '../../utils/delhiveryCalculations';
 
-// Helper: Calculate live Delhivery charges breakdown
-export function getDelhiveryChargesBreakdown(state: string, isCOD: boolean, codAmount: number, weightKg = 0.85) {
-  const zInfo = ZONE_RATES[state] || { zone: 'C (Standard)', baseFreight: 65, days: '4-6 Days' };
-  const baseFreight = zInfo.baseFreight;
-  // COD Handling fee: ₹35 or 1.5% of COD amount, whichever is higher
-  const codFee = isCOD ? Math.max(35, Math.round(codAmount * 0.015)) : 0;
-  const fuelHandling = 8; // standard B2C fuel & docket fee
-  const subtotal = baseFreight + codFee + fuelHandling;
-  const gst = Math.round(subtotal * 0.18);
-  const totalCourierCost = subtotal + gst;
-
-  return {
-    zone: zInfo.zone,
-    estimatedDays: zInfo.days,
-    baseFreight,
-    codFee,
-    fuelHandling,
-    gst,
-    totalCourierCost,
-  };
-}
+export { getDelhiveryChargesBreakdown };
 
 export default function LogisticsManager({ orders = [], token, onRefresh }: LogisticsManagerProps) {
   const showToast = useToastStore((state) => state.showToast);
   const [searchQuery, setSearchQuery] = useState('');
-  const [statusFilter, setStatusFilter] = useState<'all' | 'in_transit' | 'out_for_delivery' | 'delivered' | 'cod' | 'remittances'>('all');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'pending_booking' | 'manifested' | 'picked_up' | 'in_transit' | 'out_for_delivery' | 'delivered' | 'delivery_failed' | 'returned' | 'cod' | 'remittances'>('all');
+  const [timeframeFilter, setTimeframeFilter] = useState<'all' | 'today' | 'yesterday' | '7d' | 'this_month' | 'last_month' | 'last_2m' | 'last_3m' | 'custom'>('all');
+  const [customStartDate, setCustomStartDate] = useState('');
+  const [customEndDate, setCustomEndDate] = useState('');
+  const [zoneFilter, setZoneFilter] = useState<'all' | 'A' | 'B' | 'C' | 'D' | 'E'>('all');
+  const [paymentFilter, setPaymentFilter] = useState<'all' | 'cod' | 'prepaid'>('all');
   
   // Selected Order for Full Post-Courier Net Value Breakdown
   const [selectedOrderEconomics, setSelectedOrderEconomics] = useState<ShipmentRecord | null>(null);
@@ -143,55 +88,108 @@ export default function LogisticsManager({ orders = [], token, onRefresh }: Logi
   // Delhivery COD Remittance & Bank Payout Modal
   const [showRemittanceModal, setShowRemittanceModal] = useState(false);
 
-  // Live Delhivery Account / Wallet Balance fetched directly from Delhivery API
+  // Delhivery Pickup Scheduling Modal State
+  const [showPickupModal, setShowPickupModal] = useState(false);
+  const [pickupPackagesCount, setPickupPackagesCount] = useState(1);
+  const [pickupTimeSlot, setPickupTimeSlot] = useState('16:00:00');
+  const [pickupDate, setPickupDate] = useState(new Date().toISOString().substring(0, 10));
+  const [pickupScheduling, setPickupScheduling] = useState(false);
+
+  const handleSchedulePickup = async () => {
+    try {
+      setPickupScheduling(true);
+      const res = await fetch('/api/admin/delhivery/request-pickup', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          package_count: pickupPackagesCount,
+          pickup_date: pickupDate,
+          pickup_time: pickupTimeSlot
+        })
+      });
+      const data = await res.json();
+      if (data && data.success) {
+        showToast('success', 'Delhivery Pickup Scheduled', data.message || 'Pickup requested successfully.');
+        setShowPickupModal(false);
+      } else {
+        showToast('error', 'Pickup Request Failed', data.error || 'Failed to request pickup.');
+      }
+    } catch (e: any) {
+      showToast('error', 'Error', e.message || 'Network error scheduling pickup');
+    } finally {
+      setPickupScheduling(false);
+    }
+  };
+
+  // Live Wallet & Billing Profile State
   const [liveWallet, setLiveWallet] = useState<{
     connected: boolean;
+    client_name: string;
     wallet_balance: number;
     billing_mode: string;
-    loading: boolean;
+    currency: string;
+    bank_name: string;
+    bank_account: string;
+    bank_ifsc: string;
+    last_synced: string;
   }>({
     connected: false,
+    client_name: 'HEELSUP BOUTIQUE',
     wallet_balance: 0,
     billing_mode: 'PREPAID_WALLET',
-    loading: true,
+    currency: 'INR',
+    bank_name: '',
+    bank_account: '',
+    bank_ifsc: '',
+    last_synced: ''
   });
+  const [walletLoading, setWalletLoading] = useState(false);
 
-  const fetchLiveWallet = () => {
-    fetch('/api/admin/delhivery/wallet', {
-      headers: { Authorization: `Bearer ${token}` }
-    })
-      .then((r) => r.json())
-      .then((res) => {
-        if (res.data) {
-          setLiveWallet({
-            connected: !!res.data.connected,
-            wallet_balance: Number(res.data.wallet_balance || 0),
-            billing_mode: res.data.billing_mode || 'PREPAID_WALLET',
-            loading: false,
-          });
+  const [page, setPage] = useState(0);
+  const pageSize = 12;
+
+  // Fetch Live Delhivery Wallet & Account Profile directly from API
+  const fetchLiveWallet = async () => {
+    try {
+      setWalletLoading(true);
+      const res = await fetch('/api/admin/delhivery/wallet', {
+        headers: {
+          'Authorization': `Bearer ${token}`
         }
-      })
-      .catch(() => setLiveWallet((prev) => ({ ...prev, loading: false })));
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data && data.success && data.data) {
+          setLiveWallet(data.data);
+        } else if (data && data.connected !== undefined) {
+          setLiveWallet(data);
+        }
+      }
+    } catch (e) {
+      console.warn('Failed to fetch live Delhivery wallet:', e);
+    } finally {
+      setWalletLoading(false);
+    }
   };
 
   React.useEffect(() => {
     fetchLiveWallet();
   }, [token]);
 
-  const [page, setPage] = useState(0);
-  const pageSize = 15;
-
-  // Synthesize and normalize shipments list from all booked orders
+  // Transform store orders into structured shipment records
   const shipments = useMemo<ShipmentRecord[]>(() => {
     return orders.map((o) => {
-      const isCOD = (o.payment_method || '').toLowerCase().includes('cod') || o.cod_outstanding_amount > 0;
+      const isCOD = (o.payment_method || '').toLowerCase().includes('cod');
       const totalRs = Math.round(Number(o.total_amount) / 100);
-      const balanceToCollect = isCOD
-        ? (o.cod_outstanding_amount ? Math.round(o.cod_outstanding_amount / 100) : Math.round(totalRs * 0.90))
-        : 0;
+      const advPaid = isCOD ? Math.round(Number(o.cod_advance_paid || (o.total_amount * 0.10)) / 100) : totalRs;
+      const balanceToCollect = isCOD ? Math.max(0, totalRs - advPaid) : 0;
 
-      const awb = o.tracking_number || '';
-      const courier = o.courier_name || (awb ? 'Delhivery Surface Express' : 'Unassigned');
+      // Realistic tracking mapping
+      const awb = o.tracking_number || (o.delhivery_waybill || '');
+      const courier = o.courier_name || 'Delhivery Surface Express';
 
       let status: ShipmentRecord['status'] = 'manifested';
       if (!awb) {
@@ -232,7 +230,7 @@ export default function LogisticsManager({ orders = [], token, onRefresh }: Logi
     }).sort((a, b) => new Date(b.booked_at).getTime() - new Date(a.booked_at).getTime());
   }, [orders]);
 
-  // Filter shipments
+  // Filter shipments with Multi-Level Filters
   const filteredShipments = useMemo(() => {
     return shipments.filter((s) => {
       const q = searchQuery.toLowerCase().trim();
@@ -243,17 +241,71 @@ export default function LogisticsManager({ orders = [], token, onRefresh }: Logi
         s.customer_name.toLowerCase().includes(q) ||
         s.customer_phone.includes(q) ||
         s.city.toLowerCase().includes(q) ||
+        s.state.toLowerCase().includes(q) ||
         s.pincode.includes(q);
 
       let matchesStatus = true;
-      if (statusFilter === 'in_transit') matchesStatus = s.status === 'in_transit';
+      if (statusFilter === 'pending_booking') matchesStatus = s.status === 'pending_booking' || !s.tracking_number;
+      else if (statusFilter === 'manifested') matchesStatus = s.status === 'manifested' || !!s.tracking_number;
+      else if (statusFilter === 'picked_up') matchesStatus = s.status === 'picked_up';
+      else if (statusFilter === 'in_transit') matchesStatus = s.status === 'in_transit';
       else if (statusFilter === 'out_for_delivery') matchesStatus = s.status === 'out_for_delivery';
       else if (statusFilter === 'delivered') matchesStatus = s.status === 'delivered';
-      else if (statusFilter === 'cod') matchesStatus = s.is_cod;
+      else if (statusFilter === 'delivery_failed') matchesStatus = s.status === 'delivery_failed';
+      else if (statusFilter === 'returned') matchesStatus = s.status === 'returned';
+      else if (statusFilter === 'cod' || statusFilter === 'remittances') matchesStatus = s.is_cod;
 
-      return matchesSearch && matchesStatus;
+      // Timeframe Filter (Today, Yesterday, 7D, This Month, Last Month, 2M, 3M, Custom Range)
+      let matchesTimeframe = true;
+      if (timeframeFilter !== 'all') {
+        const itemDate = new Date(s.booked_at);
+        const now = new Date();
+        const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        
+        if (timeframeFilter === 'today') {
+          matchesTimeframe = itemDate >= startOfToday;
+        } else if (timeframeFilter === 'yesterday') {
+          const startOfYesterday = new Date(startOfToday.getTime() - 86400000);
+          matchesTimeframe = itemDate >= startOfYesterday && itemDate < startOfToday;
+        } else if (timeframeFilter === '7d') {
+          matchesTimeframe = (now.getTime() - itemDate.getTime()) <= 7 * 86400000;
+        } else if (timeframeFilter === 'this_month') {
+          matchesTimeframe = itemDate.getMonth() === now.getMonth() && itemDate.getFullYear() === now.getFullYear();
+        } else if (timeframeFilter === 'last_month') {
+          const lastMonthDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+          const endLastMonthDate = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59);
+          matchesTimeframe = itemDate >= lastMonthDate && itemDate <= endLastMonthDate;
+        } else if (timeframeFilter === 'last_2m') {
+          matchesTimeframe = (now.getTime() - itemDate.getTime()) <= 60 * 86400000;
+        } else if (timeframeFilter === 'last_3m') {
+          matchesTimeframe = (now.getTime() - itemDate.getTime()) <= 90 * 86400000;
+        } else if (timeframeFilter === 'custom') {
+          if (customStartDate) {
+            const startD = new Date(customStartDate + 'T00:00:00');
+            if (itemDate < startD) matchesTimeframe = false;
+          }
+          if (customEndDate) {
+            const endD = new Date(customEndDate + 'T23:59:59');
+            if (itemDate > endD) matchesTimeframe = false;
+          }
+        }
+      }
+
+      // Zone Filter
+      let matchesZone = true;
+      if (zoneFilter !== 'all') {
+        const zInfo = ZONE_RATES[s.state] || { zone: 'C (Standard)' };
+        matchesZone = zInfo.zone.startsWith(zoneFilter);
+      }
+
+      // Payment Filter
+      let matchesPayment = true;
+      if (paymentFilter === 'cod') matchesPayment = s.is_cod;
+      else if (paymentFilter === 'prepaid') matchesPayment = !s.is_cod;
+
+      return matchesSearch && matchesStatus && matchesTimeframe && matchesZone && matchesPayment;
     });
-  }, [shipments, searchQuery, statusFilter]);
+  }, [shipments, searchQuery, statusFilter, timeframeFilter, customStartDate, customEndDate, zoneFilter, paymentFilter]);
 
   const paginatedShipments = useMemo(() => {
     const start = page * pageSize;
@@ -276,8 +328,14 @@ export default function LogisticsManager({ orders = [], token, onRefresh }: Logi
 
     return {
       total: shipments.length,
+      pendingBooking: shipments.filter((s) => s.status === 'pending_booking' || !s.tracking_number).length,
+      totalBooked: shipments.filter((s) => s.status === 'manifested' || !!s.tracking_number).length,
+      pickedUp: shipments.filter((s) => s.status === 'picked_up').length,
       inTransit: shipments.filter((s) => s.status === 'in_transit').length,
+      outForDelivery: shipments.filter((s) => s.status === 'out_for_delivery').length,
       delivered: shipments.filter((s) => s.status === 'delivered').length,
+      deliveryFailed: shipments.filter((s) => s.status === 'delivery_failed').length,
+      returned: shipments.filter((s) => s.status === 'returned').length,
       codCount: shipments.filter((s) => s.is_cod).length,
       codTotalCollect: totalCODCashToCollect,
       totalEstimatedCourierCharges: totalCourierCost,
@@ -533,7 +591,7 @@ export default function LogisticsManager({ orders = [], token, onRefresh }: Logi
                 <div style="font-size: 8.5px; font-weight: 700; color: #333; letter-spacing: 0.5px;">SURFACE EXPRESS B2C</div>
               </div>
               <div style="text-align: right;">
-                <div class="routing-badge">DEL / JAI / ${s.pincode.substring(0, 3)}</div>
+                <div class="routing-badge">DEL / JDH / ${s.pincode.substring(0, 3)}</div>
                 <div style="font-size: 8.5px; font-weight: 600; margin-top: 2px;">Date: ${dateFormatted}</div>
               </div>
             </div>
@@ -574,10 +632,11 @@ export default function LogisticsManager({ orders = [], token, onRefresh }: Logi
               <!-- Return / Shipper Address -->
               <div class="p-2 address-box" style="background: #fafafa;">
                 <div style="font-size: 8px; font-weight: 800; text-transform: uppercase; color: #555;">RETURN ADDRESS (IF UNDELIVERED):</div>
-                <div style="font-weight: 900; font-size: 11px; margin-bottom: 2px;">HEELSUP LOGISTICS HUB</div>
-                <div>Plot 42, Sitapura Industrial Area,</div>
-                <div>Jaipur, Rajasthan — 302022</div>
-                <div style="margin-top: 3px; font-weight: 700;">Care: +91 78914 70935</div>
+                <div style="font-weight: 900; font-size: 11px; margin-bottom: 2px;">HEELSUP</div>
+                <div>1st B Rd, near Mahaveer Mega Mart,</div>
+                <div>opposite Little Champ, Sardarpura,</div>
+                <div>Jodhpur, Rajasthan — 342001</div>
+                <div style="margin-top: 3px; font-weight: 700;">Contact: Jay Karwani (078914 70935)</div>
                 <div style="font-size: 8px; color: #666; margin-top: 2px;">GSTIN: 08AABCH1234F1Z5</div>
               </div>
             </div>
@@ -618,7 +677,7 @@ export default function LogisticsManager({ orders = [], token, onRefresh }: Logi
             <div class="footer-info">
               <div>
                 <strong>E-COMMERCE B2C LOGISTICS</strong><br/>
-                Jaipur Jurisdiction Only
+                Jodhpur Jurisdiction Only
               </div>
               <div style="text-align: right; font-size: 7.5px; color: #666;">
                 Auto-generated Delhivery Label<br/>
@@ -751,44 +810,102 @@ export default function LogisticsManager({ orders = [], token, onRefresh }: Logi
         </Card>
       </div>
 
-      {/* ── 2. QUICK KPI STRIP ──────────────────────────────────────── */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5">
-        <Card className="p-3 bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800">
+      {/* ── 2. QUICK KPI STRIP (FULL LOGISTICS LIFECYCLE) ─────────────── */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-2">
+        <Card
+          onClick={() => { setStatusFilter('pending_booking'); setPage(0); }}
+          className={`p-2.5 bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 cursor-pointer hover:border-amber-400 transition-all ${statusFilter === 'pending_booking' ? 'ring-2 ring-amber-500/30' : ''}`}
+        >
           <div className="flex items-center justify-between">
-            <span className="text-[10px] font-bold uppercase text-slate-400">Total Booked</span>
-            <Package className="w-3.5 h-3.5 text-indigo-600" />
+            <span className="text-[9px] font-bold uppercase text-slate-400">Pending Booking</span>
+            <Clock className="w-3 h-3 text-amber-500" />
           </div>
-          <p className="text-lg font-bold font-mono text-slate-900 dark:text-white mt-0.5">{summary.total}</p>
-          <p className="text-[10px] text-slate-400 mt-0.5">Delhivery B2C Parcels</p>
+          <p className="text-base font-bold font-mono text-amber-600 dark:text-amber-400 mt-0.5">{summary.pendingBooking}</p>
+          <p className="text-[9px] text-slate-400 mt-0.5 truncate">Needs AWB</p>
         </Card>
 
-        <Card className="p-3 bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800">
+        <Card
+          onClick={() => { setStatusFilter('manifested'); setPage(0); }}
+          className={`p-2.5 bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 cursor-pointer hover:border-indigo-400 transition-all ${statusFilter === 'manifested' ? 'ring-2 ring-indigo-500/30' : ''}`}
+        >
           <div className="flex items-center justify-between">
-            <span className="text-[10px] font-bold uppercase text-slate-400">In-Transit</span>
-            <Truck className="w-3.5 h-3.5 text-blue-600" />
+            <span className="text-[9px] font-bold uppercase text-slate-400">Total Booked</span>
+            <Package className="w-3 h-3 text-indigo-600" />
           </div>
-          <p className="text-lg font-bold font-mono text-blue-600 dark:text-blue-400 mt-0.5">{summary.inTransit}</p>
-          <p className="text-[10px] text-slate-400 mt-0.5">Carrier Hub Network</p>
+          <p className="text-base font-bold font-mono text-slate-900 dark:text-white mt-0.5">{summary.totalBooked}</p>
+          <p className="text-[9px] text-slate-400 mt-0.5 truncate">AWB Generated</p>
         </Card>
 
-        <Card className="p-3 bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800">
+        <Card
+          onClick={() => { setStatusFilter('picked_up'); setPage(0); }}
+          className={`p-2.5 bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 cursor-pointer hover:border-purple-400 transition-all ${statusFilter === 'picked_up' ? 'ring-2 ring-purple-500/30' : ''}`}
+        >
           <div className="flex items-center justify-between">
-            <span className="text-[10px] font-bold uppercase text-slate-400">Delivered</span>
-            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+            <span className="text-[9px] font-bold uppercase text-slate-400">Picked Up</span>
+            <Truck className="w-3 h-3 text-purple-600" />
           </div>
-          <p className="text-lg font-bold font-mono text-emerald-600 dark:text-emerald-400 mt-0.5">{summary.delivered}</p>
-          <p className="text-[10px] text-slate-400 mt-0.5">Completed Doorstep</p>
+          <p className="text-base font-bold font-mono text-purple-600 dark:text-purple-400 mt-0.5">{summary.pickedUp}</p>
+          <p className="text-[9px] text-slate-400 mt-0.5 truncate">Rider Scanned</p>
         </Card>
 
-        <Card className="p-3 bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800">
+        <Card
+          onClick={() => { setStatusFilter('in_transit'); setPage(0); }}
+          className={`p-2.5 bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 cursor-pointer hover:border-blue-400 transition-all ${statusFilter === 'in_transit' ? 'ring-2 ring-blue-500/30' : ''}`}
+        >
           <div className="flex items-center justify-between">
-            <span className="text-[10px] font-bold uppercase text-slate-400">COD Cash to Collect</span>
-            <AlertTriangle className="w-3.5 h-3.5 text-amber-500" />
+            <span className="text-[9px] font-bold uppercase text-slate-400">In-Transit</span>
+            <Truck className="w-3 h-3 text-blue-600" />
           </div>
-          <p className="text-lg font-bold font-mono text-amber-600 dark:text-amber-400 mt-0.5">
-            ₹{Math.round(summary.codTotalCollect).toLocaleString('en-IN')}
-          </p>
-          <p className="text-[10px] text-slate-400 mt-0.5">{summary.codCount} COD delivery parcels</p>
+          <p className="text-base font-bold font-mono text-blue-600 dark:text-blue-400 mt-0.5">{summary.inTransit}</p>
+          <p className="text-[9px] text-slate-400 mt-0.5 truncate">Hub Network</p>
+        </Card>
+
+        <Card
+          onClick={() => { setStatusFilter('out_for_delivery'); setPage(0); }}
+          className={`p-2.5 bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 cursor-pointer hover:border-sky-400 transition-all ${statusFilter === 'out_for_delivery' ? 'ring-2 ring-sky-500/30' : ''}`}
+        >
+          <div className="flex items-center justify-between">
+            <span className="text-[9px] font-bold uppercase text-slate-400">Out For Delivery</span>
+            <Truck className="w-3 h-3 text-sky-500" />
+          </div>
+          <p className="text-base font-bold font-mono text-sky-600 dark:text-sky-400 mt-0.5">{summary.outForDelivery}</p>
+          <p className="text-[9px] text-slate-400 mt-0.5 truncate">Doorstep Rider</p>
+        </Card>
+
+        <Card
+          onClick={() => { setStatusFilter('delivered'); setPage(0); }}
+          className={`p-2.5 bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 cursor-pointer hover:border-emerald-400 transition-all ${statusFilter === 'delivered' ? 'ring-2 ring-emerald-500/30' : ''}`}
+        >
+          <div className="flex items-center justify-between">
+            <span className="text-[9px] font-bold uppercase text-slate-400">Delivered</span>
+            <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+          </div>
+          <p className="text-base font-bold font-mono text-emerald-600 dark:text-emerald-400 mt-0.5">{summary.delivered}</p>
+          <p className="text-[9px] text-slate-400 mt-0.5 truncate">Completed</p>
+        </Card>
+
+        <Card
+          onClick={() => { setStatusFilter('delivery_failed'); setPage(0); }}
+          className={`p-2.5 bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 cursor-pointer hover:border-rose-400 transition-all ${statusFilter === 'delivery_failed' ? 'ring-2 ring-rose-500/30' : ''}`}
+        >
+          <div className="flex items-center justify-between">
+            <span className="text-[9px] font-bold uppercase text-slate-400">Delivery Failed</span>
+            <AlertTriangle className="w-3 h-3 text-rose-500" />
+          </div>
+          <p className="text-base font-bold font-mono text-rose-600 dark:text-rose-400 mt-0.5">{summary.deliveryFailed}</p>
+          <p className="text-[9px] text-slate-400 mt-0.5 truncate">NDR Issue</p>
+        </Card>
+
+        <Card
+          onClick={() => { setStatusFilter('returned'); setPage(0); }}
+          className={`p-2.5 bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 cursor-pointer hover:border-orange-400 transition-all ${statusFilter === 'returned' ? 'ring-2 ring-orange-500/30' : ''}`}
+        >
+          <div className="flex items-center justify-between">
+            <span className="text-[9px] font-bold uppercase text-slate-400">RTO / Return</span>
+            <AlertCircle className="w-3 h-3 text-orange-500" />
+          </div>
+          <p className="text-base font-bold font-mono text-orange-600 dark:text-orange-400 mt-0.5">{summary.returned}</p>
+          <p className="text-[9px] text-slate-400 mt-0.5 truncate">Returned/Exchanged</p>
         </Card>
       </div>
 
@@ -799,8 +916,14 @@ export default function LogisticsManager({ orders = [], token, onRefresh }: Logi
           <div className="flex items-center gap-1 overflow-x-auto scrollbar-none pb-0.5">
             {[
               { id: 'all', label: 'All Shipments', count: summary.total },
+              { id: 'pending_booking', label: 'Pending for Booking', count: summary.pendingBooking },
+              { id: 'manifested', label: 'Total Booked', count: summary.totalBooked },
+              { id: 'picked_up', label: 'Picked Up', count: summary.pickedUp },
               { id: 'in_transit', label: 'In-Transit', count: summary.inTransit },
+              { id: 'out_for_delivery', label: 'Out for Delivery', count: summary.outForDelivery },
               { id: 'delivered', label: 'Delivered', count: summary.delivered },
+              { id: 'delivery_failed', label: 'Delivery Failed', count: summary.deliveryFailed },
+              { id: 'returned', label: 'RTO / Return', count: summary.returned },
               { id: 'cod', label: 'COD Parcels', count: summary.codCount },
               { id: 'remittances', label: 'Bank Payout Entries', count: summary.codCount },
             ].map((tab) => {
@@ -812,7 +935,7 @@ export default function LogisticsManager({ orders = [], token, onRefresh }: Logi
                     setStatusFilter(tab.id as any);
                     setPage(0);
                   }}
-                  className={`h-7 px-3 rounded-lg text-xs font-bold whitespace-nowrap transition-all flex items-center gap-1.5 ${
+                  className={`h-7 px-2.5 rounded-lg text-xs font-bold whitespace-nowrap transition-all flex items-center gap-1.5 ${
                     active
                       ? 'bg-slate-900 dark:bg-white text-white dark:text-slate-900 shadow-xs'
                       : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200'
@@ -853,6 +976,15 @@ export default function LogisticsManager({ orders = [], token, onRefresh }: Logi
               Manifest CSV
             </Button>
 
+            <Button
+              onClick={() => setShowPickupModal(true)}
+              size="sm"
+              className="h-7 text-xs px-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold flex items-center gap-1 shadow-xs"
+            >
+              <Truck className="w-3.5 h-3.5" />
+              <span>Schedule Pickup</span>
+            </Button>
+
             <button
               onClick={() => {
                 onRefresh();
@@ -863,6 +995,126 @@ export default function LogisticsManager({ orders = [], token, onRefresh }: Logi
             >
               <RefreshCw className="w-3.5 h-3.5" />
             </button>
+          </div>
+        </div>
+
+        {/* Secondary Filter Row: Timeframe, Historical Months & Zones */}
+        <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-slate-100 dark:border-slate-800/60 text-xs">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1">
+              <Filter className="w-3 h-3 text-slate-400" /> Filters:
+            </span>
+
+            {/* Timeframe selector */}
+            <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 p-0.5 rounded-lg flex-wrap">
+              {[
+                { id: 'all', label: 'All Time' },
+                { id: 'today', label: 'Today' },
+                { id: 'yesterday', label: 'Yesterday' },
+                { id: '7d', label: '7D' },
+                { id: 'this_month', label: 'This Month' },
+                { id: 'last_month', label: 'Last Month' },
+                { id: 'last_2m', label: 'Last 2M' },
+                { id: 'last_3m', label: 'Last 3M' },
+                { id: 'custom', label: 'Custom Date' },
+              ].map((tf) => (
+                <button
+                  key={tf.id}
+                  onClick={() => {
+                    setTimeframeFilter(tf.id as any);
+                    setPage(0);
+                  }}
+                  className={`px-2 py-0.5 text-[10px] font-semibold rounded-md transition-colors whitespace-nowrap ${
+                    timeframeFilter === tf.id
+                      ? 'bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-300 shadow-2xs font-bold'
+                      : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+                  }`}
+                >
+                  {tf.label}
+                </button>
+              ))}
+            </div>
+
+            {/* Custom Date Range Pickers (Visible when 'Custom Date' is active) */}
+            {timeframeFilter === 'custom' && (
+              <div className="flex items-center gap-1.5 bg-slate-50 dark:bg-slate-800/80 px-2 py-1 rounded-lg border border-slate-200 dark:border-slate-700">
+                <span className="text-[10px] text-slate-400 font-medium">From:</span>
+                <input
+                  type="date"
+                  value={customStartDate}
+                  onChange={(e) => {
+                    setCustomStartDate(e.target.value);
+                    setPage(0);
+                  }}
+                  className="h-6 px-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded text-[11px] font-mono text-slate-700 dark:text-slate-200 focus:outline-none"
+                />
+                <span className="text-[10px] text-slate-400 font-medium">To:</span>
+                <input
+                  type="date"
+                  value={customEndDate}
+                  onChange={(e) => {
+                    setCustomEndDate(e.target.value);
+                    setPage(0);
+                  }}
+                  className="h-6 px-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded text-[11px] font-mono text-slate-700 dark:text-slate-200 focus:outline-none"
+                />
+              </div>
+            )}
+
+            {/* Zone Filter */}
+            <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 p-0.5 rounded-lg">
+              {[
+                { id: 'all', label: 'All Zones' },
+                { id: 'A', label: 'Zone A (Home)' },
+                { id: 'B', label: 'Zone B (North)' },
+                { id: 'C', label: 'Zone C (West/South)' },
+                { id: 'D', label: 'Zone D (East)' },
+                { id: 'E', label: 'Zone E (Far/NE)' },
+              ].map((z) => (
+                <button
+                  key={z.id}
+                  onClick={() => {
+                    setZoneFilter(z.id as any);
+                    setPage(0);
+                  }}
+                  className={`px-2 py-0.5 text-[10px] font-semibold rounded-md transition-colors ${
+                    zoneFilter === z.id
+                      ? 'bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-300 shadow-2xs font-bold'
+                      : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+                  }`}
+                >
+                  {z.label}
+                </button>
+              ))}
+            </div>
+
+            {/* Payment Mode Filter */}
+            <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 p-0.5 rounded-lg">
+              {[
+                { id: 'all', label: 'All Modes' },
+                { id: 'cod', label: 'COD' },
+                { id: 'prepaid', label: 'Prepaid' },
+              ].map((p) => (
+                <button
+                  key={p.id}
+                  onClick={() => {
+                    setPaymentFilter(p.id as any);
+                    setPage(0);
+                  }}
+                  className={`px-2 py-0.5 text-[10px] font-semibold rounded-md transition-colors ${
+                    paymentFilter === p.id
+                      ? 'bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-300 shadow-2xs font-bold'
+                      : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+                  }`}
+                >
+                  {p.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="text-[11px] font-mono text-slate-400">
+            Showing <strong className="text-slate-700 dark:text-slate-200">{filteredShipments.length}</strong> shipments
           </div>
         </div>
       </Card>
@@ -1384,6 +1636,92 @@ export default function LogisticsManager({ orders = [], token, onRefresh }: Logi
           </div>
         );
       })()}
+      {/* ── 5. DELHIVERY WAREHOUSE PICKUP SCHEDULING MODAL ──────────── */}
+      {showPickupModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-200">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl max-w-md w-full p-5 shadow-2xl space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-200 dark:border-indigo-800 flex items-center justify-center text-indigo-600 dark:text-indigo-400">
+                  <Truck className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-slate-900 dark:text-white">Schedule Delhivery Warehouse Pickup</h3>
+                  <p className="text-[10px] text-slate-400">Jodhpur Hub Logistics Dispatch</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowPickupModal(false)}
+                className="w-7 h-7 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-500 hover:bg-slate-200 flex items-center justify-center text-xs font-bold"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="space-y-3 text-xs">
+              <div className="p-3 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-200 dark:border-slate-700 space-y-1.5">
+                <span className="font-bold text-slate-800 dark:text-slate-200 block">Warehouse Origin:</span>
+                <p className="text-[11px] text-slate-500">Heelsup, 1st B Rd, near Mahaveer Mega Mart, opposite Little Champ, Sardarpura, Jodhpur, Rajasthan 342001 (Contact: Jay Karwani — 078914 70935)</p>
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">Pickup Date</label>
+                <input
+                  type="date"
+                  value={pickupDate}
+                  onChange={(e) => setPickupDate(e.target.value)}
+                  className="w-full h-8 px-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-mono text-slate-900 dark:text-white focus:outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">Time Slot</label>
+                <select
+                  value={pickupTimeSlot}
+                  onChange={(e) => setPickupTimeSlot(e.target.value)}
+                  className="w-full h-8 px-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-xs text-slate-900 dark:text-white focus:outline-none"
+                >
+                  <option value="12:00:00">Morning Slot (12:00 PM – 02:00 PM)</option>
+                  <option value="16:00:00">Evening Regular Slot (04:00 PM – 06:00 PM)</option>
+                  <option value="19:00:00">Late Dispatch Slot (07:00 PM – 08:30 PM)</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">Expected Package Count (Footwear Boxes)</label>
+                <input
+                  type="number"
+                  min="1"
+                  max="200"
+                  value={pickupPackagesCount}
+                  onChange={(e) => setPickupPackagesCount(parseInt(e.target.value) || 1)}
+                  className="w-full h-8 px-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-mono text-slate-900 dark:text-white focus:outline-none"
+                />
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100 dark:border-slate-800">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowPickupModal(false)}
+                className="h-8 text-xs font-semibold"
+              >
+                Cancel
+              </Button>
+              <Button
+                size="sm"
+                disabled={pickupScheduling}
+                onClick={handleSchedulePickup}
+                className="h-8 text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white flex items-center gap-1.5 shadow-xs"
+              >
+                <Truck className="w-3.5 h-3.5" />
+                <span>{pickupScheduling ? 'Requesting...' : 'Confirm Pickup Request'}</span>
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

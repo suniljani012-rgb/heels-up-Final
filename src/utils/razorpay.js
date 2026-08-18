@@ -81,9 +81,54 @@ export const razorpay = {
     return res.ok ? res.json() : null;
   },
 
+  // ── Fetch Payments List (for admin ledger & sync with date range support) ───
+  async fetchPaymentsList(env, options = {}) {
+    const count = typeof options === 'number' ? options : (options.count || 100);
+    const from = typeof options === 'object' ? options.from : null;
+    const to = typeof options === 'object' ? options.to : null;
+
+    const { keyId, keySecret } = await getRazorpayCredentials(env);
+    if (!keyId || !keySecret) return [];
+    const credentials = btoa(`${keyId}:${keySecret}`);
+    let url = `https://api.razorpay.com/v1/payments?count=${count}`;
+    if (from) url += `&from=${from}`;
+    if (to) url += `&to=${to}`;
+
+    const res = await fetch(url, {
+      headers: { 'Authorization': `Basic ${credentials}`, 'Accept': 'application/json' },
+      signal: AbortSignal.timeout(3500)
+    }).catch(() => null);
+    if (!res || !res.ok) return [];
+    const data = await res.json().catch(() => ({ items: [] }));
+    return data.items || [];
+  },
+
+  // ── Fetch Settlements List (with date range support) ────────
+  async fetchSettlementsList(env, options = {}) {
+    const count = typeof options === 'number' ? options : (options.count || 50);
+    const from = typeof options === 'object' ? options.from : null;
+    const to = typeof options === 'object' ? options.to : null;
+
+    const { keyId, keySecret } = await getRazorpayCredentials(env);
+    if (!keyId || !keySecret) return [];
+    const credentials = btoa(`${keyId}:${keySecret}`);
+    let url = `https://api.razorpay.com/v1/settlements?count=${count}`;
+    if (from) url += `&from=${from}`;
+    if (to) url += `&to=${to}`;
+
+    const res = await fetch(url, {
+      headers: { 'Authorization': `Basic ${credentials}`, 'Accept': 'application/json' },
+      signal: AbortSignal.timeout(3500)
+    }).catch(() => null);
+    if (!res || !res.ok) return [];
+    const data = await res.json().catch(() => ({ items: [] }));
+    return data.items || [];
+  },
+
   // ── Initiate Refund ─────────────────────────────────────────
   async createRefund(env, razorpayPaymentId, amount = null, notes = {}) {
     const { keyId, keySecret } = await getRazorpayCredentials(env);
+    if (!keyId || !keySecret) return null;
     const credentials = btoa(`${keyId}:${keySecret}`);
     const body = { notes };
     if (amount) body.amount = amount; // partial refund in paise
@@ -95,9 +140,66 @@ export const razorpay = {
         'Content-Type':  'application/json',
       },
       body: JSON.stringify(body),
-    });
+    }).catch(() => null);
 
-    return res.ok ? res.json() : null;
+    return res && res.ok ? res.json() : null;
+  },
+
+  // ── Create Standard Razorpay Payment Link (for WhatsApp / SMS sharing) ──
+  async createPaymentLink(env, { amount, currency = 'INR', description, customer = {}, notes = {} }) {
+    const { keyId, keySecret } = await getRazorpayCredentials(env);
+    if (!keyId || !keySecret) {
+      return { success: false, error: 'Razorpay Key ID or Secret not configured in Settings' };
+    }
+    const credentials = btoa(`${keyId}:${keySecret}`);
+
+    const rawContact = String(customer.contact || '').replace(/\D/g, '');
+    const cleanPhone = rawContact.length >= 10 ? rawContact.slice(-10) : '';
+
+    const custPayload = {};
+    if (customer.name && customer.name.trim()) custPayload.name = customer.name.trim();
+    if (cleanPhone) custPayload.contact = `+91${cleanPhone}`;
+    if (customer.email && customer.email.includes('@')) custPayload.email = customer.email.trim();
+
+    const payload = {
+      amount: Math.round(Number(amount)), // in paise
+      currency: currency || 'INR',
+      accept_partial: false,
+      description: description || 'HEELSUP Footwear Order Payment',
+      notify: {
+        sms: Boolean(cleanPhone),
+        email: Boolean(customer.email && customer.email.includes('@'))
+      },
+      reminder_enable: true,
+      notes: notes || {}
+    };
+
+    if (Object.keys(custPayload).length > 0) {
+      payload.customer = custPayload;
+    }
+
+    try {
+      const res = await fetch('https://api.razorpay.com/v1/payment_links', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Basic ${credentials}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload)
+      });
+
+      const data = await res.json().catch(() => null);
+      if (res.ok && data && (data.short_url || data.id)) {
+        return { success: true, ...data };
+      } else {
+        console.error('Razorpay payment link error:', data);
+        const errDesc = data?.error?.description || data?.error?.code || 'Failed to generate link on Razorpay';
+        return { success: false, error: errDesc };
+      }
+    } catch (e) {
+      console.error('Razorpay payment link network error:', e);
+      return { success: false, error: e.message || 'Network error communicating with Razorpay' };
+    }
   },
 };
 

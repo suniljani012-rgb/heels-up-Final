@@ -412,24 +412,29 @@ CREATE TABLE otp_tokens (
 -- INSERT SETTINGS
 -- ─────────────────────────────────────────────
 INSERT OR IGNORE INTO settings (key, value) VALUES
-('free_delivery_threshold', '799'),
+('free_delivery_threshold', '1599'),
 ('return_policy', 'exchange_only'),
 ('exchange_window_days', '7'),
-('cod_enabled', 'false'),
-('online_payment_only', 'true'),
+('cod_enabled', 'true'),
+('online_payment_only', 'false'),
 ('currency', 'INR'),
 ('currency_symbol', '₹'),
-('gst_registered', 'false'),
+('gst_registered', 'true'),
 ('gst_number', ''),
-('store_name', 'HeelsUp'),
-('store_phone', ''),
-('store_address', ''),
+('store_name', 'Heelsup'),
+('contact_person', 'Jay Karwani'),
+('store_phone', '078914 70935'),
+('store_whatsapp', '078914 70935'),
+('store_address', 'Heelsup, 1st B Rd, near Mahaveer Mega Mart, opposite Little Champ, Sardarpura, Jodhpur, Rajasthan 342001'),
+('store_city', 'Jodhpur'),
+('store_state', 'Rajasthan'),
+('store_pincode', '342001'),
 ('store_logo', '/assets/logo.png'),
 ('invoice_prefix', 'HU'),
 ('offline_bill_prefix', 'HU-OFL'),
 ('min_order_value', '0'),
-('delivery_charge', '60'),
-('delivery_charge_free_above', '799');
+('delivery_charge', '49'),
+('delivery_charge_free_above', '1599');
 
 -- ─────────────────────────────────────────────
 -- PRODUCT SEEDING

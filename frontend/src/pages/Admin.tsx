@@ -243,7 +243,7 @@ const ADMIN_API_CACHE = new Map<string, any>();
 
   // Single-Trip Ultra-Fast Bootstrap (One single round trip for all admin data)
   const loadAllData = async () => {
-    const hasInitialCache = ADMIN_API_CACHE.has('/api/admin/bootstrap');
+    const hasInitialCache = ADMIN_API_CACHE.has('/api/admin/bootstrap') || ordersList.length > 0 || productsList.length > 0;
     if (!hasInitialCache) setDataLoading(true);
 
     try {
