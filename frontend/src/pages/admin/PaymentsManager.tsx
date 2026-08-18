@@ -431,7 +431,7 @@ export default function PaymentsManager({ payments = [], orders = [], token, onR
             <Receipt className="w-3.5 h-3.5 text-indigo-600" />
           </div>
           <p className="text-lg font-bold font-mono text-slate-900 dark:text-white mt-0.5">
-            ₹{Math.round(summary.totalGross).toLocaleString('en-IN')}
+            ₹{summary.totalGross.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </p>
           <p className="text-[10px] text-slate-400 mt-0.5">{summary.count} Razorpay payments</p>
         </Card>
@@ -442,7 +442,7 @@ export default function PaymentsManager({ payments = [], orders = [], token, onR
             <Building2 className="w-3.5 h-3.5 text-emerald-600" />
           </div>
           <p className="text-lg font-bold font-mono text-emerald-600 dark:text-emerald-400 mt-0.5">
-            ₹{Math.round(summary.totalNetSettled).toLocaleString('en-IN')}
+            ₹{summary.totalNetSettled.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </p>
           <p className="text-[10px] text-emerald-700/80 dark:text-emerald-500 mt-0.5">Credited to primary account</p>
         </Card>
@@ -453,7 +453,7 @@ export default function PaymentsManager({ payments = [], orders = [], token, onR
             <Clock className="w-3.5 h-3.5 text-amber-500" />
           </div>
           <p className="text-lg font-bold font-mono text-amber-600 dark:text-amber-400 mt-0.5">
-            ₹{Math.round(summary.pendingSettlement).toLocaleString('en-IN')}
+            ₹{summary.pendingSettlement.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </p>
           <p className="text-[10px] text-slate-400 mt-0.5">Payout in next bank cycle</p>
         </Card>
@@ -464,7 +464,7 @@ export default function PaymentsManager({ payments = [], orders = [], token, onR
             <TrendingUp className="w-3.5 h-3.5 text-blue-600" />
           </div>
           <p className="text-lg font-bold font-mono text-blue-600 dark:text-blue-400 mt-0.5">
-            ₹{Math.round(summary.codAdvanceTotal).toLocaleString('en-IN')}
+            ₹{summary.codAdvanceTotal.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </p>
           <p className="text-[10px] text-slate-400 mt-0.5">Captured partial advance</p>
         </Card>
@@ -474,8 +474,8 @@ export default function PaymentsManager({ payments = [], orders = [], token, onR
             <span className="text-[10px] font-bold uppercase text-slate-400">Gateway Fees + GST</span>
             <ArrowDownRight className="w-3.5 h-3.5 text-slate-400" />
           </div>
-          <p className="text-lg font-bold font-mono text-slate-700 dark:text-slate-300 mt-0.5">
-            ₹{Math.round(summary.totalFees).toLocaleString('en-IN')}
+          <p className="text-lg font-bold font-mono text-rose-600 dark:text-rose-400 mt-0.5">
+            -₹{summary.totalFees.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </p>
           <p className="text-[10px] text-slate-400 mt-0.5">MDR Fee (2% + 18% GST)</p>
         </Card>
@@ -746,17 +746,17 @@ export default function PaymentsManager({ payments = [], orders = [], token, onR
 
                   {/* Gross */}
                   <TableCell className="text-right py-2.5 font-mono text-xs font-bold text-slate-900 dark:text-white">
-                    ₹{Math.round(p.amount / 100).toLocaleString('en-IN')}
+                    ₹{(p.amount / 100).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </TableCell>
 
                   {/* Fee */}
-                  <TableCell className="text-right py-2.5 font-mono text-[11px] text-rose-500">
-                    -₹{Math.round((p.fee || 0) / 100).toLocaleString('en-IN')}
+                  <TableCell className="text-right py-2.5 font-mono text-[11px] text-rose-500 font-semibold">
+                    -₹{((p.fee || 0) / 100).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </TableCell>
 
                   {/* Net Settled */}
                   <TableCell className="text-right py-2.5 font-mono text-xs font-extrabold text-emerald-600 dark:text-emerald-400">
-                    ₹{Math.round((p.net_amount || 0) / 100).toLocaleString('en-IN')}
+                    ₹{((p.net_amount || 0) / 100).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </TableCell>
 
                   {/* Settlement Badge */}
@@ -764,7 +764,7 @@ export default function PaymentsManager({ payments = [], orders = [], token, onR
                     {p.status === 'settled' ? (
                       <div className="flex flex-col items-end gap-0.5">
                         <Badge variant="success" className="text-[9px] font-mono font-bold">
-                          ✓ Settled in Bank
+                          ✓ Settled
                         </Badge>
                         <span className="text-[9px] font-mono text-slate-400">
                           {p.settlement_id}
@@ -773,11 +773,23 @@ export default function PaymentsManager({ payments = [], orders = [], token, onR
                     ) : (
                       <div className="flex flex-col items-end gap-0.5">
                         <Badge variant="warning" className="text-[9px] font-mono font-bold">
-                          ⏳ T+1 In-Transit
+                          ⏳ In-Transit
                         </Badge>
                         <span className="text-[9px] text-amber-600 font-medium">Due Tomorrow</span>
                       </div>
                     )}
+                  </TableCell>
+
+                  {/* Actions */}
+                  <TableCell className="text-right py-2.5">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => setSelectedPayment(p)}
+                      className="h-7 text-xs font-bold px-2.5 border-slate-300 dark:border-slate-700"
+                    >
+                      Slip 📄
+                    </Button>
                   </TableCell>
                 </TableRow>
               );
@@ -785,8 +797,8 @@ export default function PaymentsManager({ payments = [], orders = [], token, onR
 
             {paginatedPayments.length === 0 && (
               <TableRow>
-                <TableCell colSpan={8} className="text-center py-12 text-slate-400 text-xs italic">
-                  No payment reconciliation records found matching filters.
+                <TableCell colSpan={9} className="text-center py-12 text-slate-400 text-xs italic">
+                  No payment ledger transactions found matching filters.
                 </TableCell>
               </TableRow>
             )}
@@ -795,38 +807,38 @@ export default function PaymentsManager({ payments = [], orders = [], token, onR
 
         {/* Pagination */}
         {filteredPayments.length > pageSize && (
-          <div className="p-2.5 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-xs text-slate-500">
-            <span>
+          <div className="flex items-center justify-between p-3 border-t border-slate-100 dark:border-slate-800 text-xs">
+            <span className="text-slate-400 font-mono">
               Page {page + 1} of {Math.ceil(filteredPayments.length / pageSize)}
             </span>
             <div className="flex items-center gap-1">
               <Button
-                size="sm"
                 variant="outline"
+                size="sm"
                 disabled={page === 0}
-                onClick={() => setPage((p) => p - 1)}
-                className="h-7 px-2"
+                onClick={() => setPage((p) => Math.max(0, p - 1))}
+                className="h-7 text-xs px-2.5"
               >
-                <ChevronLeft className="w-3.5 h-3.5" />
+                Previous
               </Button>
               <Button
-                size="sm"
                 variant="outline"
+                size="sm"
                 disabled={(page + 1) * pageSize >= filteredPayments.length}
                 onClick={() => setPage((p) => p + 1)}
-                className="h-7 px-2"
+                className="h-7 text-xs px-2.5"
               >
-                <ChevronRight className="w-3.5 h-3.5" />
+                Next
               </Button>
             </div>
           </div>
         )}
       </Card>
 
-      {/* ── 4. TRANSACTION VOUCHER DETAIL MODAL ───────────────────────── */}
+      {/* ── 4. SETTLEMENT VOUCHER & PASSBOOK MODAL ─────────────────────── */}
       {selectedPayment && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-200">
-          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl max-w-lg w-full p-5 shadow-2xl space-y-4">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl max-w-md w-full p-5 shadow-2xl space-y-4">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
               <div className="flex items-center gap-2">
                 <div className="w-8 h-8 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-200 dark:border-indigo-800 flex items-center justify-center text-indigo-600 dark:text-indigo-400">
@@ -834,7 +846,7 @@ export default function PaymentsManager({ payments = [], orders = [], token, onR
                 </div>
                 <div>
                   <h3 className="text-sm font-bold text-slate-900 dark:text-white">Razorpay Settlement Voucher</h3>
-                  <p className="text-[10px] text-slate-400 font-mono">Reference: {selectedPayment.provider_payment_id}</p>
+                  <p className="text-[10px] text-slate-400 font-mono">{selectedPayment.provider_payment_id}</p>
                 </div>
               </div>
               <button
@@ -845,26 +857,18 @@ export default function PaymentsManager({ payments = [], orders = [], token, onR
               </button>
             </div>
 
-            <div className="bg-slate-50 dark:bg-slate-800/60 rounded-xl p-3.5 space-y-2 border border-slate-200/80 dark:border-slate-700">
+            <div className="space-y-2 bg-slate-50 dark:bg-slate-800/50 p-3.5 rounded-xl border border-slate-100 dark:border-slate-800">
               <div className="flex justify-between text-xs">
                 <span className="text-slate-400">Order Number</span>
                 <span className="font-mono font-bold text-slate-900 dark:text-white">#{selectedPayment.order_number}</span>
               </div>
               <div className="flex justify-between text-xs">
                 <span className="text-slate-400">Customer</span>
-                <span className="font-semibold text-slate-800 dark:text-slate-200">{selectedPayment.customer_name} {selectedPayment.customer_phone ? `(${selectedPayment.customer_phone})` : ''}</span>
+                <span className="font-semibold text-slate-800 dark:text-slate-200">{selectedPayment.customer_name}</span>
               </div>
               <div className="flex justify-between text-xs">
                 <span className="text-slate-400">Transaction Date</span>
                 <span className="font-mono text-slate-700 dark:text-slate-300">{new Date(selectedPayment.created_at).toLocaleString('en-IN')}</span>
-              </div>
-              <div className="flex justify-between text-xs">
-                <span className="text-slate-400">Payment Channel</span>
-                <span className="font-semibold text-indigo-600 dark:text-indigo-400">{selectedPayment.method}</span>
-              </div>
-              <div className="flex justify-between text-xs">
-                <span className="text-slate-400">Bank RRN / Reference</span>
-                <span className="font-mono font-semibold text-slate-700 dark:text-slate-300">{selectedPayment.bank_rrn}</span>
               </div>
             </div>
 
@@ -874,13 +878,21 @@ export default function PaymentsManager({ payments = [], orders = [], token, onR
                 <span>Gross Collected (Online)</span>
                 <span className="font-mono font-bold text-slate-900 dark:text-white">₹{(selectedPayment.amount / 100).toFixed(2)}</span>
               </div>
-              <div className="flex justify-between items-center text-rose-500">
-                <span>Razorpay MDR Fee (2% + 18% GST)</span>
-                <span className="font-mono">-₹{((selectedPayment.fee || 0) / 100).toFixed(2)}</span>
+              <div className="flex justify-between items-center text-slate-500 text-[11px] pl-2">
+                <span>↳ Base Gateway MDR (2.00%)</span>
+                <span className="font-mono">-₹{((selectedPayment.amount * 0.02) / 100).toFixed(2)}</span>
+              </div>
+              <div className="flex justify-between items-center text-slate-500 text-[11px] pl-2">
+                <span>↳ GST on MDR Fee (18.00%)</span>
+                <span className="font-mono">-₹{((selectedPayment.amount * 0.0036) / 100).toFixed(2)}</span>
+              </div>
+              <div className="flex justify-between items-center text-rose-500 font-semibold pt-1 border-t border-slate-100 dark:border-slate-800">
+                <span>Total Razorpay Fee Deducted (2.36%)</span>
+                <span className="font-mono font-bold">-₹{((selectedPayment.fee || 0) / 100).toFixed(2)}</span>
               </div>
               <div className="pt-2 border-t border-slate-100 dark:border-slate-800 flex justify-between items-center font-bold text-sm">
                 <span className="text-slate-900 dark:text-white">Net Deposited to Bank</span>
-                <span className="font-mono text-emerald-600 dark:text-emerald-400">₹{((selectedPayment.net_amount || 0) / 100).toFixed(2)}</span>
+                <span className="font-mono text-emerald-600 dark:text-emerald-400 font-extrabold">₹{((selectedPayment.net_amount || 0) / 100).toFixed(2)}</span>
               </div>
             </div>
 
