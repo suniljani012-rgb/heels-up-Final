@@ -179,7 +179,6 @@ export async function posRouter(request, env) {
                 });
             }
 
-            const discountAmt = discount || 0;
             const total = subtotal - discountAmt;
             const saleNumber = await genOrderNumber(env);
             const itemsJson = JSON.stringify(processedItems);
