@@ -25,6 +25,7 @@
     "clsx": "^2.1.1",
     "dompurify": "^3.4.11",
     "framer-motion": "^12.40.0",
+    "frontend": "file:",
     "heic2any": "^0.0.4",
     "jquery": "^3.7.1",
     "lucide-react": "^1.17.0",
@@ -54,5 +55,8 @@
     "typescript": "~6.0.2",
     "typescript-eslint": "^8.59.2",
     "vite": "^8.0.12"
+  },
+  "optionalDependencies": {
+    "@rolldown/binding-win32-x64-msvc": "^1.0.3"
   }
 }

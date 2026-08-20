@@ -130,7 +130,8 @@ export default function Shop() {
   const { getDisplayPrice } = useDisplayPrice()
 
   // URL Params mapping
-  const category = searchParams.get('cat') || ''
+  const { category: routeCategory } = useParams()
+  const category = (routeCategory || searchParams.get('cat') || '').toLowerCase()
   const page = parseInt(searchParams.get('page') || '1')
   const sort = searchParams.get('sort') || 'newest'
   const searchQ = searchParams.get('q') || ''
@@ -222,8 +223,6 @@ export default function Shop() {
     { value: 'rating', label: 'Customer Rating' }
   ]
 
-  const { category: routeCategory } = useParams()
-  const category = (routeCategory || searchParams.get('cat') || '').toLowerCase()
   const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(null)
 
   const landingData = SEO_LANDING_PAGES[category] || null
