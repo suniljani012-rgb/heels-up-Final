@@ -1,83 +1,88 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
-        xmlns:xhtml="http://www.w3.org/1999/xhtml">
-
-  <!-- ── Core Pages ─────────────────────────────────────────────── -->
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <!-- Core National E-commerce Landing Pages -->
   <url>
     <loc>https://heelsup.in/</loc>
     <changefreq>daily</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
-    <loc>https://heelsup.in/shop.html</loc>
+    <loc>https://heelsup.in/shop</loc>
+    <changefreq>daily</changefreq>
+    <priority>0.95</priority>
+  </url>
+  <url>
+    <loc>https://heelsup.in/heels</loc>
+    <changefreq>daily</changefreq>
+    <priority>0.95</priority>
+  </url>
+
+  <!-- High-Intent Category Landing Pages (GEO & Search Engine Optimized) -->
+  <url>
+    <loc>https://heelsup.in/heels/block-heels</loc>
     <changefreq>daily</changefreq>
     <priority>0.9</priority>
   </url>
   <url>
-    <loc>https://heelsup.in/category.html</loc>
-    <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
+    <loc>https://heelsup.in/heels/bridal-heels</loc>
+    <changefreq>daily</changefreq>
+    <priority>0.9</priority>
   </url>
   <url>
-    <loc>https://heelsup.in/product.html</loc>
-    <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
+    <loc>https://heelsup.in/heels/stiletto-heels</loc>
+    <changefreq>daily</changefreq>
+    <priority>0.9</priority>
   </url>
   <url>
-    <loc>https://heelsup.in/search.html</loc>
-    <changefreq>weekly</changefreq>
-    <priority>0.7</priority>
+    <loc>https://heelsup.in/heels/pencil-heels</loc>
+    <changefreq>daily</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://heelsup.in/heels/wedges</loc>
+    <changefreq>daily</changefreq>
+    <priority>0.85</priority>
+  </url>
+  <url>
+    <loc>https://heelsup.in/flats</loc>
+    <changefreq>daily</changefreq>
+    <priority>0.85</priority>
+  </url>
+  <url>
+    <loc>https://heelsup.in/bags</loc>
+    <changefreq>daily</changefreq>
+    <priority>0.85</priority>
   </url>
 
-  <!-- ── Blog ───────────────────────────────────────────────────── -->
+  <!-- Brand & Support Pages -->
   <url>
-    <loc>https://heelsup.in/blog.html</loc>
-    <changefreq>weekly</changefreq>
-    <priority>0.7</priority>
-  </url>
-
-  <!-- ── Brand / Info Pages ─────────────────────────────────────── -->
-  <url>
-    <loc>https://heelsup.in/about.html</loc>
+    <loc>https://heelsup.in/about</loc>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
-    <loc>https://heelsup.in/contact.html</loc>
+    <loc>https://heelsup.in/contact</loc>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
-    <loc>https://heelsup.in/faq.html</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.6</priority>
-  </url>
-  <url>
-    <loc>https://heelsup.in/size-guide.html</loc>
+    <loc>https://heelsup.in/shipping-info</loc>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
-    <loc>https://heelsup.in/shipping-info.html</loc>
+    <loc>https://heelsup.in/returns</loc>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
-    <loc>https://heelsup.in/returns.html</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.5</priority>
-  </url>
-
-  <!-- ── Policy Pages ───────────────────────────────────────────── -->
-  <url>
-    <loc>https://heelsup.in/policy/privacy.html</loc>
+    <loc>https://heelsup.in/privacy</loc>
     <changefreq>yearly</changefreq>
     <priority>0.3</priority>
   </url>
   <url>
-    <loc>https://heelsup.in/policy/terms.html</loc>
+    <loc>https://heelsup.in/terms</loc>
     <changefreq>yearly</changefreq>
     <priority>0.3</priority>
   </url>
-
 </urlset>
