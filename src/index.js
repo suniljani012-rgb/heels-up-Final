@@ -86,6 +86,117 @@ export default {
     const path = url.pathname;
     const method = request.method;
 
+    // Plaintext /llms.txt for AI Answer Engines & Search Grounding (GEO)
+    if (path === '/llms.txt') {
+      const llmsContent = `# HeelsUp
+
+HeelsUp (heelsup.in) is an online footwear store in India specializing in women's luxury heels, sandals, flats, wedges, and designer handbags.
+
+## What we sell
+- Block heels
+- Stiletto heels
+- Pencil heels
+- Bridal heels
+- Platform heels
+- Flat sandals
+- Wedge heels
+- Luxury handbags & clutches
+
+## Key facts
+- Free delivery across India on orders above ₹1599
+- Cash on delivery (COD) available
+- 7-day easy exchange policy
+- Handcrafted footwear manufactured with premium materials in Jodhpur, Rajasthan, India
+- Direct customer support via WhatsApp and Email
+- Instagram: https://www.instagram.com/heel_s_up/
+
+## Key pages
+- Homepage: https://heelsup.in/
+- Shop All: https://heelsup.in/shop
+- All Heels: https://heelsup.in/heels
+- Block Heels: https://heelsup.in/heels/block-heels
+- Bridal Heels: https://heelsup.in/heels/bridal-heels
+- Stiletto Heels: https://heelsup.in/heels/stiletto-heels
+- Pencil Heels: https://heelsup.in/heels/pencil-heels
+- Wedges: https://heelsup.in/heels/wedges
+- Flat Sandals: https://heelsup.in/flats
+- Bags & Clutches: https://heelsup.in/bags
+- About Us: https://heelsup.in/about
+- Shipping Information: https://heelsup.in/shipping-info
+- Returns & Exchange: https://heelsup.in/returns
+- Contact Support: https://heelsup.in/contact
+`;
+      return new Response(llmsContent, {
+        headers: {
+          'Content-Type': 'text/plain; charset=utf-8',
+          'Cache-Control': 'public, max-age=86400',
+          'Access-Control-Allow-Origin': '*'
+        }
+      });
+    }
+
+    // robots.txt Handler
+    if (path === '/robots.txt') {
+      const robotsContent = `# robots.txt for HeelsUp (https://heelsup.in)
+
+User-agent: *
+Allow: /
+Disallow: /admin
+Disallow: /admin/*
+Disallow: /api/
+Disallow: /cart
+Disallow: /checkout
+Disallow: /orders
+Disallow: /profile
+Disallow: /login
+Disallow: /register
+Disallow: /forgot-password
+Disallow: /reset-password
+
+# Search Engines
+User-agent: Googlebot
+Allow: /
+
+User-agent: Bingbot
+Allow: /
+
+User-agent: DuckDuckBot
+Allow: /
+
+User-agent: Applebot
+Allow: /
+
+# AI Answer Engines & LLM Crawlers (GEO Optimization)
+User-agent: GPTBot
+Allow: /
+
+User-agent: PerplexityBot
+Allow: /
+
+User-agent: ClaudeBot
+Allow: /
+
+User-agent: anthropic-ai
+Allow: /
+
+User-agent: Google-Extended
+Allow: /
+
+User-agent: meta-externalagent
+Allow: /
+
+# Sitemaps & Knowledge
+Sitemap: https://heelsup.in/sitemap.xml
+`;
+      return new Response(robotsContent, {
+        headers: {
+          'Content-Type': 'text/plain; charset=utf-8',
+          'Cache-Control': 'public, max-age=86400',
+          'Access-Control-Allow-Origin': '*'
+        }
+      });
+    }
+
     // Dynamic Real-time XML Sitemap for Googlebot & Bingbot Search Indexing
     if (path === '/sitemap.xml') {
       try {
