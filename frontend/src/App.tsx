@@ -162,7 +162,20 @@ function AppContent() {
             <Route path="/shop" element={<Shop />} />
             <Route path="/shop.html" element={<Shop />} />
             
+            {/* Category & Collection Landing Routes (SEO & GEO) */}
+            <Route path="/heels" element={<Shop />} />
+            <Route path="/heels/:category" element={<Shop />} />
+            <Route path="/heels/:category/:slug" element={<Product />} />
+            <Route path="/block-heels" element={<Shop />} />
+            <Route path="/pencil-heels" element={<Shop />} />
+            <Route path="/stilettos" element={<Shop />} />
+            <Route path="/bridal-heels" element={<Shop />} />
+            <Route path="/wedges" element={<Shop />} />
+            <Route path="/flats" element={<Shop />} />
+            <Route path="/bags" element={<Shop />} />
+            
             <Route path="/product" element={<Product />} />
+            <Route path="/product/:id" element={<Product />} />
             <Route path="/product.html" element={<Product />} />
             
             <Route path="/cart" element={<Cart />} />

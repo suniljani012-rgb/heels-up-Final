@@ -106,10 +106,12 @@ export default function HeicImage({
     else fitClass = size === 'hero' ? 'object-cover' : 'object-contain';
   }
 
+  const descriptiveAlt = alt && alt.trim().length > 0 ? alt : 'HeelsUp Luxury Handcrafted Footwear & Handbags India';
+
   return (
     <img
       src={displaySrc}
-      alt={alt}
+      alt={descriptiveAlt}
       className={`${className} ${fitClass} transition-opacity duration-200 ${loaded ? 'opacity-100' : 'opacity-0'}`}
       style={{
         backgroundColor: '#f5f2eb',

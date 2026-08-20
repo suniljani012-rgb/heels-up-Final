@@ -30,6 +30,7 @@ import { returnsCustomerRouter } from './routes/returns.js';
 import { json } from './utils/response.js';
 import { authRateLimit, apiRateLimit, paymentRateLimit, adminRateLimit } from './middleware/ratelimit.js';
 import { trackApiRequest } from './utils/ga4-measurement.js';
+import { transformHtmlWithSeo } from './utils/seo-renderer.js';
 
 // ── Admin alias helper ────────────────────────────────────────────────────────
 // Frontend uses /api/admin/* — backend has routes at /api/* — this bridges them.
@@ -90,31 +91,67 @@ export default {
       try {
         let productUrls = '';
         if (env.DB) {
-          const prods = await env.DB.prepare('SELECT id, updated_at FROM products WHERE active = 1 ORDER BY id DESC').all();
+          const prods = await env.DB.prepare(`
+            SELECT p.id, p.name, p.slug, p.updated_at, c.slug as category_slug, c.name as category_name
+            FROM products p
+            LEFT JOIN categories c ON p.category_id = c.id
+            WHERE p.active = 1
+            ORDER BY p.id DESC
+          `).all();
+
           if (prods && prods.results) {
-            productUrls = prods.results.map(p => `
+            productUrls = prods.results.map(p => {
+              const catSlug = p.category_slug || (p.category_name ? p.category_name.toLowerCase().replace(/[^a-z0-9]+/g, '-') : 'footwear');
+              const prodSlug = p.slug || (p.name ? p.name.toLowerCase().replace(/[^a-z0-9]+/g, '-') : p.id);
+              const lastMod = p.updated_at ? p.updated_at.substring(0, 10) : new Date().toISOString().substring(0, 10);
+              return `
+  <url>
+    <loc>https://heelsup.in/heels/${catSlug}/${prodSlug}</loc>
+    <lastmod>${lastMod}</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.85</priority>
+  </url>
   <url>
     <loc>https://heelsup.in/product/${p.id}</loc>
-    <lastmod>${p.updated_at ? p.updated_at.substring(0, 10) : new Date().toISOString().substring(0, 10)}</lastmod>
+    <lastmod>${lastMod}</lastmod>
     <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
-  </url>`).join('');
+    <priority>0.75</priority>
+  </url>`;
+            }).join('');
           }
         }
 
+        const today = new Date().toISOString().substring(0, 10);
         const xml = `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-  <url><loc>https://heelsup.in/</loc><changefreq>daily</changefreq><priority>1.0</priority></url>
-  <url><loc>https://heelsup.in/shop</loc><changefreq>daily</changefreq><priority>0.95</priority></url>
-  <url><loc>https://heelsup.in/heels</loc><changefreq>daily</changefreq><priority>0.95</priority></url>
-  <url><loc>https://heelsup.in/block-heels</loc><changefreq>daily</changefreq><priority>0.9</priority></url>
-  <url><loc>https://heelsup.in/pencil-heels</loc><changefreq>daily</changefreq><priority>0.9</priority></url>
-  <url><loc>https://heelsup.in/stilettos</loc><changefreq>daily</changefreq><priority>0.9</priority></url>
-  <url><loc>https://heelsup.in/wedges</loc><changefreq>daily</changefreq><priority>0.85</priority></url>
-  <url><loc>https://heelsup.in/flats</loc><changefreq>daily</changefreq><priority>0.85</priority></url>
-  <url><loc>https://heelsup.in/bags</loc><changefreq>daily</changefreq><priority>0.85</priority></url>
-  <url><loc>https://heelsup.in/about</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
-  <url><loc>https://heelsup.in/contact</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>${productUrls}
+  <!-- Core National E-commerce Landing Pages -->
+  <url><loc>https://heelsup.in/</loc><lastmod>${today}</lastmod><changefreq>daily</changefreq><priority>1.0</priority></url>
+  <url><loc>https://heelsup.in/shop</loc><lastmod>${today}</lastmod><changefreq>daily</changefreq><priority>0.95</priority></url>
+  <url><loc>https://heelsup.in/heels</loc><lastmod>${today}</lastmod><changefreq>daily</changefreq><priority>0.95</priority></url>
+
+  <!-- High-Intent Category Landing Pages (GEO & SEO Optimized) -->
+  <url><loc>https://heelsup.in/heels/block-heels</loc><lastmod>${today}</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://heelsup.in/heels/bridal-heels</loc><lastmod>${today}</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://heelsup.in/heels/stiletto-heels</loc><lastmod>${today}</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://heelsup.in/heels/pencil-heels</loc><lastmod>${today}</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://heelsup.in/heels/wedges</loc><lastmod>${today}</lastmod><changefreq>daily</changefreq><priority>0.85</priority></url>
+  <url><loc>https://heelsup.in/flats</loc><lastmod>${today}</lastmod><changefreq>daily</changefreq><priority>0.85</priority></url>
+  <url><loc>https://heelsup.in/bags</loc><lastmod>${today}</lastmod><changefreq>daily</changefreq><priority>0.85</priority></url>
+
+  <!-- Legacy & Alias Friendly Category Routes -->
+  <url><loc>https://heelsup.in/block-heels</loc><lastmod>${today}</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://heelsup.in/stilettos</loc><lastmod>${today}</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://heelsup.in/pencil-heels</loc><lastmod>${today}</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://heelsup.in/bridal-heels</loc><lastmod>${today}</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://heelsup.in/wedges</loc><lastmod>${today}</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
+
+  <!-- Brand & Support Pages -->
+  <url><loc>https://heelsup.in/about</loc><lastmod>${today}</lastmod><changefreq>monthly</changefreq><priority>0.6</priority></url>
+  <url><loc>https://heelsup.in/contact</loc><lastmod>${today}</lastmod><changefreq>monthly</changefreq><priority>0.6</priority></url>
+  <url><loc>https://heelsup.in/shipping-info</loc><lastmod>${today}</lastmod><changefreq>monthly</changefreq><priority>0.5</priority></url>
+  <url><loc>https://heelsup.in/returns</loc><lastmod>${today}</lastmod><changefreq>monthly</changefreq><priority>0.5</priority></url>
+  <url><loc>https://heelsup.in/privacy</loc><lastmod>${today}</lastmod><changefreq>yearly</changefreq><priority>0.3</priority></url>
+  <url><loc>https://heelsup.in/terms</loc><lastmod>${today}</lastmod><changefreq>yearly</changefreq><priority>0.3</priority></url>${productUrls}
 </urlset>`;
 
         return new Response(xml, {
@@ -329,55 +366,9 @@ export default {
     if (url.pathname.endsWith('.html') || !url.pathname.includes('.')) {
       headers.set('Content-Security-Policy', "default-src 'self' https: http: data: blob: 'unsafe-inline' 'unsafe-eval'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https: http:; script-src-elem 'self' 'unsafe-inline' 'unsafe-eval' https: http:; style-src 'self' 'unsafe-inline' https: http:; style-src-elem 'self' 'unsafe-inline' https: http:; font-src 'self' data: https: http:; img-src 'self' data: blob: https: http:; connect-src 'self' https: http:; frame-src 'self' https: http:; worker-src 'self' blob:; manifest-src 'self'; base-uri 'self'; form-action 'self';");
 
-      // Dynamic Self-referencing Canonical URL & Category Titles for Instant Google Indexing
-      const cleanPath = url.pathname.replace(/\/$/, '') || '/';
-      const canonicalUrl = `https://heelsup.in${cleanPath === '/' ? '' : cleanPath}`;
-
-      const pageTitles = {
-        '/shop': 'All Ladies Footwear & Bags Collection | HeelsUp',
-        '/heels': 'Buy Luxury Heels Online India | HeelsUp',
-        '/block-heels': 'Comfortable & Stylish Block Heels for Women | HeelsUp',
-        '/pencil-heels': 'Designer Pencil Heels & High Heels Online | HeelsUp',
-        '/stilettos': 'Elegant Stiletto Heels for Parties & Weddings | HeelsUp',
-        '/wedges': 'Trendy Platform & Wedge Heels | HeelsUp',
-        '/flats': 'Premium Flat Sandals & Daily Wear Footwear | HeelsUp',
-        '/bags': 'Luxury Handbags, Clutches & Shoulder Bags | HeelsUp',
-        '/about': 'About HeelsUp | Handcrafted Luxury Footwear Jodhpur',
-        '/contact': 'Contact Us & Customer Support | HeelsUp',
-        '/shipping-info': 'Shipping & Delivery Policy | HeelsUp',
-        '/returns': 'Easy 7-Day Returns & Exchange Policy | HeelsUp',
-        '/privacy': 'Privacy Policy | HeelsUp',
-        '/terms': 'Terms & Conditions | HeelsUp',
-      };
-
-      const rewriter = new HTMLRewriter()
-        .on('link[rel="canonical"]', {
-          element(el) {
-            el.setAttribute('href', canonicalUrl);
-          }
-        })
-        .on('meta[property="og:url"]', {
-          element(el) {
-            el.setAttribute('href', canonicalUrl);
-          }
-        });
-
-      if (pageTitles[cleanPath]) {
-        rewriter.on('title', {
-          element(el) {
-            el.setInnerContent(pageTitles[cleanPath]);
-          }
-        });
-        rewriter.on('meta[property="og:title"]', {
-          element(el) {
-            el.setAttribute('content', pageTitles[cleanPath]);
-          }
-        });
-      }
-
-      return rewriter.transform(new Response(assetRes.body, { status: assetRes.status, headers }));
+      const baseHtmlResponse = new Response(assetRes.body, { status: assetRes.status, headers });
+      return await transformHtmlWithSeo(baseHtmlResponse, request, env);
     }
-
 
     return new Response(assetRes.body, { status: assetRes.status, headers });
   },

@@ -1,32 +1,50 @@
+# robots.txt for HeelsUp (https://heelsup.in)
+
 User-agent: *
 Allow: /
-
-# Block admin pages from indexing
-Disallow: /admin.html
-Disallow: /admin-*.html
+Disallow: /admin
+Disallow: /admin/*
 Disallow: /api/
+Disallow: /cart
+Disallow: /checkout
+Disallow: /orders
+Disallow: /profile
+Disallow: /login
+Disallow: /register
+Disallow: /forgot-password
+Disallow: /reset-password
 
-# Block cart and checkout
-Disallow: /cart.html
-Disallow: /checkout.html
-Disallow: /orders.html
-Disallow: /profile.html
-Disallow: /login.html
-Disallow: /register.html
-Disallow: /forgot-password.html
-Disallow: /reset-password.html
+# Search Engines
+User-agent: Googlebot
+Allow: /
 
-# Allow important pages
-Allow: /index.html
-Allow: /shop.html
-Allow: /category.html
-Allow: /product.html
-Allow: /search.html
-Allow: /blog.html
-Allow: /blog-post.html
-Allow: /about.html
-Allow: /contact.html
-Allow: /faq.html
-Allow: /policy/
+User-agent: Bingbot
+Allow: /
 
+User-agent: DuckDuckBot
+Allow: /
+
+User-agent: Applebot
+Allow: /
+
+# AI Answer Engines & LLM Crawlers (GEO Optimization)
+User-agent: GPTBot
+Allow: /
+
+User-agent: PerplexityBot
+Allow: /
+
+User-agent: ClaudeBot
+Allow: /
+
+User-agent: anthropic-ai
+Allow: /
+
+User-agent: Google-Extended
+Allow: /
+
+User-agent: meta-externalagent
+Allow: /
+
+# Sitemaps & Knowledge
 Sitemap: https://heelsup.in/sitemap.xml

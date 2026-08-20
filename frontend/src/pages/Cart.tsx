@@ -6,6 +6,7 @@ import { useWishlistStore } from '../store/useWishlistStore'
 import { useToastStore } from '../store/useToastStore'
 import { useAuthStore } from '../store/useAuthStore'
 import HeicImage from '../components/HeicImage'
+import SEO from '../components/SEO'
 import { formatSizeToIndian } from '../utils/sizeHelper'
 
 import { useDisplayPrice } from '../utils/priceHelper'
@@ -107,6 +108,7 @@ export default function Cart() {
 
   return (
     <div className="max-w-7xl mx-auto px-6 md:px-8 mt-12 min-h-[70vh] select-none">
+      <SEO title="Shopping Cart | HeelsUp" noindex={true} />
       <h1 className="text-3xl font-light text-gray-900 font-display italic mb-10 border-b border-gray-100 pb-6">
         Your Shopping Cart
       </h1>

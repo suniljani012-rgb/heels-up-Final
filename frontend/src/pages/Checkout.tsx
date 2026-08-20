@@ -5,6 +5,7 @@ import { useCartStore } from '../store/useCartStore'
 import { useAuthStore } from '../store/useAuthStore'
 import { useToastStore } from '../store/useToastStore'
 import HeicImage from '../components/HeicImage'
+import SEO from '../components/SEO'
 import { formatSizeToIndian } from '../utils/sizeHelper'
 
 declare global {
@@ -358,6 +359,7 @@ export default function Checkout() {
 
   return (
     <div className="max-w-7xl mx-auto px-6 md:px-8 mt-12 min-h-screen select-none">
+      <SEO title="Secure Checkout | HeelsUp" noindex={true} />
       <Link to="/cart" className="inline-flex items-center gap-1 text-xs text-gray-500 hover:text-gray-900 mb-6 font-semibold">
         <ArrowLeft className="w-3.5 h-3.5" /> Back to Cart
       </Link>

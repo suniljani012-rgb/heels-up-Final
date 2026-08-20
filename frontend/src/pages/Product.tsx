@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react'
-import { useSearchParams, Link, useNavigate } from 'react-router-dom'
+import { useSearchParams, useParams, Link, useNavigate } from 'react-router-dom'
 import { Star, Heart, ShoppingBag, Truck, RefreshCw, Ruler, MessageSquare } from 'lucide-react'
 import { useCartStore } from '../store/useCartStore'
 import { useWishlistStore } from '../store/useWishlistStore'
 import { useToastStore } from '../store/useToastStore'
 import { useAuthStore } from '../store/useAuthStore'
 import HeicImage from '../components/HeicImage'
+import SEO from '../components/SEO'
 import { formatSizeToIndian } from '../utils/sizeHelper'
 import { cacheProductData, prefetchProductApi, getCachedProduct } from '../utils/productCache'
 
@@ -26,8 +27,6 @@ interface ProductDetail {
   colors?: string[];
 }
 
-
-
 interface Review {
   id: number;
   rating: number;
@@ -41,8 +40,9 @@ interface Review {
 import { useDisplayPrice } from '../utils/priceHelper'
 
 export default function Product() {
+  const { id: paramId, category: paramCat, slug: paramSlug } = useParams()
   const [searchParams] = useSearchParams()
-  const productId = searchParams.get('id') || ''
+  const productId = paramId || paramSlug || searchParams.get('id') || ''
   
   const { addItem } = useCartStore()
   const { toggleItem, hasItem } = useWishlistStore()
@@ -411,6 +411,17 @@ export default function Product() {
 
   return (
     <div className="max-w-7xl mx-auto px-6 md:px-8 mt-12 min-h-screen relative select-none">
+      {product && (
+        <SEO
+          title={`${product.name} | Buy Online at ₹${((product.price || 0) / 100).toLocaleString('en-IN')} | HeelsUp`}
+          description={`Buy ${product.name} online at HeelsUp for ₹${((product.price || 0) / 100).toLocaleString('en-IN')}. ${product.description ? product.description.slice(0, 120) : 'Handcrafted luxury ladies footwear.'} Free delivery above ₹1599, COD available, 7-day easy exchange.`}
+          canonical={`https://heelsup.in/heels/${paramCat || product.category?.toLowerCase()?.replace(/[^a-z0-9]+/g, '-') || 'footwear'}/${product.id}`}
+          ogImage={activeImage || product.images?.[0] || 'https://heelsup.in/logo.webp'}
+          ogType="product"
+          keywords={`${product.name}, ${product.category}, buy heels online india, ladies footwear, heelsup`}
+        />
+      )}
+
       {/* Product Detail Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-start">
         {/* Left: Image Gallery */}
