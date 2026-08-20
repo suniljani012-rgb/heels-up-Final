@@ -328,6 +328,54 @@ export default {
 
     if (url.pathname.endsWith('.html') || !url.pathname.includes('.')) {
       headers.set('Content-Security-Policy', "default-src 'self' https: http: data: blob: 'unsafe-inline' 'unsafe-eval'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https: http:; script-src-elem 'self' 'unsafe-inline' 'unsafe-eval' https: http:; style-src 'self' 'unsafe-inline' https: http:; style-src-elem 'self' 'unsafe-inline' https: http:; font-src 'self' data: https: http:; img-src 'self' data: blob: https: http:; connect-src 'self' https: http:; frame-src 'self' https: http:; worker-src 'self' blob:; manifest-src 'self'; base-uri 'self'; form-action 'self';");
+
+      // Dynamic Self-referencing Canonical URL & Category Titles for Instant Google Indexing
+      const cleanPath = url.pathname.replace(/\/$/, '') || '/';
+      const canonicalUrl = `https://heelsup.in${cleanPath === '/' ? '' : cleanPath}`;
+
+      const pageTitles = {
+        '/shop': 'All Ladies Footwear & Bags Collection | HeelsUp',
+        '/heels': 'Buy Luxury Heels Online India | HeelsUp',
+        '/block-heels': 'Comfortable & Stylish Block Heels for Women | HeelsUp',
+        '/pencil-heels': 'Designer Pencil Heels & High Heels Online | HeelsUp',
+        '/stilettos': 'Elegant Stiletto Heels for Parties & Weddings | HeelsUp',
+        '/wedges': 'Trendy Platform & Wedge Heels | HeelsUp',
+        '/flats': 'Premium Flat Sandals & Daily Wear Footwear | HeelsUp',
+        '/bags': 'Luxury Handbags, Clutches & Shoulder Bags | HeelsUp',
+        '/about': 'About HeelsUp | Handcrafted Luxury Footwear Jodhpur',
+        '/contact': 'Contact Us & Customer Support | HeelsUp',
+        '/shipping-info': 'Shipping & Delivery Policy | HeelsUp',
+        '/returns': 'Easy 7-Day Returns & Exchange Policy | HeelsUp',
+        '/privacy': 'Privacy Policy | HeelsUp',
+        '/terms': 'Terms & Conditions | HeelsUp',
+      };
+
+      const rewriter = new HTMLRewriter()
+        .on('link[rel="canonical"]', {
+          element(el) {
+            el.setAttribute('href', canonicalUrl);
+          }
+        })
+        .on('meta[property="og:url"]', {
+          element(el) {
+            el.setAttribute('href', canonicalUrl);
+          }
+        });
+
+      if (pageTitles[cleanPath]) {
+        rewriter.on('title', {
+          element(el) {
+            el.setInnerContent(pageTitles[cleanPath]);
+          }
+        });
+        rewriter.on('meta[property="og:title"]', {
+          element(el) {
+            el.setAttribute('content', pageTitles[cleanPath]);
+          }
+        });
+      }
+
+      return rewriter.transform(new Response(assetRes.body, { status: assetRes.status, headers }));
     }
 
 
