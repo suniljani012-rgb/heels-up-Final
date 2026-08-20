@@ -1,11 +1,13 @@
 import { useState, useEffect } from 'react'
 import { useSearchParams, useParams, Link } from 'react-router-dom'
-import { Filter, Star, Heart, ArrowUpDown, ChevronLeft, ChevronRight, HelpCircle, ChevronDown } from 'lucide-react'
+import { Filter, Star, Heart, ArrowUpDown, ChevronLeft, ChevronRight, HelpCircle, ChevronDown, Sparkles, CheckCircle2 } from 'lucide-react'
 import { useWishlistStore } from '../store/useWishlistStore'
 import { useCartStore } from '../store/useCartStore'
 import { useToastStore } from '../store/useToastStore'
 import HeicImage from '../components/HeicImage'
 import SEO from '../components/SEO'
+import TrustStrip from '../components/TrustStrip'
+import { SEO_LANDING_PAGES } from '../data/seoLandingPages'
 import { useQuery, useQueryClient, keepPreviousData } from '@tanstack/react-query'
 import { useMemo } from 'react'
 import { formatSizeToIndian } from '../utils/sizeHelper'
@@ -224,70 +226,77 @@ export default function Shop() {
   const category = (routeCategory || searchParams.get('cat') || '').toLowerCase()
   const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(null)
 
-  // Category specific titles & descriptions
-  const currentCategoryLabel = categoriesList.find(c => c.value.toLowerCase() === category)?.label || (category ? category.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase()) : 'All Collections')
+  const landingData = SEO_LANDING_PAGES[category] || null
+  const currentCategoryLabel = landingData?.keyword || categoriesList.find(c => c.value.toLowerCase() === category)?.label || (category ? category.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase()) : 'All Collections')
 
-  const categorySeoMap: Record<string, { title: string; desc: string }> = {
-    'block-heels': {
-      title: "Buy Block Heels Online India | Comfortable & Stylish | HeelsUp",
-      desc: "Shop the latest block heels online at HeelsUp. Comfortable, stylish designs for office, party & daily wear. Free delivery above ₹1599, COD available, 7-day easy exchange."
-    },
-    'stilettos': {
-      title: "Buy Stiletto Heels Online India | Party & Wedding Wear | HeelsUp",
-      desc: "Discover elegant, head-turning stiletto heels online at HeelsUp. Perfect for weddings, parties, and night outs. Free shipping across India, COD available."
-    },
-    'stiletto-heels': {
-      title: "Buy Stiletto Heels Online India | Party & Wedding Wear | HeelsUp",
-      desc: "Discover elegant, head-turning stiletto heels online at HeelsUp. Perfect for weddings, parties, and night outs. Free shipping across India, COD available."
-    },
-    'pencil-heels': {
-      title: "Buy Designer Pencil Heels Online India | Chic High Heels | HeelsUp",
-      desc: "Elevate your elegance with designer pencil heels from HeelsUp. Handcrafted comfort with sleek, sophisticated silhouettes. Easy 7-day exchanges and COD."
-    },
-    'bridal-heels': {
-      title: "Buy Luxury Bridal Heels Online India | Wedding Footwear | HeelsUp",
-      desc: "Shop exquisite bridal heels and wedding shoes for brides and bridesmaids. Sparkling crystals, cushioned footbeds & handcrafted perfection. Free shipping India."
-    },
-    'wedges': {
-      title: "Buy Platform Wedges & Wedge Heels Online India | HeelsUp",
-      desc: "Shop comfortable, trendy wedge heels and platform sandals at HeelsUp. All-day arch support and chic modern designs with COD and easy exchanges."
-    },
-    'flats': {
-      title: "Buy Designer Flat Sandals & Slides Online India | HeelsUp",
-      desc: "Discover handcrafted luxury flat sandals, slides, and slip-ons for women. Effortless daily elegance made in Jodhpur. Free shipping on orders above ₹1599."
-    },
-    'bags': {
-      title: "Buy Luxury Women's Handbags & Clutches Online India | HeelsUp",
-      desc: "Shop premium designer handbags, shoulder bags, and party clutches for women at HeelsUp. Beautiful textures and spacious luxury styling."
-    }
-  }
-
-  const activeSeo = categorySeoMap[category] || {
-    title: `${currentCategoryLabel} | Buy Luxury Ladies Footwear Online | HeelsUp`,
-    desc: `Shop ${currentCategoryLabel} online at HeelsUp India. Handcrafted luxury ladies heels, sandals & bags with cash on delivery and free shipping above ₹1599.`
-  }
+  const activeTitle = landingData?.title || `${currentCategoryLabel} for Women - Buy Online in India | Free Delivery & COD | HeelsUp`
+  const activeDesc = landingData?.description || `Shop ${currentCategoryLabel} online at HeelsUp India. Handcrafted luxury ladies heels, sandals & bags with free delivery across India on orders above ₹1599, Cash on Delivery, and 7-day easy exchange.`
+  const activeH1 = landingData?.h1 || currentCategoryLabel
 
   return (
-    <div className="max-w-7xl mx-auto px-6 md:px-8 mt-12 min-h-screen">
+    <div className="max-w-7xl mx-auto px-6 md:px-8 mt-8 min-h-screen">
       <SEO
-        title={activeSeo.title}
-        description={activeSeo.desc}
+        title={activeTitle}
+        description={activeDesc}
         canonical={`https://heelsup.in/${category ? `heels/${category}` : 'shop'}`}
-        ogImage={category === 'block-heels' ? 'https://heelsup.in/categories/block-heels.webp' : 'https://heelsup.in/logo.webp'}
+        ogImage="https://heelsup.in/logo.webp"
+        keywords={`${currentCategoryLabel}, ${currentCategoryLabel} for women, buy ${currentCategoryLabel} online india, ladies footwear, heelsup`}
       />
 
-      {/* Answer-Ready Content Block (GEO Optimization for AI Answer Engines) */}
-      <div className="bg-[#f5f2eb]/60 border border-[#ead2ae]/60 rounded-2xl p-5 mb-8 text-xs text-gray-700 leading-relaxed">
-        <p className="font-medium">
-          <strong className="text-gray-950 font-semibold font-display italic text-sm">HeelsUp {currentCategoryLabel}:</strong> HeelsUp offers handcrafted luxury {currentCategoryLabel.toLowerCase()}, including block heels, stiletto heels, pencil heels, bridal footwear, and designer handbags starting with free delivery across India on orders above ₹1599 and cash on delivery (COD) with a 7-day hassle-free exchange policy.
-        </p>
+      <div className="mb-8">
+        <TrustStrip />
       </div>
 
-      {/* Title */}
-      <div className="border-b border-gray-100 pb-6 mb-10 flex flex-col md:flex-row md:items-center justify-between gap-4">
+      {/* Answer-Ready Content Block & Category Intro Narrative (Competitor-Grade 150-200 Words) */}
+      <div className="bg-[#fcfbf9] border border-[#ead2ae]/60 rounded-3xl p-6 md:p-8 mb-10 shadow-sm">
+        <h1 className="text-2xl md:text-3xl font-light text-gray-950 font-display italic leading-tight mb-4">
+          {activeH1}
+        </h1>
+
+        <p className="text-xs md:text-sm text-gray-700 leading-relaxed">
+          {landingData?.intro || `Discover India’s finest collection of handcrafted ${currentCategoryLabel.toLowerCase()} at HeelsUp. Designed for effortless grace and all-day comfort, our footwear is crafted in Jodhpur by master artisans using premium vegan leathers and multi-layered memory foam footbeds. Enjoy free delivery across India on orders above ₹1599 with cash on delivery (COD) and a 7-day hassle-free doorstep exchange policy.`}
+        </p>
+
+        {landingData?.highlights && landingData.highlights.length > 0 && (
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 mt-6 pt-6 border-t border-gray-200/60">
+            {landingData.highlights.map((highlight, idx) => (
+              <div key={idx} className="flex items-center gap-2 text-xs text-gray-800 font-medium">
+                <CheckCircle2 className="w-4 h-4 text-[#b38d4f] flex-shrink-0" />
+                <span>{highlight}</span>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Related Category Links (Mega Interlinking for SEO Authority) */}
+        {landingData?.relatedCategories && landingData.relatedCategories.length > 0 && (
+          <div className="mt-6 pt-5 border-t border-gray-200/60 flex flex-wrap items-center gap-2">
+            <span className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mr-1">
+              Explore Similar:
+            </span>
+            {landingData.relatedCategories.map((rel, idx) => (
+              <Link
+                key={idx}
+                to={rel.url}
+                className="text-xs bg-white border border-gray-200 hover:border-primary hover:text-primary px-3 py-1.5 rounded-full text-gray-700 transition-colors font-medium shadow-2xs"
+              >
+                {rel.label}
+              </Link>
+            ))}
+            <Link
+              to="/style-guide"
+              className="text-xs bg-[#ead2ae]/30 border border-[#ead2ae] hover:bg-primary hover:text-white px-3 py-1.5 rounded-full text-gray-900 transition-colors font-bold flex items-center gap-1 shadow-2xs"
+            >
+              <Sparkles className="w-3 h-3 text-[#b38d4f]" /> Style Guides
+            </Link>
+          </div>
+        )}
+      </div>
+
+      {/* Controls Bar */}
+      <div className="border-b border-gray-100 pb-6 mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-light text-gray-900 font-display italic">{currentCategoryLabel}</h1>
-          <p className="text-xs text-gray-500 mt-1">Showing {products.length} of {totalProducts} styles</p>
+          <p className="text-xs text-gray-500">Showing {products.length} of {totalProducts} styles</p>
         </div>
 
         {/* Search */}
@@ -576,7 +585,7 @@ export default function Shop() {
           </div>
 
           <div className="space-y-3">
-            {[
+            {(landingData?.faqs || [
               {
                 q: "Does HeelsUp provide Cash on Delivery (COD)?",
                 a: "Yes! We offer cash on delivery (COD) across India with trusted courier partners (Delhivery, BlueDart, DTDC)."
@@ -593,7 +602,7 @@ export default function Shop() {
                 q: "How can I choose the right heel size?",
                 a: "Our footwear strictly follows Indian/EU standard sizing. We recommend ordering your usual Indian shoe size (e.g. Ind 5 = EU 38). Every product page also includes our AI Sizing Guide."
               }
-            ].map((faq, idx) => (
+            ]).map((faq, idx) => (
               <div key={idx} className="border border-gray-200 rounded-xl bg-white overflow-hidden shadow-sm transition-all">
                 <button
                   type="button"

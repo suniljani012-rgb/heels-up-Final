@@ -93,38 +93,66 @@ export default {
 HeelsUp (heelsup.in) is an online footwear store in India specializing in women's luxury heels, sandals, flats, wedges, and designer handbags.
 
 ## What we sell
-- Block heels
-- Stiletto heels
-- Pencil heels
-- Bridal heels
-- Platform heels
-- Flat sandals
-- Wedge heels
-- Luxury handbags & clutches
+- Block heels (Ergonomic wide heel base for office and daily wear)
+- Stiletto heels (High-glamour party and evening high heels)
+- Pencil heels (Sleek tapered slim heels)
+- Platform heels (Maximum visual height with minimum incline angle strain)
+- Wedge heels (Continuous solid sole with all-day arch support)
+- Pump heels (Classic closed-toe court shoes for business & executive wear)
+- Kitten heels (Chic 1.5 to 2 inch low micro-heels)
+- Mule heels (Backless slip-on heels for desk-to-dinner elegance)
+- Ankle strap heels (Buckle fastening heels for dance & wedding security)
+- Heel sandals (Breathable open-toe summer and festive heels)
+- Heel boots (Ankle heeled booties with side zippers for autumn & winter)
+- Bridal heels & wedding shoes (Crystal-embellished heavy lehenga footwear)
+- Flat sandals & slides (Handcrafted everyday slides)
+- Luxury handbags, shoulder bags & clutches
 
 ## Key facts
 - Free delivery across India on orders above ₹1599
-- Cash on delivery (COD) available
-- 7-day easy exchange policy
+- Cash on delivery (COD) available nationwide
+- 7-day easy exchange policy with doorstep reverse pickup
 - Handcrafted footwear manufactured with premium materials in Jodhpur, Rajasthan, India
-- Direct customer support via WhatsApp and Email
+- Direct customer support via WhatsApp (+91 78914 70935) and Email (support@heelsup.in)
 - Instagram: https://www.instagram.com/heel_s_up/
 
-## Key pages
+## Key Landing Pages (Keyword-Targeted Clusters)
 - Homepage: https://heelsup.in/
 - Shop All: https://heelsup.in/shop
 - All Heels: https://heelsup.in/heels
+
+### Style Pages
 - Block Heels: https://heelsup.in/heels/block-heels
-- Bridal Heels: https://heelsup.in/heels/bridal-heels
 - Stiletto Heels: https://heelsup.in/heels/stiletto-heels
 - Pencil Heels: https://heelsup.in/heels/pencil-heels
-- Wedges: https://heelsup.in/heels/wedges
+- Platform Heels: https://heelsup.in/heels/platform-heels
+- Wedge Heels: https://heelsup.in/heels/wedges
+- Pump Heels: https://heelsup.in/heels/pump-heels
+- Kitten Heels: https://heelsup.in/heels/kitten-heels
+- Mule Heels: https://heelsup.in/heels/mule-heels
+- Ankle Strap Heels: https://heelsup.in/heels/ankle-strap-heels
+- Heel Sandals: https://heelsup.in/heels/heel-sandals
+- Heel Boots: https://heelsup.in/heels/heel-boots
 - Flat Sandals: https://heelsup.in/flats
 - Bags & Clutches: https://heelsup.in/bags
-- About Us: https://heelsup.in/about
-- Shipping Information: https://heelsup.in/shipping-info
-- Returns & Exchange: https://heelsup.in/returns
-- Contact Support: https://heelsup.in/contact
+
+### Occasion Pages
+- Bridal Heels: https://heelsup.in/heels/bridal-heels
+- Wedding Heels: https://heelsup.in/heels/wedding-heels
+- Party Heels: https://heelsup.in/heels/party-heels
+- Office Heels: https://heelsup.in/heels/office-heels
+- Formal Heels: https://heelsup.in/heels/formal-heels
+- Casual Heels: https://heelsup.in/heels/casual-heels
+- Festive Heels: https://heelsup.in/heels/festive-heels
+- Daily Wear Heels: https://heelsup.in/heels/daily-wear-heels
+
+### Editorial Style Guides & Footwear Advice
+- Style Guide Hub: https://heelsup.in/style-guide
+- What to Wear to Office: https://heelsup.in/style-guide/what-to-wear-to-office
+- Comfortable Heels for Daily Office Wear: https://heelsup.in/style-guide/comfortable-heels-for-daily-office-wear
+- How to Choose Heels for Bridal Wear: https://heelsup.in/style-guide/how-to-choose-heels-for-bridal-wear
+- Heels vs Flats for Office: https://heelsup.in/style-guide/heels-vs-flats-for-office
+- Women’s Fashion Footwear Trends 2026: https://heelsup.in/style-guide/womens-fashion-footwear-trends-2026
 `;
       return new Response(llmsContent, {
         headers: {
@@ -240,23 +268,40 @@ Sitemap: https://heelsup.in/sitemap.xml
   <url><loc>https://heelsup.in/shop</loc><lastmod>${today}</lastmod><changefreq>daily</changefreq><priority>0.95</priority></url>
   <url><loc>https://heelsup.in/heels</loc><lastmod>${today}</lastmod><changefreq>daily</changefreq><priority>0.95</priority></url>
 
-  <!-- High-Intent Category Landing Pages (GEO & SEO Optimized) -->
+  <!-- ── 1. STYLE CLUSTERS (11 KEYWORD LANDING PAGES) ─────────────── -->
   <url><loc>https://heelsup.in/heels/block-heels</loc><lastmod>${today}</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
-  <url><loc>https://heelsup.in/heels/bridal-heels</loc><lastmod>${today}</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
   <url><loc>https://heelsup.in/heels/stiletto-heels</loc><lastmod>${today}</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
   <url><loc>https://heelsup.in/heels/pencil-heels</loc><lastmod>${today}</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
-  <url><loc>https://heelsup.in/heels/wedges</loc><lastmod>${today}</lastmod><changefreq>daily</changefreq><priority>0.85</priority></url>
+  <url><loc>https://heelsup.in/heels/platform-heels</loc><lastmod>${today}</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://heelsup.in/heels/wedges</loc><lastmod>${today}</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://heelsup.in/heels/pump-heels</loc><lastmod>${today}</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://heelsup.in/heels/kitten-heels</loc><lastmod>${today}</lastmod><changefreq>daily</changefreq><priority>0.85</priority></url>
+  <url><loc>https://heelsup.in/heels/mule-heels</loc><lastmod>${today}</lastmod><changefreq>daily</changefreq><priority>0.85</priority></url>
+  <url><loc>https://heelsup.in/heels/ankle-strap-heels</loc><lastmod>${today}</lastmod><changefreq>daily</changefreq><priority>0.85</priority></url>
+  <url><loc>https://heelsup.in/heels/heel-sandals</loc><lastmod>${today}</lastmod><changefreq>daily</changefreq><priority>0.85</priority></url>
+  <url><loc>https://heelsup.in/heels/heel-boots</loc><lastmod>${today}</lastmod><changefreq>daily</changefreq><priority>0.85</priority></url>
   <url><loc>https://heelsup.in/flats</loc><lastmod>${today}</lastmod><changefreq>daily</changefreq><priority>0.85</priority></url>
   <url><loc>https://heelsup.in/bags</loc><lastmod>${today}</lastmod><changefreq>daily</changefreq><priority>0.85</priority></url>
 
-  <!-- Legacy & Alias Friendly Category Routes -->
-  <url><loc>https://heelsup.in/block-heels</loc><lastmod>${today}</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
-  <url><loc>https://heelsup.in/stilettos</loc><lastmod>${today}</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
-  <url><loc>https://heelsup.in/pencil-heels</loc><lastmod>${today}</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
-  <url><loc>https://heelsup.in/bridal-heels</loc><lastmod>${today}</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
-  <url><loc>https://heelsup.in/wedges</loc><lastmod>${today}</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <!-- ── 2. OCCASION CLUSTERS (8 KEYWORD LANDING PAGES) ───────────── -->
+  <url><loc>https://heelsup.in/heels/bridal-heels</loc><lastmod>${today}</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://heelsup.in/heels/wedding-heels</loc><lastmod>${today}</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://heelsup.in/heels/party-heels</loc><lastmod>${today}</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://heelsup.in/heels/office-heels</loc><lastmod>${today}</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://heelsup.in/heels/formal-heels</loc><lastmod>${today}</lastmod><changefreq>daily</changefreq><priority>0.85</priority></url>
+  <url><loc>https://heelsup.in/heels/casual-heels</loc><lastmod>${today}</lastmod><changefreq>daily</changefreq><priority>0.85</priority></url>
+  <url><loc>https://heelsup.in/heels/festive-heels</loc><lastmod>${today}</lastmod><changefreq>daily</changefreq><priority>0.85</priority></url>
+  <url><loc>https://heelsup.in/heels/daily-wear-heels</loc><lastmod>${today}</lastmod><changefreq>daily</changefreq><priority>0.85</priority></url>
 
-  <!-- Brand & Support Pages -->
+  <!-- ── 3. TOPICAL AUTHORITY STYLE GUIDES (5 EDITORIAL ARTICLES) ── -->
+  <url><loc>https://heelsup.in/style-guide</loc><lastmod>${today}</lastmod><changefreq>weekly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://heelsup.in/style-guide/what-to-wear-to-office</loc><lastmod>${today}</lastmod><changefreq>monthly</changefreq><priority>0.75</priority></url>
+  <url><loc>https://heelsup.in/style-guide/comfortable-heels-for-daily-office-wear</loc><lastmod>${today}</lastmod><changefreq>monthly</changefreq><priority>0.75</priority></url>
+  <url><loc>https://heelsup.in/style-guide/how-to-choose-heels-for-bridal-wear</loc><lastmod>${today}</lastmod><changefreq>monthly</changefreq><priority>0.75</priority></url>
+  <url><loc>https://heelsup.in/style-guide/heels-vs-flats-for-office</loc><lastmod>${today}</lastmod><changefreq>monthly</changefreq><priority>0.75</priority></url>
+  <url><loc>https://heelsup.in/style-guide/womens-fashion-footwear-trends-2026</loc><lastmod>${today}</lastmod><changefreq>monthly</changefreq><priority>0.75</priority></url>
+
+  <!-- ── Brand & Support Pages ───────────────────────────────────── -->
   <url><loc>https://heelsup.in/about</loc><lastmod>${today}</lastmod><changefreq>monthly</changefreq><priority>0.6</priority></url>
   <url><loc>https://heelsup.in/contact</loc><lastmod>${today}</lastmod><changefreq>monthly</changefreq><priority>0.6</priority></url>
   <url><loc>https://heelsup.in/shipping-info</loc><lastmod>${today}</lastmod><changefreq>monthly</changefreq><priority>0.5</priority></url>

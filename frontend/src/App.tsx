@@ -25,6 +25,8 @@ const OrderTracking = lazy(() => import('./pages/OrderTracking'))
 const DynamicPage = lazy(() => import('./pages/DynamicPage'))
 const NotFound = lazy(() => import('./pages/NotFound'))
 const Admin = lazy(() => import('./pages/Admin'))
+const StyleGuideHub = lazy(() => import('./pages/StyleGuideHub'))
+const StyleGuideArticle = lazy(() => import('./pages/StyleGuideArticle'))
 
 import { useCartStore } from './store/useCartStore'
 
@@ -162,17 +164,48 @@ function AppContent() {
             <Route path="/shop" element={<Shop />} />
             <Route path="/shop.html" element={<Shop />} />
             
-            {/* Category & Collection Landing Routes (SEO & GEO) */}
+            {/* Category & Keyword-Targeted Landing Routes (19 Clusters for SEO & GEO) */}
             <Route path="/heels" element={<Shop />} />
             <Route path="/heels/:category" element={<Shop />} />
             <Route path="/heels/:category/:slug" element={<Product />} />
+            
+            {/* Style Clusters */}
             <Route path="/block-heels" element={<Shop />} />
-            <Route path="/pencil-heels" element={<Shop />} />
+            <Route path="/stiletto-heels" element={<Shop />} />
             <Route path="/stilettos" element={<Shop />} />
-            <Route path="/bridal-heels" element={<Shop />} />
+            <Route path="/pencil-heels" element={<Shop />} />
+            <Route path="/platform-heels" element={<Shop />} />
+            <Route path="/wedge-heels" element={<Shop />} />
             <Route path="/wedges" element={<Shop />} />
+            <Route path="/pump-heels" element={<Shop />} />
+            <Route path="/pumps" element={<Shop />} />
+            <Route path="/kitten-heels" element={<Shop />} />
+            <Route path="/mule-heels" element={<Shop />} />
+            <Route path="/mules" element={<Shop />} />
+            <Route path="/ankle-strap-heels" element={<Shop />} />
+            <Route path="/heel-sandals" element={<Shop />} />
+            <Route path="/sandals" element={<Shop />} />
+            <Route path="/heel-boots" element={<Shop />} />
+            <Route path="/boots" element={<Shop />} />
+            
+            {/* Occasion Clusters */}
+            <Route path="/bridal-heels" element={<Shop />} />
+            <Route path="/wedding-heels" element={<Shop />} />
+            <Route path="/party-heels" element={<Shop />} />
+            <Route path="/office-heels" element={<Shop />} />
+            <Route path="/formal-heels" element={<Shop />} />
+            <Route path="/casual-heels" element={<Shop />} />
+            <Route path="/festive-heels" element={<Shop />} />
+            <Route path="/daily-wear-heels" element={<Shop />} />
+            
             <Route path="/flats" element={<Shop />} />
             <Route path="/bags" element={<Shop />} />
+
+            {/* Topical Authority Style Guide Hub & Articles */}
+            <Route path="/style-guide" element={<StyleGuideHub />} />
+            <Route path="/blog" element={<StyleGuideHub />} />
+            <Route path="/style-guide/:slug" element={<StyleGuideArticle />} />
+            <Route path="/blog/:slug" element={<StyleGuideArticle />} />
             
             <Route path="/product" element={<Product />} />
             <Route path="/product/:id" element={<Product />} />

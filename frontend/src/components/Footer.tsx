@@ -181,6 +181,69 @@ export default function Footer() {
         </div>
       </div>
 
+      {/* Competitor-Grade Keyword Landing Page Matrix & Topical Authority Links (SEO Interlinking) */}
+      <div className="max-w-7xl mx-auto px-6 md:px-8 py-8 border-b" style={{ borderColor: '#292524' }}>
+        <div className="space-y-4">
+          <div>
+            <h5 className="text-[10px] font-bold uppercase tracking-widest mb-2" style={{ color: '#fafaf9' }}>
+              Shop By Heel Style
+            </h5>
+            <div className="flex flex-wrap gap-x-4 gap-y-1.5 text-[11px]" style={{ color: '#78716c' }}>
+              <Link to="/heels/block-heels" className="hover:underline" style={{ color: '#a8a29e' }}>Block Heels</Link>
+              <span>&bull;</span>
+              <Link to="/heels/stiletto-heels" className="hover:underline" style={{ color: '#a8a29e' }}>Stiletto Heels</Link>
+              <span>&bull;</span>
+              <Link to="/heels/pencil-heels" className="hover:underline" style={{ color: '#a8a29e' }}>Pencil Heels</Link>
+              <span>&bull;</span>
+              <Link to="/heels/platform-heels" className="hover:underline" style={{ color: '#a8a29e' }}>Platform Heels</Link>
+              <span>&bull;</span>
+              <Link to="/heels/wedges" className="hover:underline" style={{ color: '#a8a29e' }}>Wedge Heels</Link>
+              <span>&bull;</span>
+              <Link to="/heels/pump-heels" className="hover:underline" style={{ color: '#a8a29e' }}>Pump Heels</Link>
+              <span>&bull;</span>
+              <Link to="/heels/kitten-heels" className="hover:underline" style={{ color: '#a8a29e' }}>Kitten Heels</Link>
+              <span>&bull;</span>
+              <Link to="/heels/mule-heels" className="hover:underline" style={{ color: '#a8a29e' }}>Mule Heels</Link>
+              <span>&bull;</span>
+              <Link to="/heels/ankle-strap-heels" className="hover:underline" style={{ color: '#a8a29e' }}>Ankle Strap Heels</Link>
+              <span>&bull;</span>
+              <Link to="/heels/heel-sandals" className="hover:underline" style={{ color: '#a8a29e' }}>Heel Sandals</Link>
+              <span>&bull;</span>
+              <Link to="/heels/heel-boots" className="hover:underline" style={{ color: '#a8a29e' }}>Heel Boots</Link>
+              <span>&bull;</span>
+              <Link to="/flats" className="hover:underline" style={{ color: '#a8a29e' }}>Flat Sandals</Link>
+            </div>
+          </div>
+
+          <div className="pt-2">
+            <h5 className="text-[10px] font-bold uppercase tracking-widest mb-2" style={{ color: '#fafaf9' }}>
+              Shop By Occasion &amp; Editorial Guides
+            </h5>
+            <div className="flex flex-wrap gap-x-4 gap-y-1.5 text-[11px]" style={{ color: '#78716c' }}>
+              <Link to="/heels/bridal-heels" className="hover:underline" style={{ color: '#a8a29e' }}>Bridal Heels</Link>
+              <span>&bull;</span>
+              <Link to="/heels/wedding-heels" className="hover:underline" style={{ color: '#a8a29e' }}>Wedding Heels</Link>
+              <span>&bull;</span>
+              <Link to="/heels/party-heels" className="hover:underline" style={{ color: '#a8a29e' }}>Party Heels</Link>
+              <span>&bull;</span>
+              <Link to="/heels/office-heels" className="hover:underline" style={{ color: '#a8a29e' }}>Office Heels</Link>
+              <span>&bull;</span>
+              <Link to="/heels/formal-heels" className="hover:underline" style={{ color: '#a8a29e' }}>Formal Heels</Link>
+              <span>&bull;</span>
+              <Link to="/heels/casual-heels" className="hover:underline" style={{ color: '#a8a29e' }}>Casual Heels</Link>
+              <span>&bull;</span>
+              <Link to="/heels/festive-heels" className="hover:underline" style={{ color: '#a8a29e' }}>Festive Heels</Link>
+              <span>&bull;</span>
+              <Link to="/heels/daily-wear-heels" className="hover:underline" style={{ color: '#a8a29e' }}>Daily Wear Heels</Link>
+              <span>&bull;</span>
+              <Link to="/bags" className="hover:underline" style={{ color: '#a8a29e' }}>Handbags &amp; Clutches</Link>
+              <span>&bull;</span>
+              <Link to="/style-guide" className="hover:underline font-bold" style={{ color: '#c9a96e' }}>Style Guide Hub</Link>
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* Footer Bottom */}
       <div className="max-w-7xl mx-auto px-6 md:px-8 mt-8 flex flex-col md:flex-row items-center justify-between gap-4">
         <p className="text-[10px] font-medium" style={{ color: '#57534e' }}>

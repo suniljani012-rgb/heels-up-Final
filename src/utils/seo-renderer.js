@@ -48,88 +48,342 @@ export const CATEGORY_SEO_DATA = {
     image: `${BASE_URL}/logo.webp`,
     ogType: "website"
   },
+
+  // ─── 1. STYLE CLUSTERS ───────────────────────────────────────────────────
   '/heels/block-heels': {
-    title: "Buy Block Heels Online India | Comfortable & Stylish | HeelsUp",
-    description: "Shop the latest block heels online at HeelsUp. Comfortable, stylish designs for office, party & daily wear. Free delivery above ₹1599, COD available, 7-day easy exchange.",
+    title: "Block Heels for Women - Buy Online in India | Free Delivery & COD | HeelsUp",
+    description: "Shop Block Heels for women online at HeelsUp. Handcrafted comfort with sturdy wide heel bases, padded insoles and modern silhouettes for office, daily wear & weddings. Free delivery across India, Cash on Delivery, 7-day easy exchange.",
     canonical: `${BASE_URL}/heels/block-heels`,
     image: `${BASE_URL}/categories/block-heels.webp`,
     ogType: "website",
     categoryName: "Block Heels"
   },
   '/block-heels': {
-    title: "Buy Block Heels Online India | Comfortable & Stylish | HeelsUp",
-    description: "Shop the latest block heels online at HeelsUp. Comfortable, stylish designs for office, party & daily wear. Free delivery above ₹1599, COD available, 7-day easy exchange.",
+    title: "Block Heels for Women - Buy Online in India | Free Delivery & COD | HeelsUp",
+    description: "Shop Block Heels for women online at HeelsUp. Handcrafted comfort with sturdy wide heel bases, padded insoles and modern silhouettes for office, daily wear & weddings. Free delivery across India, Cash on Delivery, 7-day easy exchange.",
     canonical: `${BASE_URL}/heels/block-heels`,
     image: `${BASE_URL}/categories/block-heels.webp`,
     ogType: "website",
     categoryName: "Block Heels"
   },
+
   '/heels/stiletto-heels': {
-    title: "Buy Stiletto Heels Online India | Party & Wedding Wear | HeelsUp",
-    description: "Discover elegant, head-turning stiletto heels online at HeelsUp. Perfect for weddings, parties, and night outs. Free shipping across India, COD available.",
+    title: "Stiletto Heels for Women - Buy Online in India | Free Delivery & COD | HeelsUp",
+    description: "Shop Stiletto Heels for women online at HeelsUp. Sleek, glamorous high heels with reinforced arch steel shanks and padded ball-of-foot cushioning. Free delivery across India, Cash on Delivery, 7-day easy exchange.",
     canonical: `${BASE_URL}/heels/stiletto-heels`,
     image: `${BASE_URL}/logo.webp`,
     ogType: "website",
     categoryName: "Stiletto Heels"
   },
   '/stilettos': {
-    title: "Buy Stiletto Heels Online India | Party & Wedding Wear | HeelsUp",
-    description: "Discover elegant, head-turning stiletto heels online at HeelsUp. Perfect for weddings, parties, and night outs. Free shipping across India, COD available.",
+    title: "Stiletto Heels for Women - Buy Online in India | Free Delivery & COD | HeelsUp",
+    description: "Shop Stiletto Heels for women online at HeelsUp. Sleek, glamorous high heels with reinforced arch steel shanks and padded ball-of-foot cushioning. Free delivery across India, Cash on Delivery, 7-day easy exchange.",
     canonical: `${BASE_URL}/heels/stiletto-heels`,
     image: `${BASE_URL}/logo.webp`,
     ogType: "website",
     categoryName: "Stiletto Heels"
   },
+
   '/heels/pencil-heels': {
-    title: "Buy Designer Pencil Heels Online India | Chic High Heels | HeelsUp",
-    description: "Elevate your elegance with designer pencil heels from HeelsUp. Handcrafted comfort with sleek, sophisticated silhouettes. Easy 7-day exchanges and COD.",
+    title: "Pencil Heels for Women - Buy Online in India | Free Delivery & COD | HeelsUp",
+    description: "Shop Designer Pencil Heels for women online at HeelsUp. Sleek, tapered slim heels engineered for graceful posture and evening sophistication. Free delivery across India, Cash on Delivery, 7-day easy exchange.",
     canonical: `${BASE_URL}/heels/pencil-heels`,
     image: `${BASE_URL}/logo.webp`,
     ogType: "website",
     categoryName: "Pencil Heels"
   },
   '/pencil-heels': {
-    title: "Buy Designer Pencil Heels Online India | Chic High Heels | HeelsUp",
-    description: "Elevate your elegance with designer pencil heels from HeelsUp. Handcrafted comfort with sleek, sophisticated silhouettes. Easy 7-day exchanges and COD.",
+    title: "Pencil Heels for Women - Buy Online in India | Free Delivery & COD | HeelsUp",
+    description: "Shop Designer Pencil Heels for women online at HeelsUp. Sleek, tapered slim heels engineered for graceful posture and evening sophistication. Free delivery across India, Cash on Delivery, 7-day easy exchange.",
     canonical: `${BASE_URL}/heels/pencil-heels`,
     image: `${BASE_URL}/logo.webp`,
     ogType: "website",
     categoryName: "Pencil Heels"
   },
+
+  '/heels/platform-heels': {
+    title: "Platform Heels for Women - Buy Online in India | Free Delivery & COD | HeelsUp",
+    description: "Shop Platform Heels for women online at HeelsUp. Dramatic height with zero foot incline strain thanks to elevated front soles and cushioned arches. Free delivery across India, Cash on Delivery, 7-day easy exchange.",
+    canonical: `${BASE_URL}/heels/platform-heels`,
+    image: `${BASE_URL}/logo.webp`,
+    ogType: "website",
+    categoryName: "Platform Heels"
+  },
+  '/platform-heels': {
+    title: "Platform Heels for Women - Buy Online in India | Free Delivery & COD | HeelsUp",
+    description: "Shop Platform Heels for women online at HeelsUp. Dramatic height with zero foot incline strain thanks to elevated front soles and cushioned arches. Free delivery across India, Cash on Delivery, 7-day easy exchange.",
+    canonical: `${BASE_URL}/heels/platform-heels`,
+    image: `${BASE_URL}/logo.webp`,
+    ogType: "website",
+    categoryName: "Platform Heels"
+  },
+
+  '/heels/wedges': {
+    title: "Wedge Heels for Women - Buy Online in India | Free Delivery & COD | HeelsUp",
+    description: "Shop Wedge Heels and Platform Sandals online at HeelsUp. Complete arch support, continuous sole stability, and chic resort & casual designs. Free delivery across India, Cash on Delivery, 7-day easy exchange.",
+    canonical: `${BASE_URL}/heels/wedges`,
+    image: `${BASE_URL}/logo.webp`,
+    ogType: "website",
+    categoryName: "Wedge Heels"
+  },
+  '/wedges': {
+    title: "Wedge Heels for Women - Buy Online in India | Free Delivery & COD | HeelsUp",
+    description: "Shop Wedge Heels and Platform Sandals online at HeelsUp. Complete arch support, continuous sole stability, and chic resort & casual designs. Free delivery across India, Cash on Delivery, 7-day easy exchange.",
+    canonical: `${BASE_URL}/heels/wedges`,
+    image: `${BASE_URL}/logo.webp`,
+    ogType: "website",
+    categoryName: "Wedge Heels"
+  },
+  '/heels/wedge-heels': {
+    title: "Wedge Heels for Women - Buy Online in India | Free Delivery & COD | HeelsUp",
+    description: "Shop Wedge Heels and Platform Sandals online at HeelsUp. Complete arch support, continuous sole stability, and chic resort & casual designs. Free delivery across India, Cash on Delivery, 7-day easy exchange.",
+    canonical: `${BASE_URL}/heels/wedges`,
+    image: `${BASE_URL}/logo.webp`,
+    ogType: "website",
+    categoryName: "Wedge Heels"
+  },
+
+  '/heels/pump-heels': {
+    title: "Pump Heels for Women - Buy Online in India | Free Delivery & COD | HeelsUp",
+    description: "Shop Classic Closed-Toe Pump Heels for women at HeelsUp. Timeless pointed & rounded pumps for boardroom professionalism and evening glamour. Free delivery across India, Cash on Delivery, 7-day easy exchange.",
+    canonical: `${BASE_URL}/heels/pump-heels`,
+    image: `${BASE_URL}/logo.webp`,
+    ogType: "website",
+    categoryName: "Pump Heels"
+  },
+  '/pumps': {
+    title: "Pump Heels for Women - Buy Online in India | Free Delivery & COD | HeelsUp",
+    description: "Shop Classic Closed-Toe Pump Heels for women at HeelsUp. Timeless pointed & rounded pumps for boardroom professionalism and evening glamour. Free delivery across India, Cash on Delivery, 7-day easy exchange.",
+    canonical: `${BASE_URL}/heels/pump-heels`,
+    image: `${BASE_URL}/logo.webp`,
+    ogType: "website",
+    categoryName: "Pump Heels"
+  },
+
+  '/heels/kitten-heels': {
+    title: "Kitten Heels for Women - Buy Online in India | Free Delivery & COD | HeelsUp",
+    description: "Shop Chic Kitten Heels for women online at HeelsUp. Subtle 1.5 to 2 inch micro-heels blending vintage French glamour with effortless all-day comfort. Free delivery across India, Cash on Delivery, 7-day easy exchange.",
+    canonical: `${BASE_URL}/heels/kitten-heels`,
+    image: `${BASE_URL}/logo.webp`,
+    ogType: "website",
+    categoryName: "Kitten Heels"
+  },
+  '/kitten-heels': {
+    title: "Kitten Heels for Women - Buy Online in India | Free Delivery & COD | HeelsUp",
+    description: "Shop Chic Kitten Heels for women online at HeelsUp. Subtle 1.5 to 2 inch micro-heels blending vintage French glamour with effortless all-day comfort. Free delivery across India, Cash on Delivery, 7-day easy exchange.",
+    canonical: `${BASE_URL}/heels/kitten-heels`,
+    image: `${BASE_URL}/logo.webp`,
+    ogType: "website",
+    categoryName: "Kitten Heels"
+  },
+
+  '/heels/mule-heels': {
+    title: "Mule Heels for Women - Buy Online in India | Free Delivery & COD | HeelsUp",
+    description: "Shop Slip-On Mule Heels for women online at HeelsUp. Backless, effortless slide-in heels with secure vamp bands and modern block heel styling. Free delivery across India, Cash on Delivery, 7-day easy exchange.",
+    canonical: `${BASE_URL}/heels/mule-heels`,
+    image: `${BASE_URL}/logo.webp`,
+    ogType: "website",
+    categoryName: "Mule Heels"
+  },
+  '/mules': {
+    title: "Mule Heels for Women - Buy Online in India | Free Delivery & COD | HeelsUp",
+    description: "Shop Slip-On Mule Heels for women online at HeelsUp. Backless, effortless slide-in heels with secure vamp bands and modern block heel styling. Free delivery across India, Cash on Delivery, 7-day easy exchange.",
+    canonical: `${BASE_URL}/heels/mule-heels`,
+    image: `${BASE_URL}/logo.webp`,
+    ogType: "website",
+    categoryName: "Mule Heels"
+  },
+
+  '/heels/ankle-strap-heels': {
+    title: "Ankle Strap Heels for Women - Buy Online in India | Free Delivery & COD | HeelsUp",
+    description: "Shop Ankle Strap Heels for women online at HeelsUp. Adjustable buckles, secure ankle support, and leg-lengthening stiletto & block designs. Free delivery across India, Cash on Delivery, 7-day easy exchange.",
+    canonical: `${BASE_URL}/heels/ankle-strap-heels`,
+    image: `${BASE_URL}/logo.webp`,
+    ogType: "website",
+    categoryName: "Ankle Strap Heels"
+  },
+  '/ankle-strap-heels': {
+    title: "Ankle Strap Heels for Women - Buy Online in India | Free Delivery & COD | HeelsUp",
+    description: "Shop Ankle Strap Heels for women online at HeelsUp. Adjustable buckles, secure ankle support, and leg-lengthening stiletto & block designs. Free delivery across India, Cash on Delivery, 7-day easy exchange.",
+    canonical: `${BASE_URL}/heels/ankle-strap-heels`,
+    image: `${BASE_URL}/logo.webp`,
+    ogType: "website",
+    categoryName: "Ankle Strap Heels"
+  },
+
+  '/heels/heel-sandals': {
+    title: "Heel Sandals for Women - Buy Online in India | Free Delivery & COD | HeelsUp",
+    description: "Shop Designer Heel Sandals for women online at HeelsUp. Breathable open-toe straps, cushioned footbeds, and lightweight block & kitten heels. Free delivery across India, Cash on Delivery, 7-day easy exchange.",
+    canonical: `${BASE_URL}/heels/heel-sandals`,
+    image: `${BASE_URL}/logo.webp`,
+    ogType: "website",
+    categoryName: "Heel Sandals"
+  },
+  '/sandals': {
+    title: "Heel Sandals for Women - Buy Online in India | Free Delivery & COD | HeelsUp",
+    description: "Shop Designer Heel Sandals for women online at HeelsUp. Breathable open-toe straps, cushioned footbeds, and lightweight block & kitten heels. Free delivery across India, Cash on Delivery, 7-day easy exchange.",
+    canonical: `${BASE_URL}/heels/heel-sandals`,
+    image: `${BASE_URL}/logo.webp`,
+    ogType: "website",
+    categoryName: "Heel Sandals"
+  },
+
+  '/heels/heel-boots': {
+    title: "Heel Boots for Women - Buy Online in India | Free Delivery & COD | HeelsUp",
+    description: "Shop Designer Heel Boots for women online at HeelsUp. Chic ankle booties, side-zip block heel boots, and winter statement styles. Free delivery across India, Cash on Delivery, 7-day easy exchange.",
+    canonical: `${BASE_URL}/heels/heel-boots`,
+    image: `${BASE_URL}/logo.webp`,
+    ogType: "website",
+    categoryName: "Heel Boots"
+  },
+  '/boots': {
+    title: "Heel Boots for Women - Buy Online in India | Free Delivery & COD | HeelsUp",
+    description: "Shop Designer Heel Boots for women online at HeelsUp. Chic ankle booties, side-zip block heel boots, and winter statement styles. Free delivery across India, Cash on Delivery, 7-day easy exchange.",
+    canonical: `${BASE_URL}/heels/heel-boots`,
+    image: `${BASE_URL}/logo.webp`,
+    ogType: "website",
+    categoryName: "Heel Boots"
+  },
+
+  // ─── 2. OCCASION CLUSTERS ────────────────────────────────────────────────
   '/heels/bridal-heels': {
-    title: "Buy Luxury Bridal Heels Online India | Wedding Footwear | HeelsUp",
-    description: "Shop exquisite bridal heels and wedding shoes for brides and bridesmaids. Sparkling crystals, cushioned footbeds & handcrafted perfection. Free shipping India.",
+    title: "Bridal Heels for Women - Buy Online in India | Free Delivery & COD | HeelsUp",
+    description: "Shop Luxury Bridal Heels & Wedding Shoes online at HeelsUp. Handcrafted wedding footwear with shimmering crystals, golden zari tones, and heavy-lehenga comfort. Free delivery across India, Cash on Delivery, 7-day easy exchange.",
     canonical: `${BASE_URL}/heels/bridal-heels`,
     image: `${BASE_URL}/logo.webp`,
     ogType: "website",
     categoryName: "Bridal Heels"
   },
   '/bridal-heels': {
-    title: "Buy Luxury Bridal Heels Online India | Wedding Footwear | HeelsUp",
-    description: "Shop exquisite bridal heels and wedding shoes for brides and bridesmaids. Sparkling crystals, cushioned footbeds & handcrafted perfection. Free shipping India.",
+    title: "Bridal Heels for Women - Buy Online in India | Free Delivery & COD | HeelsUp",
+    description: "Shop Luxury Bridal Heels & Wedding Shoes online at HeelsUp. Handcrafted wedding footwear with shimmering crystals, golden zari tones, and heavy-lehenga comfort. Free delivery across India, Cash on Delivery, 7-day easy exchange.",
     canonical: `${BASE_URL}/heels/bridal-heels`,
     image: `${BASE_URL}/logo.webp`,
     ogType: "website",
     categoryName: "Bridal Heels"
   },
-  '/heels/wedges': {
-    title: "Buy Platform Wedges & Wedge Heels Online India | HeelsUp",
-    description: "Shop comfortable, trendy wedge heels and platform sandals at HeelsUp. All-day arch support and chic modern designs with COD and easy exchanges.",
-    canonical: `${BASE_URL}/heels/wedges`,
+
+  '/heels/wedding-heels': {
+    title: "Wedding Heels for Women - Buy Online in India | Free Delivery & COD | HeelsUp",
+    description: "Shop Wedding Guest & Bridesmaid Heels online at HeelsUp. Sparkling party heels, dance-friendly block heels & ethnic footwear for sangeet & receptions. Free delivery across India, Cash on Delivery, 7-day easy exchange.",
+    canonical: `${BASE_URL}/heels/wedding-heels`,
     image: `${BASE_URL}/logo.webp`,
     ogType: "website",
-    categoryName: "Wedges"
+    categoryName: "Wedding Heels"
   },
-  '/wedges': {
-    title: "Buy Platform Wedges & Wedge Heels Online India | HeelsUp",
-    description: "Shop comfortable, trendy wedge heels and platform sandals at HeelsUp. All-day arch support and chic modern designs with COD and easy exchanges.",
-    canonical: `${BASE_URL}/heels/wedges`,
+  '/wedding-heels': {
+    title: "Wedding Heels for Women - Buy Online in India | Free Delivery & COD | HeelsUp",
+    description: "Shop Wedding Guest & Bridesmaid Heels online at HeelsUp. Sparkling party heels, dance-friendly block heels & ethnic footwear for sangeet & receptions. Free delivery across India, Cash on Delivery, 7-day easy exchange.",
+    canonical: `${BASE_URL}/heels/wedding-heels`,
     image: `${BASE_URL}/logo.webp`,
     ogType: "website",
-    categoryName: "Wedges"
+    categoryName: "Wedding Heels"
   },
+
+  '/heels/party-heels': {
+    title: "Party Heels for Women - Buy Online in India | Free Delivery & COD | HeelsUp",
+    description: "Shop Glamorous Party Heels for women online at HeelsUp. Rhinestones, metallic stilettos, platform heels, and cocktail party footwear. Free delivery across India, Cash on Delivery, 7-day easy exchange.",
+    canonical: `${BASE_URL}/heels/party-heels`,
+    image: `${BASE_URL}/logo.webp`,
+    ogType: "website",
+    categoryName: "Party Heels"
+  },
+  '/party-heels': {
+    title: "Party Heels for Women - Buy Online in India | Free Delivery & COD | HeelsUp",
+    description: "Shop Glamorous Party Heels for women online at HeelsUp. Rhinestones, metallic stilettos, platform heels, and cocktail party footwear. Free delivery across India, Cash on Delivery, 7-day easy exchange.",
+    canonical: `${BASE_URL}/heels/party-heels`,
+    image: `${BASE_URL}/logo.webp`,
+    ogType: "website",
+    categoryName: "Party Heels"
+  },
+
+  '/heels/office-heels': {
+    title: "Office Heels for Women - Buy Online in India | Free Delivery & COD | HeelsUp",
+    description: "Shop Comfortable Office Heels for women online at HeelsUp. Ergonomic block heels, kitten heels, and closed-toe pumps for 9-to-5 professionalism. Free delivery across India, Cash on Delivery, 7-day easy exchange.",
+    canonical: `${BASE_URL}/heels/office-heels`,
+    image: `${BASE_URL}/logo.webp`,
+    ogType: "website",
+    categoryName: "Office Heels"
+  },
+  '/office-heels': {
+    title: "Office Heels for Women - Buy Online in India | Free Delivery & COD | HeelsUp",
+    description: "Shop Comfortable Office Heels for women online at HeelsUp. Ergonomic block heels, kitten heels, and closed-toe pumps for 9-to-5 professionalism. Free delivery across India, Cash on Delivery, 7-day easy exchange.",
+    canonical: `${BASE_URL}/heels/office-heels`,
+    image: `${BASE_URL}/logo.webp`,
+    ogType: "website",
+    categoryName: "Office Heels"
+  },
+
+  '/heels/formal-heels': {
+    title: "Formal Heels for Women - Buy Online in India | Free Delivery & COD | HeelsUp",
+    description: "Shop Elegant Formal Heels for women online at HeelsUp. Sophisticated pumps, neutral block heels, and boardroom court shoes. Free delivery across India, Cash on Delivery, 7-day easy exchange.",
+    canonical: `${BASE_URL}/heels/formal-heels`,
+    image: `${BASE_URL}/logo.webp`,
+    ogType: "website",
+    categoryName: "Formal Heels"
+  },
+  '/formal-heels': {
+    title: "Formal Heels for Women - Buy Online in India | Free Delivery & COD | HeelsUp",
+    description: "Shop Elegant Formal Heels for women online at HeelsUp. Sophisticated pumps, neutral block heels, and boardroom court shoes. Free delivery across India, Cash on Delivery, 7-day easy exchange.",
+    canonical: `${BASE_URL}/heels/formal-heels`,
+    image: `${BASE_URL}/logo.webp`,
+    ogType: "website",
+    categoryName: "Formal Heels"
+  },
+
+  '/heels/casual-heels': {
+    title: "Casual Heels for Women - Buy Online in India | Free Delivery & COD | HeelsUp",
+    description: "Shop Daily Casual Heels for women online at HeelsUp. Relaxed block heels, wedge sandals, and mule slides for college, brunch & shopping. Free delivery across India, Cash on Delivery, 7-day easy exchange.",
+    canonical: `${BASE_URL}/heels/casual-heels`,
+    image: `${BASE_URL}/logo.webp`,
+    ogType: "website",
+    categoryName: "Casual Heels"
+  },
+  '/casual-heels': {
+    title: "Casual Heels for Women - Buy Online in India | Free Delivery & COD | HeelsUp",
+    description: "Shop Daily Casual Heels for women online at HeelsUp. Relaxed block heels, wedge sandals, and mule slides for college, brunch & shopping. Free delivery across India, Cash on Delivery, 7-day easy exchange.",
+    canonical: `${BASE_URL}/heels/casual-heels`,
+    image: `${BASE_URL}/logo.webp`,
+    ogType: "website",
+    categoryName: "Casual Heels"
+  },
+
+  '/heels/festive-heels': {
+    title: "Festive Heels for Women - Buy Online in India | Free Delivery & COD | HeelsUp",
+    description: "Shop Festive Ethnic Heels for women online at HeelsUp. Golden zari heels, shimmering block sandals, and traditional Indian celebratory footwear. Free delivery across India, Cash on Delivery, 7-day easy exchange.",
+    canonical: `${BASE_URL}/heels/festive-heels`,
+    image: `${BASE_URL}/logo.webp`,
+    ogType: "website",
+    categoryName: "Festive Heels"
+  },
+  '/festive-heels': {
+    title: "Festive Heels for Women - Buy Online in India | Free Delivery & COD | HeelsUp",
+    description: "Shop Festive Ethnic Heels for women online at HeelsUp. Golden zari heels, shimmering block sandals, and traditional Indian celebratory footwear. Free delivery across India, Cash on Delivery, 7-day easy exchange.",
+    canonical: `${BASE_URL}/heels/festive-heels`,
+    image: `${BASE_URL}/logo.webp`,
+    ogType: "website",
+    categoryName: "Festive Heels"
+  },
+
+  '/heels/daily-wear-heels': {
+    title: "Daily Wear Heels for Women - Buy Online in India | Free Delivery & COD | HeelsUp",
+    description: "Shop Daily Wear Comfortable Heels for women online at HeelsUp. Low block heels, supportive wedge slides, and cushioned footwear for regular use. Free delivery across India, Cash on Delivery, 7-day easy exchange.",
+    canonical: `${BASE_URL}/heels/daily-wear-heels`,
+    image: `${BASE_URL}/logo.webp`,
+    ogType: "website",
+    categoryName: "Daily Wear Heels"
+  },
+  '/daily-wear-heels': {
+    title: "Daily Wear Heels for Women - Buy Online in India | Free Delivery & COD | HeelsUp",
+    description: "Shop Daily Wear Comfortable Heels for women online at HeelsUp. Low block heels, supportive wedge slides, and cushioned footwear for regular use. Free delivery across India, Cash on Delivery, 7-day easy exchange.",
+    canonical: `${BASE_URL}/heels/daily-wear-heels`,
+    image: `${BASE_URL}/logo.webp`,
+    ogType: "website",
+    categoryName: "Daily Wear Heels"
+  },
+
   '/flats': {
-    title: "Buy Designer Flat Sandals & Slides Online India | HeelsUp",
+    title: "Flat Sandals for Women - Buy Online in India | Free Delivery & COD | HeelsUp",
     description: "Discover handcrafted luxury flat sandals, slides, and slip-ons for women. Effortless daily elegance made in Jodhpur. Free shipping on orders above ₹1599.",
     canonical: `${BASE_URL}/flats`,
     image: `${BASE_URL}/logo.webp`,
@@ -137,13 +391,66 @@ export const CATEGORY_SEO_DATA = {
     categoryName: "Flats"
   },
   '/bags': {
-    title: "Buy Luxury Women's Handbags & Clutches Online India | HeelsUp",
+    title: "Luxury Handbags & Clutches for Women - Buy Online India | HeelsUp",
     description: "Shop premium designer handbags, shoulder bags, and party clutches for women at HeelsUp. Beautiful textures and spacious luxury styling.",
     canonical: `${BASE_URL}/bags`,
     image: `${BASE_URL}/logo.webp`,
     ogType: "website",
     categoryName: "Bags"
   },
+
+  // ─── 3. TOPICAL AUTHORITY STYLE GUIDES ──────────────────────────────────
+  '/style-guide': {
+    title: "Style Guide & Footwear Trends 2026 | Editorial & Advice | HeelsUp",
+    description: "Explore the HeelsUp Style Guide: Expert tips on office heels, bridal footwear selection, comfort ergonomics, and 2026 fashion trends for Indian women.",
+    canonical: `${BASE_URL}/style-guide`,
+    image: `${BASE_URL}/logo.webp`,
+    ogType: "article"
+  },
+  '/blog': {
+    title: "Style Guide & Footwear Trends 2026 | Editorial & Advice | HeelsUp",
+    description: "Explore the HeelsUp Style Guide: Expert tips on office heels, bridal footwear selection, comfort ergonomics, and 2026 fashion trends for Indian women.",
+    canonical: `${BASE_URL}/style-guide`,
+    image: `${BASE_URL}/logo.webp`,
+    ogType: "article"
+  },
+  '/style-guide/what-to-wear-to-office': {
+    title: "What to Wear to Office: Footwear & Style Guide | HeelsUp",
+    description: "Complete office footwear guide for Indian women: Discover the best heels for office wear, formal court pumps, comfortable block heels, and styling tips.",
+    canonical: `${BASE_URL}/style-guide/what-to-wear-to-office`,
+    image: `${BASE_URL}/logo.webp`,
+    ogType: "article"
+  },
+  '/style-guide/comfortable-heels-for-daily-office-wear': {
+    title: "Most Comfortable Heels for Daily Office Wear: Top Tips | HeelsUp",
+    description: "Find the most comfortable heels for daily office wear in India. Discover how ergonomic block heels and kitten heels protect your arches during 9-to-5 shifts.",
+    canonical: `${BASE_URL}/style-guide/comfortable-heels-for-daily-office-wear`,
+    image: `${BASE_URL}/logo.webp`,
+    ogType: "article"
+  },
+  '/style-guide/how-to-choose-heels-for-bridal-wear': {
+    title: "How to Choose the Perfect Bridal Heels for Your Wedding Day | HeelsUp",
+    description: "Complete guide to buying bridal heels and wedding shoes in India: How to match heels with heavy lehengas, platform choices for outdoor pheras, and sangeet tips.",
+    canonical: `${BASE_URL}/style-guide/how-to-choose-heels-for-bridal-wear`,
+    image: `${BASE_URL}/logo.webp`,
+    ogType: "article"
+  },
+  '/style-guide/heels-vs-flats-for-office': {
+    title: "Heels vs Flats for Office: Comfort, Style & Etiquette | HeelsUp",
+    description: "Heels vs flats for office wear: Which is better for corporate women in India? Compare posture, arch support, style elegance, and walking comfort.",
+    canonical: `${BASE_URL}/style-guide/heels-vs-flats-for-office`,
+    image: `${BASE_URL}/logo.webp`,
+    ogType: "article"
+  },
+  '/style-guide/womens-fashion-footwear-trends-2026': {
+    title: "Women’s Footwear Trends 2026: Top Heel Styles in India | HeelsUp",
+    description: "Discover women’s footwear trends in 2026: Top heel styles, platform wedges, kitten slingbacks, and sustainable vegan luxury dominating Indian fashion.",
+    canonical: `${BASE_URL}/style-guide/womens-fashion-footwear-trends-2026`,
+    image: `${BASE_URL}/logo.webp`,
+    ogType: "article"
+  },
+
+  // Brand Info Pages
   '/about': {
     title: "About HeelsUp | Handcrafted Luxury Footwear in Jodhpur, India",
     description: "Learn about HeelsUp — our heritage, artisanal craftsmanship, and commitment to delivering the most comfortable luxury heels in India.",
