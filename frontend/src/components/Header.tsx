@@ -183,6 +183,7 @@ export default function Header() {
                 type="submit"
                 className="absolute right-2 text-gray-400 hover:text-gray-900 transition-colors"
                 title="Search"
+                aria-label="Search products"
               >
                 <Search className="w-4 h-4" />
               </button>
@@ -193,6 +194,7 @@ export default function Header() {
               to="/wishlist"
               className="p-1.5 rounded-full hover:bg-gray-100 hover:text-gray-900 transition-colors relative"
               title="Wishlist"
+              aria-label="View Wishlist"
             >
               <Heart className="w-5 h-5" />
               {wishlistCount > 0 && (
@@ -207,6 +209,7 @@ export default function Header() {
               to={isAuthenticated ? '/profile' : '/login'}
               className="p-1.5 rounded-full hover:bg-gray-100 hover:text-gray-900 transition-colors"
               title={isAuthenticated ? 'My Profile' : 'Login'}
+              aria-label={isAuthenticated ? 'My Profile' : 'Sign in to your account'}
             >
               <User className="w-5 h-5" />
             </Link>
@@ -216,6 +219,7 @@ export default function Header() {
               onClick={() => setCartOpen(true)}
               className="p-1.5 rounded-full hover:bg-gray-100 hover:text-gray-900 transition-colors relative"
               title="Shopping Cart"
+              aria-label="Open Shopping Bag"
             >
               <ShoppingBag className="w-5 h-5" />
               {cartCount > 0 && (
@@ -229,7 +233,7 @@ export default function Header() {
             <button
               onClick={() => setMobileMenuOpen(true)}
               className="md:hidden p-1.5 rounded-full hover:bg-gray-100 hover:text-gray-900 transition-colors"
-              aria-label="Toggle Menu"
+              aria-label="Open navigation menu"
             >
               <Menu className="w-5 h-5" />
             </button>
@@ -264,7 +268,11 @@ export default function Header() {
                 />
               )}
             </Link>
-            <button onClick={() => setMobileMenuOpen(false)} className="p-1 rounded-full text-gray-400 hover:bg-gray-100">
+            <button
+              onClick={() => setMobileMenuOpen(false)}
+              aria-label="Close navigation menu"
+              className="p-1 rounded-full text-gray-400 hover:bg-gray-100"
+            >
               <X className="w-5 h-5" />
             </button>
           </div>
@@ -283,6 +291,7 @@ export default function Header() {
               onClick={() => setMobileMenuOpen(false)}
               className="absolute right-3 text-gray-400 hover:text-gray-900 transition-colors"
               title="Search"
+              aria-label="Search products"
             >
               <Search className="w-4 h-4" />
             </button>

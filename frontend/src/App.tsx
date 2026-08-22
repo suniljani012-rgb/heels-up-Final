@@ -1,5 +1,4 @@
 import { useEffect, lazy, Suspense, useRef } from 'react'
-import { autoPreloadStorefrontImages } from './utils/imagePreloader'
 import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { trackPageView } from './utils/analytics'
@@ -46,7 +45,6 @@ const queryClient = new QueryClient({
 function AppContent() {
   const location = useLocation()
   const isAdmin = location.pathname.startsWith('/admin')
-  const detectLocation = useCartStore(state => state.detectLocation)
   const pageStartTimeRef = useRef(Date.now())
 
   // Track SPA page navigation on route change & record visitor time on page
@@ -66,8 +64,12 @@ function AppContent() {
     if ('scrollRestoration' in window.history) {
       window.history.scrollRestoration = 'manual'
     }
-    // Website kholte hi location ki details aur price dynamically loads
-    detectLocation();
+
+    // Silently restore cached delivery estimate without requesting browser geolocation
+    const cachedPin = localStorage.getItem('hu_delivery_pin');
+    if (cachedPin && /^\d{6}$/.test(cachedPin)) {
+      useCartStore.getState().fetchDeliveryEstimate(cachedPin);
+    }
 
     // Clear any stale localStorage mock data from old versions
     try {
@@ -106,31 +108,12 @@ function AppContent() {
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const data = await res.json();
         if (!data.success) throw new Error(data.error);
-        const products = data.data;
-        // Preload first 4 product images via <link rel="preload"> for instant LCP
-        if (Array.isArray(products)) {
-          products.slice(0, 4).forEach((prod: any) => {
-            const imgUrl = prod?.images?.[0];
-            if (imgUrl && typeof imgUrl === 'string' && imgUrl.startsWith('http')) {
-              const link = document.createElement('link');
-              link.rel = 'preload';
-              link.as = 'image';
-              link.href = imgUrl;
-              link.setAttribute('fetchpriority', 'high');
-              document.head.appendChild(link);
-            }
-          });
-        }
-        return products;
+        return data.data;
       },
       staleTime: 30 * 60 * 1000,
     });
 
-    // 🚀 ULTRA-FAST: Silently preload ALL product + banner images into browser RAM
-    // so every page shows images at 0ms — no wait, no progressive load, instant!
-    autoPreloadStorefrontImages();
-
-  }, [detectLocation])
+  }, [])
 
   useEffect(() => {
     window.scrollTo(0, 0)

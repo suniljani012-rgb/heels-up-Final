@@ -372,8 +372,8 @@ export default function Home() {
                     src={card.img}
                     alt={card.label}
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
-                    loading="eager"
-                    fetchpriority="high"
+                    loading="lazy"
+                    fetchpriority="auto"
                   />
                 </div>
                 <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-white/98 via-white/70 to-transparent h-2/3 z-10" />

@@ -254,8 +254,14 @@ export default function Footer() {
         <div className="flex items-center gap-6">
           {/* Instagram */}
           <div className="flex items-center gap-4" style={{ color: '#57534e' }}>
-            <a href="https://www.instagram.com/heel_s_up" target="_blank" rel="noreferrer"
-              className="transition-colors hover:opacity-80" style={{ color: '#a8a29e' }}>
+            <a
+              href="https://www.instagram.com/heel_s_up"
+              target="_blank"
+              rel="noreferrer"
+              aria-label="Follow HeelsUp on Instagram"
+              className="transition-colors hover:opacity-80"
+              style={{ color: '#a8a29e' }}
+            >
               <i className="fa-brands fa-instagram text-base"></i>
             </a>
           </div>

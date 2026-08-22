@@ -20,7 +20,7 @@
   # Content Security Policy
   Content-Security-Policy: default-src 'self' https://*.razorpay.com https://fonts.googleapis.com https://fonts.gstatic.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://checkout.razorpay.com https://*.razorpay.com https://cdn.razorpay.com https://code.jquery.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; style-src-elem 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; font-src 'self' data: https://fonts.gstatic.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; img-src 'self' data: blob: https://media.heelsup.in https://*.unsplash.com https://*.razorpay.com https://cdn.razorpay.com https://*.r2.dev https://*.workers.dev; connect-src 'self' https://*.heelsup.workers.dev https://*.workers.dev https://api.razorpay.com https://lumberjack.razorpay.com https://cdn.jsdelivr.net https://code.jquery.com https://cdnjs.cloudflare.com https://nominatim.openstreetmap.org; frame-src 'self' https://*.razorpay.com https://api.razorpay.com; worker-src 'self' blob:; manifest-src 'self'; base-uri 'self'; form-action 'self';
 
-# Static assets — long-lived cache
+# Static assets with content-hashed filenames — cache forever (1 year, immutable)
 /assets/*
   Cache-Control: public, max-age=31536000, immutable
 
@@ -33,14 +33,31 @@
 /img/*
   Cache-Control: public, max-age=31536000, immutable
 
-# Fonts cached for 1 year
 /*.woff2
   Cache-Control: public, max-age=31536000, immutable
 
-# HTML pages — short cache (always revalidate)
+/*.webp
+  Cache-Control: public, max-age=31536000, immutable
+
+/*.png
+  Cache-Control: public, max-age=31536000, immutable
+
+/*.svg
+  Cache-Control: public, max-age=31536000, immutable
+
+# HTML documents — always revalidate with server (max-age=0, must-revalidate)
+/
+  Cache-Control: public, max-age=0, must-revalidate
+
 /*.html
   Cache-Control: public, max-age=0, must-revalidate
 
-# Service worker — never cache
+/index.html
+  Cache-Control: public, max-age=0, must-revalidate
+
+# Service worker & specifications — never cache
 /sw.js
   Cache-Control: no-store, max-age=0
+
+/llms.txt
+  Cache-Control: public, max-age=86400

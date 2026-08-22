@@ -16,6 +16,7 @@ declare global {
 
 import { useDisplayPrice } from '../utils/priceHelper'
 import { trackCheckout } from '../utils/analytics'
+import { loadRazorpayScript } from '../utils/loadRazorpay'
 
 
 export default function Checkout() {
@@ -27,6 +28,7 @@ export default function Checkout() {
   const { getDisplayPrice } = useDisplayPrice()
 
   useEffect(() => {
+    loadRazorpayScript();
     if (!token || !user) {
       showToast('error', 'Login Required 🔐', 'Please sign in or create an account to proceed with checkout.')
       navigate('/login?redirect=/checkout')
@@ -287,7 +289,15 @@ export default function Checkout() {
 
       const { key, razorpayOrder, order } = initiateData.data
 
-      // 2. Open Razorpay payment dialog
+      // 2. Ensure Razorpay SDK is loaded dynamically
+      const loaded = await loadRazorpayScript()
+      if (!loaded || !window.Razorpay) {
+        showToast('error', 'Payment Gateway Unavailable', 'Could not initialize payment gateway. Please check your internet connection and try again.')
+        setProcessing(false)
+        return
+      }
+
+      // Open Razorpay payment dialog
       const rzpOptions = {
         key: key,
         amount: razorpayOrder.amount,

@@ -5,13 +5,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#070707" />
 
-    <!-- CDN Preconnect & Speed Optimization for Instant Image Loading -->
+    <!-- Critical Preconnects for initial paint (Fonts & Primary Image CDN) -->
     <link rel="preconnect" href="https://media.heelsup.in" crossorigin />
     <link rel="dns-prefetch" href="https://media.heelsup.in" />
-    <link rel="preconnect" href="https://cdn.trustindex.io" crossorigin />
-    <link rel="dns-prefetch" href="https://cdn.trustindex.io" />
-    <link rel="preconnect" href="https://images.weserv.nl" crossorigin />
     <link rel="dns-prefetch" href="https://images.weserv.nl" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 
     <!-- Primary SEO & National Ranking Optimization -->
     <title>Buy Heels &amp; Heel Online India | #1 Ladies Footwear Store | HeelsUp</title>
@@ -80,46 +79,17 @@
     ]
     </script>
 
-    <!-- ═══════════════════════════════════════════════════════
-         PERFORMANCE: Critical resource hints — establish
-         connections to image CDN & API worker BEFORE JS loads
-         ═══════════════════════════════════════════════════════ -->
-
-    <!-- Image CDN — most images served from here (highest priority) -->
-    <link rel="preconnect" href="https://media.heelsup.in" crossorigin />
-    <link rel="dns-prefetch" href="https://media.heelsup.in" />
-
-    <!-- API Worker -->
-    <link rel="preconnect" href="https://heelsupnew.heelsup.workers.dev" />
-    <link rel="dns-prefetch" href="https://heelsupnew.heelsup.workers.dev" />
-    <link rel="preconnect" href="https://heelsup.in" />
-    <link rel="dns-prefetch" href="https://heelsup.in" />
-
-    <!-- Google Fonts: split into two requests — body font first (faster paint), display font second -->
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <!-- Body font: DM Sans — load eagerly, it's used everywhere -->
+    <!-- Google Fonts: DM Sans body font eager, Cormorant & Playfair display fonts non-blocking -->
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,300;1,9..40,400&display=swap" rel="stylesheet" />
-    <!-- Display fonts: Cormorant Garamond + Playfair Display — preload but non-blocking -->
     <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400;1,500&family=Playfair+Display:ital,wght@0,400;0,500;1,400;1,500&display=swap" rel="stylesheet" media="print" onload="this.media='all'" />
     <noscript><link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400;1,500&family=Playfair+Display:ital,wght@0,400;0,500;1,400;1,500&display=swap" rel="stylesheet" /></noscript>
-
-    <!-- ═══════════════════════════════════════════════════════
-         Admin-only CSS/JS — loaded dynamically by Admin.tsx
-         only when the user navigates to /admin. NOT loaded
-         here to avoid blocking 500KB+ for regular shoppers.
-         ═══════════════════════════════════════════════════════ -->
-
-    <!-- Razorpay Checkout — load only on checkout page, deferred -->
-    <script src="https://checkout.razorpay.com/v1/checkout.js" defer></script>
-    <script type="module" crossorigin src="/assets/index-BjxfP-Qn.js"></script>
+    <script type="module" crossorigin src="/assets/index-D08_yuTx.js"></script>
     <link rel="modulepreload" crossorigin href="/assets/rolldown-runtime-M0oDzQ_3.js">
-    <link rel="modulepreload" crossorigin href="/assets/admin-CONkwXX3.js">
-    <link rel="modulepreload" crossorigin href="/assets/react-query-EUNywpXj.js">
-    <link rel="modulepreload" crossorigin href="/assets/framer-motion-WEsTT_l_.js">
-    <link rel="modulepreload" crossorigin href="/assets/lucide-CUMWWzWA.js">
-    <link rel="modulepreload" crossorigin href="/assets/react-vendor-BBFQEkz2.js">
-    <link rel="stylesheet" crossorigin href="/assets/index-DP28Dih4.css">
+    <link rel="modulepreload" crossorigin href="/assets/framer-motion-C659XNeB.js">
+    <link rel="modulepreload" crossorigin href="/assets/react-vendor-BNZxNnv0.js">
+    <link rel="modulepreload" crossorigin href="/assets/react-query-DxJ9pGvE.js">
+    <link rel="modulepreload" crossorigin href="/assets/lucide-CBWxvOiY.js">
+    <link rel="stylesheet" crossorigin href="/assets/index-D8bTxz7S.css">
   </head>
   <body class="bg-[#fcfbf9] text-[#1a1816]">
     <div id="root"></div>

@@ -1,6 +1,6 @@
-# HeelsUp
+﻿# HeelsUp
 
-HeelsUp (heelsup.in) is an online footwear store in India specializing in women's luxury heels, sandals, flats, wedges, and designer handbags.
+> HeelsUp is India's premier online footwear brand specializing in high-quality handcrafted women's heels, block heels, stilettos, bridal heels, platform sandals, and luxury fashion accessories with nationwide cash on delivery (COD) and 7-day hassle-free exchanges.
 
 ## What we sell
 - Block heels (Ergonomic wide heel base for office and daily wear)
@@ -26,40 +26,47 @@ HeelsUp (heelsup.in) is an online footwear store in India specializing in women'
 - Direct customer support via WhatsApp (+91 78914 70935) and Email (support@heelsup.in)
 - Instagram: https://www.instagram.com/heel_s_up/
 
-## Key Landing Pages (Keyword-Targeted Clusters)
-- Homepage: https://heelsup.in/
-- Shop All: https://heelsup.in/shop
-- All Heels: https://heelsup.in/heels
+## Links
+
+### Primary Storefront Links
+- [Homepage](https://heelsup.in/): Official HeelsUp storefront featuring new arrivals, trending heel styles, and seasonal promotions.
+- [Shop All Heels](https://heelsup.in/shop): Complete catalog of handcrafted women's heels, stilettos, block heels, and partywear footwear.
+- [All Heels Category](https://heelsup.in/heels): Dedicated curated landing page for all heels styles.
+- [Order Tracking](https://heelsup.in/order-tracking): Live order status and Delhivery courier tracking for customers.
+- [Contact & Support](https://heelsup.in/page/contact): Customer support information, WhatsApp assistance, and office details in Jodhpur, Rajasthan.
+- [Return & Exchange Policy](https://heelsup.in/page/returns): Information about our 7-day exchange and return policy across India.
+- [Privacy Policy](https://heelsup.in/page/privacy): Privacy guidelines, data protection policies, and customer security standards.
+- [Terms & Conditions](https://heelsup.in/page/terms): Terms of service, ordering policies, and delivery conditions for shoppers.
 
 ### Style Pages
-- Block Heels: https://heelsup.in/heels/block-heels
-- Stiletto Heels: https://heelsup.in/heels/stiletto-heels
-- Pencil Heels: https://heelsup.in/heels/pencil-heels
-- Platform Heels: https://heelsup.in/heels/platform-heels
-- Wedge Heels: https://heelsup.in/heels/wedges
-- Pump Heels: https://heelsup.in/heels/pump-heels
-- Kitten Heels: https://heelsup.in/heels/kitten-heels
-- Mule Heels: https://heelsup.in/heels/mule-heels
-- Ankle Strap Heels: https://heelsup.in/heels/ankle-strap-heels
-- Heel Sandals: https://heelsup.in/heels/heel-sandals
-- Heel Boots: https://heelsup.in/heels/heel-boots
-- Flat Sandals: https://heelsup.in/flats
-- Bags & Clutches: https://heelsup.in/bags
+- [Block Heels](https://heelsup.in/heels/block-heels): Handcrafted comfortable block heels.
+- [Stiletto Heels](https://heelsup.in/heels/stiletto-heels): Party and evening stiletto heels.
+- [Pencil Heels](https://heelsup.in/heels/pencil-heels): Slim, elegant pencil heels.
+- [Platform Heels](https://heelsup.in/heels/platform-heels): Elevated platform heels for maximum comfort.
+- [Wedge Heels](https://heelsup.in/heels/wedges): All-day arch support wedges.
+- [Pump Heels](https://heelsup.in/heels/pump-heels): Classic closed-toe pump heels.
+- [Kitten Heels](https://heelsup.in/heels/kitten-heels): Micro low heels.
+- [Mule Heels](https://heelsup.in/heels/mule-heels): Backless slip-on heels.
+- [Ankle Strap Heels](https://heelsup.in/heels/ankle-strap-heels): Secure ankle strap party heels.
+- [Heel Sandals](https://heelsup.in/heels/heel-sandals): Open-toe heeled sandals.
+- [Heel Boots](https://heelsup.in/heels/heel-boots): Ankle heeled boots.
+- [Flat Sandals](https://heelsup.in/flats): Everyday slides and flats.
+- [Bags & Clutches](https://heelsup.in/bags): Luxury handbags and clutches.
 
 ### Occasion Pages
-- Bridal Heels: https://heelsup.in/heels/bridal-heels
-- Wedding Heels: https://heelsup.in/heels/wedding-heels
-- Party Heels: https://heelsup.in/heels/party-heels
-- Office Heels: https://heelsup.in/heels/office-heels
-- Formal Heels: https://heelsup.in/heels/formal-heels
-- Casual Heels: https://heelsup.in/heels/casual-heels
-- Festive Heels: https://heelsup.in/heels/festive-heels
-- Daily Wear Heels: https://heelsup.in/heels/daily-wear-heels
+- [Bridal Heels](https://heelsup.in/heels/bridal-heels): Embellished bridal heels.
+- [Wedding Heels](https://heelsup.in/heels/wedding-heels): Wedding party footwear.
+- [Party Heels](https://heelsup.in/heels/party-heels): Night out and event heels.
+- [Office Heels](https://heelsup.in/heels/office-heels): Professional workplace heels.
+- [Formal Heels](https://heelsup.in/heels/formal-heels): Classic formal shoes.
+- [Casual Heels](https://heelsup.in/heels/casual-heels): Daily versatile heels.
+- [Festive Heels](https://heelsup.in/heels/festive-heels): Traditional festival footwear.
+- [Daily Wear Heels](https://heelsup.in/heels/daily-wear-heels): Comfortable daily heels.
 
-### Editorial Style Guides & Footwear Advice
-- Style Guide Hub: https://heelsup.in/style-guide
-- What to Wear to Office: https://heelsup.in/style-guide/what-to-wear-to-office
-- Comfortable Heels for Daily Office Wear: https://heelsup.in/style-guide/comfortable-heels-for-daily-office-wear
-- How to Choose Heels for Bridal Wear: https://heelsup.in/style-guide/how-to-choose-heels-for-bridal-wear
-- Heels vs Flats for Office: https://heelsup.in/style-guide/heels-vs-flats-for-office
-- Women’s Fashion Footwear Trends 2026: https://heelsup.in/style-guide/womens-fashion-footwear-trends-2026
+### Editorial Style Guides
+- [Style Guide Hub](https://heelsup.in/style-guide): Fashion and style guides.
+- [What to Wear to Office](https://heelsup.in/style-guide/what-to-wear-to-office): Corporate styling guide.
+- [Comfortable Heels for Daily Office Wear](https://heelsup.in/style-guide/comfortable-heels-for-daily-office-wear): Office footwear ergonomics.
+- [How to Choose Heels for Bridal Wear](https://heelsup.in/style-guide/how-to-choose-heels-for-bridal-wear): Bridal footwear selection.
+- [Heels vs Flats for Office](https://heelsup.in/style-guide/heels-vs-flats-for-office): Workwear comparisons.
+- [Women’s Fashion Footwear Trends 2026](https://heelsup.in/style-guide/womens-fashion-footwear-trends-2026): Annual footwear trends.
