@@ -13,17 +13,22 @@ export async function couponsRouter(request, env) {
             const { code, cart_total } = await request.json();
             if (!code) return error('Coupon code required');
 
+            const cleanCode = String(code).trim().toUpperCase();
             const coupon = await env.DB.prepare(
-                `SELECT * FROM coupons WHERE code = ? AND active = 1
+                `SELECT * FROM coupons WHERE UPPER(TRIM(code)) = ? AND (active = 1 OR active = '1' OR active = true)
           AND (expires_at IS NULL OR expires_at >= datetime('now'))`
-            ).bind(code.toUpperCase()).first();
+            ).bind(cleanCode).first();
 
             if (!coupon) return error('Invalid or expired coupon code');
-            if (coupon.max_uses && coupon.used_count >= coupon.max_uses) return error('Coupon usage limit reached');
+
+            const maxUses = coupon.max_uses ?? coupon.usage_limit;
+            const usedCount = Number(coupon.used_count || 0);
+            if (maxUses && usedCount >= Number(maxUses)) return error('Coupon usage limit reached');
             
-            const minOrderPaise = (coupon.min_order || 0) * 100;
+            const minOrderRupees = Number(coupon.min_order ?? coupon.min_purchase ?? 0);
+            const minOrderPaise = minOrderRupees * 100;
             if (cart_total && cart_total < minOrderPaise) {
-                return error(`Minimum order ₹${coupon.min_order || 0} required for this coupon`);
+                return error(`Minimum order ₹${minOrderRupees} required for this coupon`);
             }
 
             let discount = 0;
@@ -31,14 +36,20 @@ export async function couponsRouter(request, env) {
             const isFlat = coupon.type === 'flat' || coupon.type === 'fixed';
             
             if (isPercent) {
-                discount = Math.floor((cart_total || 0) * coupon.value / 100);
+                discount = Math.floor((cart_total || 0) * (Number(coupon.value) || 0) / 100);
             } else if (isFlat) {
-                discount = coupon.value * 100; // convert Rupees to Paise
+                discount = Math.round((Number(coupon.value) || 0) * 100); // convert Rupees to Paise
             }
 
             // Apply max discount constraint if applicable
-            if (coupon.max_discount && discount > (coupon.max_discount * 100)) {
-                discount = coupon.max_discount * 100;
+            const maxDiscountRupees = coupon.max_discount;
+            if (maxDiscountRupees && discount > (Number(maxDiscountRupees) * 100)) {
+                discount = Math.round(Number(maxDiscountRupees) * 100);
+            }
+
+            // Don't let discount exceed cart_total
+            if (cart_total && discount > cart_total) {
+                discount = cart_total;
             }
 
             return ok({
