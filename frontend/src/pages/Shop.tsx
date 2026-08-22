@@ -1,12 +1,11 @@
 import { useState, useEffect } from 'react'
 import { useSearchParams, useParams, Link } from 'react-router-dom'
-import { Filter, Star, Heart, ArrowUpDown, ChevronLeft, ChevronRight, HelpCircle, ChevronDown, Sparkles, CheckCircle2 } from 'lucide-react'
+import { Filter, Star, Heart, ArrowUpDown, ChevronLeft, ChevronRight, HelpCircle, ChevronDown } from 'lucide-react'
 import { useWishlistStore } from '../store/useWishlistStore'
 import { useCartStore } from '../store/useCartStore'
 import { useToastStore } from '../store/useToastStore'
 import HeicImage from '../components/HeicImage'
 import SEO from '../components/SEO'
-import TrustStrip from '../components/TrustStrip'
 import { SEO_LANDING_PAGES } from '../data/seoLandingPages'
 import { useQuery, useQueryClient, keepPreviousData } from '@tanstack/react-query'
 import { useMemo } from 'react'
@@ -240,54 +239,11 @@ export default function Shop() {
         keywords={`${currentCategoryLabel}, ${currentCategoryLabel} for women, buy ${currentCategoryLabel} online india, ladies footwear, heelsup`}
       />
 
-      <div className="mb-8">
-        <TrustStrip />
-      </div>
-
-      {/* Answer-Ready Content Block & Category Intro Narrative (Competitor-Grade 150-200 Words) */}
-      <div className="bg-[#fcfbf9] border border-[#ead2ae]/60 rounded-3xl p-6 md:p-8 mb-10 shadow-sm">
-        <h1 className="text-2xl md:text-3xl font-light text-gray-950 font-display italic leading-tight mb-4">
+      {/* Clean Storefront Category Header */}
+      <div className="mb-6 border-b border-gray-100 pb-4">
+        <h1 className="text-3xl md:text-4xl font-light text-gray-900 font-display italic tracking-tight">
           {activeH1}
         </h1>
-
-        <p className="text-xs md:text-sm text-gray-700 leading-relaxed">
-          {landingData?.intro || `Discover India’s finest collection of handcrafted ${currentCategoryLabel.toLowerCase()} at HeelsUp. Designed for effortless grace and all-day comfort, our footwear is crafted in Jodhpur by master artisans using premium vegan leathers and multi-layered memory foam footbeds. Enjoy free delivery across India on orders above ₹1599 with cash on delivery (COD) and a 7-day hassle-free doorstep exchange policy.`}
-        </p>
-
-        {landingData?.highlights && landingData.highlights.length > 0 && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 mt-6 pt-6 border-t border-gray-200/60">
-            {landingData.highlights.map((highlight, idx) => (
-              <div key={idx} className="flex items-center gap-2 text-xs text-gray-800 font-medium">
-                <CheckCircle2 className="w-4 h-4 text-[#b38d4f] flex-shrink-0" />
-                <span>{highlight}</span>
-              </div>
-            ))}
-          </div>
-        )}
-
-        {/* Related Category Links (Mega Interlinking for SEO Authority) */}
-        {landingData?.relatedCategories && landingData.relatedCategories.length > 0 && (
-          <div className="mt-6 pt-5 border-t border-gray-200/60 flex flex-wrap items-center gap-2">
-            <span className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mr-1">
-              Explore Similar:
-            </span>
-            {landingData.relatedCategories.map((rel, idx) => (
-              <Link
-                key={idx}
-                to={rel.url}
-                className="text-xs bg-white border border-gray-200 hover:border-primary hover:text-primary px-3 py-1.5 rounded-full text-gray-700 transition-colors font-medium shadow-2xs"
-              >
-                {rel.label}
-              </Link>
-            ))}
-            <Link
-              to="/style-guide"
-              className="text-xs bg-[#ead2ae]/30 border border-[#ead2ae] hover:bg-primary hover:text-white px-3 py-1.5 rounded-full text-gray-900 transition-colors font-bold flex items-center gap-1 shadow-2xs"
-            >
-              <Sparkles className="w-3 h-3 text-[#b38d4f]" /> Style Guides
-            </Link>
-          </div>
-        )}
       </div>
 
       {/* Controls Bar */}
