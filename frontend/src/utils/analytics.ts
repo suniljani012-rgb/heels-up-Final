@@ -127,12 +127,20 @@ export function initAnalytics(
  * Track Page Views for Single-Page Application (SPA) navigation
  */
 export function trackPageView(path: string, title?: string): void {
-  if (typeof window === 'undefined' || !window.gtag || isAdminRoute()) return;
-  window.gtag('event', 'page_view', {
-    page_path: path,
-    page_title: title || document.title,
-    page_location: window.location.href,
-  });
+  if (typeof window === 'undefined' || isAdminRoute()) return;
+  if (typeof window.gtag === 'function') {
+    window.gtag('event', 'page_view', {
+      page_path: path,
+      page_title: title || document.title,
+      page_location: window.location.href,
+    });
+  } else if (Array.isArray(window.dataLayer)) {
+    window.dataLayer.push(['event', 'page_view', {
+      page_path: path,
+      page_title: title || document.title,
+      page_location: window.location.href,
+    }]);
+  }
 }
 
 /**
@@ -145,21 +153,23 @@ export function trackViewItem(product: {
   category?: string;
   sku?: string;
 }): void {
-  if (typeof window === 'undefined' || !window.gtag || isAdminRoute()) return;
+  if (typeof window === 'undefined' || isAdminRoute()) return;
   const priceRupees = product.price > 1000 ? product.price / 100 : product.price;
-  window.gtag('event', 'view_item', {
-    currency: 'INR',
-    value: priceRupees,
-    items: [
-      {
-        item_id: String(product.id),
-        item_name: product.name,
-        item_category: product.category || 'Heels',
-        price: priceRupees,
-        item_sku: product.sku || undefined,
-      },
-    ],
-  });
+  if (typeof window.gtag === 'function') {
+    window.gtag('event', 'view_item', {
+      currency: 'INR',
+      value: priceRupees,
+      items: [
+        {
+          item_id: String(product.id),
+          item_name: product.name,
+          item_category: product.category || 'Heels',
+          price: priceRupees,
+          item_sku: product.sku || undefined,
+        },
+      ],
+    });
+  }
 }
 
 /**
