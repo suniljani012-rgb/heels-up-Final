@@ -27,8 +27,8 @@ import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from '.
 import { useToastStore } from '../../store/useToastStore';
 
 export interface PaymentRecord {
-  id: number;
-  order_id?: number;
+  id: number | string;
+  order_id?: number | string | null;
   order_number?: string;
   customer_name?: string;
   customer_phone?: string;
@@ -39,9 +39,13 @@ export interface PaymentRecord {
   fee?: number; // in paise (e.g. 2% + 18% GST)
   net_amount?: number; // in paise
   currency: string;
-  status: string; // 'captured', 'settled', 'refunded', 'pending'
+  status: 'settled' | 'captured' | 'pending' | 'failed' | 'refunded';
   method?: string; // 'upi', 'card', 'netbanking'
   bank_rrn?: string;
+  error_code?: string;
+  error_description?: string;
+  error_reason?: string;
+  error_source?: string;
   settlement_id?: string;
   settled_at?: string;
   created_at: string;
@@ -73,7 +77,7 @@ function safeFormatDate(dStr?: string | number) {
 export default function PaymentsManager({ payments = [], orders = [], token, onRefresh }: PaymentsManagerProps) {
   const showToast = useToastStore((state) => state.showToast);
   const [searchQuery, setSearchQuery] = useState('');
-  const [statusFilter, setStatusFilter] = useState<'all' | 'settled' | 'pending' | 'cod_advance' | 'prepaid'>('all');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'settled' | 'pending' | 'cod_advance' | 'prepaid' | 'failed'>('all');
   const [timeframeFilter, setTimeframeFilter] = useState<'all' | 'today' | 'yesterday' | '7d' | '30d' | 'this_month' | 'last_month' | 'last_2m' | 'last_3m' | 'custom'>('all');
   const [customStartDate, setCustomStartDate] = useState('');
   const [customEndDate, setCustomEndDate] = useState('');
@@ -147,7 +151,7 @@ export default function PaymentsManager({ payments = [], orders = [], token, onR
     }
   };
 
-  const handleProcessRefund = async (paymentId: string, orderId?: number) => {
+  const handleProcessRefund = async (paymentId: string, orderId?: string | number | null) => {
     if (!window.confirm(`Are you sure you want to process an instant refund for ${paymentId}?`)) return;
     try {
       setRefunding(true);
@@ -288,12 +292,29 @@ export default function PaymentsManager({ payments = [], orders = [], token, onR
         if (!rp || !rp.id || seen.has(rp.id)) return;
         seen.add(rp.id);
 
-        const grossPaise = Number(rp.amount) || 0;
-        let feePaise = Number(rp.fee) || 0;
-        if (!feePaise && rp.tax) feePaise = Number(rp.tax);
-        if (!feePaise && grossPaise > 0) feePaise = Math.round(grossPaise * 0.0236);
-        const netPaise = Math.max(0, grossPaise - feePaise);
         const isCaptured = rp.status === 'captured' || rp.captured === true;
+        const isFailed = rp.status === 'failed';
+        const isRefunded = rp.status === 'refunded';
+
+        const grossPaise = Number(rp.amount) || 0;
+        let feePaise = 0;
+        let netPaise = 0;
+
+        if (isCaptured) {
+          feePaise = Number(rp.fee) || 0;
+          if (!feePaise && rp.tax) feePaise = Number(rp.tax);
+          if (!feePaise && grossPaise > 0) feePaise = Math.round(grossPaise * 0.0236);
+          netPaise = Math.max(0, grossPaise - feePaise);
+        }
+
+        let resolvedStatus: 'settled' | 'captured' | 'pending' | 'failed' | 'refunded' = 'pending';
+        if (isFailed) {
+          resolvedStatus = 'failed';
+        } else if (isRefunded) {
+          resolvedStatus = 'refunded';
+        } else if (isCaptured) {
+          resolvedStatus = 'settled';
+        }
 
         let channel = 'Razorpay Gateway';
         if (rp.method === 'upi') channel = `UPI ${rp.vpa ? `(${rp.vpa})` : ''}`;
@@ -332,9 +353,13 @@ export default function PaymentsManager({ payments = [], orders = [], token, onR
           fee: feePaise,
           net_amount: netPaise,
           currency: rp.currency || 'INR',
-          status: isCaptured ? 'settled' : (rp.status || 'pending'),
+          status: resolvedStatus,
           method: channel.trim(),
           bank_rrn: bankRrn,
+          error_code: rp.error_code,
+          error_description: rp.error_description,
+          error_reason: rp.error_reason,
+          error_source: rp.error_source,
           settlement_id: rp.settlement_id || undefined,
           created_at: rp.created_at ? (typeof rp.created_at === 'number' ? new Date(rp.created_at * 1000).toISOString() : String(rp.created_at)) : new Date().toISOString(),
         });
@@ -357,6 +382,10 @@ export default function PaymentsManager({ payments = [], orders = [], token, onR
           rawData = typeof p.raw_payload === 'string' ? JSON.parse(p.raw_payload) : p.raw_payload;
         } catch {}
 
+        const isFailed = (p.status || '').toLowerCase() === 'failed' || rawData?.status === 'failed';
+        const isRefunded = (p.status || '').toLowerCase() === 'refunded' || rawData?.status === 'refunded';
+        const isCaptured = (p.status || '').toLowerCase() === 'captured' || rawData?.status === 'captured';
+
         let grossPaise = 0;
         if (rawData && rawData.amount) {
           grossPaise = Number(rawData.amount);
@@ -366,16 +395,23 @@ export default function PaymentsManager({ payments = [], orders = [], token, onR
         }
 
         let feePaise = 0;
-        if (rawData && rawData.fee) {
-          feePaise = Number(rawData.fee);
-        } else {
-          feePaise = Math.round(grossPaise * 0.0236);
+        let netPaise = 0;
+        if (!isFailed) {
+          if (rawData && rawData.fee) {
+            feePaise = Number(rawData.fee);
+          } else {
+            feePaise = Math.round(grossPaise * 0.0236);
+          }
+          netPaise = Math.max(0, grossPaise - feePaise);
         }
 
-        const netPaise = Math.max(0, grossPaise - feePaise);
         const isCOD = (p.order_payment_method || '').toLowerCase().includes('cod') || (p.raw_payload && String(p.raw_payload).includes('COD'));
         const ageHours = (Date.now() - new Date(p.created_at || Date.now()).getTime()) / (1000 * 60 * 60);
-        const isSettled = ageHours >= 24;
+
+        let resolvedStatus: 'settled' | 'captured' | 'pending' | 'failed' | 'refunded' = 'pending';
+        if (isFailed) resolvedStatus = 'failed';
+        else if (isRefunded) resolvedStatus = 'refunded';
+        else if (isCaptured || ageHours >= 24) resolvedStatus = 'settled';
 
         let bankRrn = p.bank_rrn;
         if (!bankRrn || bankRrn.startsWith('RRN-')) {
@@ -400,10 +436,13 @@ export default function PaymentsManager({ payments = [], orders = [], token, onR
           fee: feePaise,
           net_amount: netPaise,
           currency: 'INR',
-          status: isSettled ? 'settled' : 'pending',
+          status: resolvedStatus,
           method: channel.trim(),
           bank_rrn: bankRrn,
-          settlement_id: isSettled ? (p.settlement_id || rawData?.settlement_id) : undefined,
+          error_code: p.error_code || rawData?.error_code,
+          error_description: p.error_description || rawData?.error_description,
+          error_reason: p.error_reason || rawData?.error_reason,
+          settlement_id: (resolvedStatus === 'settled') ? (p.settlement_id || rawData?.settlement_id) : undefined,
           created_at: p.created_at || new Date().toISOString(),
         });
       });
@@ -428,8 +467,9 @@ export default function PaymentsManager({ payments = [], orders = [], token, onR
       let matchesStatus = true;
       if (statusFilter === 'settled') matchesStatus = p.status === 'settled';
       else if (statusFilter === 'pending') matchesStatus = p.status === 'pending';
-      else if (statusFilter === 'cod_advance') matchesStatus = p.method?.includes('COD Advance') || false;
-      else if (statusFilter === 'prepaid') matchesStatus = !p.method?.includes('COD Advance');
+      else if (statusFilter === 'cod_advance') matchesStatus = p.status !== 'failed' && (p.method?.includes('COD Advance') || false);
+      else if (statusFilter === 'prepaid') matchesStatus = p.status !== 'failed' && (!p.method?.includes('COD Advance'));
+      else if (statusFilter === 'failed') matchesStatus = p.status === 'failed';
 
       // Timeframe Filter (Today, Yesterday, 7D, 30D, This Month, Last Month, 2 Months, 3 Months, Custom Range)
       let matchesTimeframe = true;
@@ -487,8 +527,11 @@ export default function PaymentsManager({ payments = [], orders = [], token, onR
 
   // Summary Metrics
   const summary = useMemo(() => {
-    const totalGross = normalizedPayments.reduce((sum, p) => sum + p.amount, 0) / 100;
-    const totalFees = normalizedPayments.reduce((sum, p) => sum + (p.fee || 0), 0) / 100;
+    // Only successful collected payments
+    const successfulPayments = normalizedPayments.filter((p) => p.status === 'settled' || p.status === 'captured' || p.status === 'pending');
+    
+    const totalGross = successfulPayments.reduce((sum, p) => sum + p.amount, 0) / 100;
+    const totalFees = successfulPayments.reduce((sum, p) => sum + (p.fee || 0), 0) / 100;
     
     // Calculate total net settled from live settlements or settled transactions
     let totalNetSettled = 0;
@@ -497,11 +540,12 @@ export default function PaymentsManager({ payments = [], orders = [], token, onR
       totalNetSettled = processedSettlements.reduce((sum: number, s: any) => sum + (Number(s.amount) || 0), 0) / 100;
     }
     if (totalNetSettled === 0) {
-      totalNetSettled = normalizedPayments.filter((p) => p.status === 'settled').reduce((sum, p) => sum + (p.net_amount || 0), 0) / 100;
+      totalNetSettled = successfulPayments.filter((p) => p.status === 'settled').reduce((sum, p) => sum + (p.net_amount || 0), 0) / 100;
     }
 
-    const pendingSettlement = normalizedPayments.filter((p) => p.status === 'pending').reduce((sum, p) => sum + (p.net_amount || 0), 0) / 100;
-    const codAdvanceTotal = normalizedPayments.filter((p) => p.method?.includes('COD Advance') || (p.amount <= 50000 && p.amount > 0)).reduce((sum, p) => sum + p.amount, 0) / 100;
+    const pendingSettlement = successfulPayments.filter((p) => p.status === 'pending').reduce((sum, p) => sum + (p.net_amount || 0), 0) / 100;
+    const codAdvanceTotal = successfulPayments.filter((p) => p.method?.includes('COD Advance') || (p.amount <= 50000 && p.amount > 0)).reduce((sum, p) => sum + p.amount, 0) / 100;
+    const failedCount = normalizedPayments.filter((p) => p.status === 'failed').length;
 
     return {
       totalGross,
@@ -509,6 +553,8 @@ export default function PaymentsManager({ payments = [], orders = [], token, onR
       totalNetSettled,
       pendingSettlement,
       codAdvanceTotal,
+      successfulCount: successfulPayments.length,
+      failedCount,
       count: normalizedPayments.length,
     };
   }, [normalizedPayments, liveRazorpaySettlements]);
@@ -571,7 +617,9 @@ export default function PaymentsManager({ payments = [], orders = [], token, onR
           <p className="text-lg font-bold font-mono text-slate-900 dark:text-white mt-0.5">
             ₹{summary.totalGross.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </p>
-          <p className="text-[10px] text-slate-400 mt-0.5">{summary.count} Razorpay payments</p>
+          <p className="text-[10px] text-slate-400 mt-0.5">
+            {summary.successfulCount} captured {summary.failedCount > 0 ? `(${summary.failedCount} failed)` : ''}
+          </p>
         </Card>
 
         <Card className="p-3 bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800">
@@ -629,8 +677,9 @@ export default function PaymentsManager({ payments = [], orders = [], token, onR
             { id: 'all', label: 'All Transactions', count: summary.count },
             { id: 'settled', label: 'Settled in Bank', count: normalizedPayments.filter((p) => p.status === 'settled').length },
             { id: 'pending', label: 'Pending Settlement (T+1)', count: normalizedPayments.filter((p) => p.status === 'pending').length },
-            { id: 'cod_advance', label: '10% COD Advances', count: normalizedPayments.filter((p) => p.method?.includes('COD Advance')).length },
-            { id: 'prepaid', label: '100% Prepaid', count: normalizedPayments.filter((p) => !p.method?.includes('COD Advance')).length },
+            { id: 'cod_advance', label: '10% COD Advances', count: normalizedPayments.filter((p) => p.status !== 'failed' && p.method?.includes('COD Advance')).length },
+            { id: 'prepaid', label: '100% Prepaid', count: normalizedPayments.filter((p) => p.status !== 'failed' && !p.method?.includes('COD Advance')).length },
+            { id: 'failed', label: 'Failed Attempts', count: summary.failedCount },
           ].map((tab) => {
             const active = statusFilter === tab.id;
             return (
@@ -876,29 +925,64 @@ export default function PaymentsManager({ payments = [], orders = [], token, onR
 
                   {/* Gross */}
                   <TableCell className="text-right py-2.5 font-mono text-xs font-bold text-slate-900 dark:text-white">
-                    ₹{(p.amount / 100).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    {p.status === 'failed' ? (
+                      <span className="text-slate-400 line-through">
+                        ₹{(p.amount / 100).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      </span>
+                    ) : (
+                      <span>
+                        ₹{(p.amount / 100).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      </span>
+                    )}
                   </TableCell>
 
                   {/* Fee */}
-                  <TableCell className="text-right py-2.5 font-mono text-[11px] text-rose-500 font-semibold">
-                    -₹{((p.fee || 0) / 100).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  <TableCell className="text-right py-2.5 font-mono text-[11px]">
+                    {p.status === 'failed' ? (
+                      <span className="text-slate-400">--</span>
+                    ) : (
+                      <span className="text-rose-500 font-semibold">
+                        -₹{((p.fee || 0) / 100).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      </span>
+                    )}
                   </TableCell>
 
                   {/* Net Settled */}
-                  <TableCell className="text-right py-2.5 font-mono text-xs font-extrabold text-emerald-600 dark:text-emerald-400">
-                    ₹{((p.net_amount || 0) / 100).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  <TableCell className="text-right py-2.5 font-mono text-xs font-extrabold">
+                    {p.status === 'failed' ? (
+                      <span className="text-slate-400 font-normal">₹0.00</span>
+                    ) : (
+                      <span className="text-emerald-600 dark:text-emerald-400">
+                        ₹{((p.net_amount || 0) / 100).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      </span>
+                    )}
                   </TableCell>
 
                   {/* Settlement Badge */}
                   <TableCell className="text-right py-2.5">
                     {p.status === 'settled' ? (
                       <div className="flex flex-col items-end gap-0.5">
-                        <Badge variant="success" className="text-[9px] font-mono font-bold">
+                        <Badge variant="success" className="text-[9px] font-mono font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-400 border border-emerald-300 dark:border-emerald-800">
                           ✓ Settled
                         </Badge>
                         <span className="text-[9px] font-mono text-slate-400">
-                          {p.settlement_id}
+                          {p.settlement_id || 'Primary A/C'}
                         </span>
+                      </div>
+                    ) : p.status === 'failed' ? (
+                      <div className="flex flex-col items-end gap-0.5">
+                        <span className="inline-flex items-center px-1.5 py-0.5 rounded-md text-[9px] font-bold font-mono bg-rose-100 text-rose-700 dark:bg-rose-950/60 dark:text-rose-400 border border-rose-200 dark:border-rose-800">
+                          ✕ Failed
+                        </span>
+                        <span className="text-[9px] text-rose-500 font-medium truncate max-w-[120px]" title={p.error_reason || p.error_description || 'Bank technical error'}>
+                          {p.error_reason ? p.error_reason.replace(/_/g, ' ') : 'Bank Technical Error'}
+                        </span>
+                      </div>
+                    ) : p.status === 'refunded' ? (
+                      <div className="flex flex-col items-end gap-0.5">
+                        <Badge variant="outline" className="text-[9px] font-mono font-bold text-amber-600 border-amber-300">
+                          ↩ Refunded
+                        </Badge>
                       </div>
                     ) : (
                       <div className="flex flex-col items-end gap-0.5">
@@ -1003,28 +1087,63 @@ export default function PaymentsManager({ payments = [], orders = [], token, onR
             </div>
 
             {/* Financial Passbook Breakdown */}
-            <div className="rounded-xl border border-slate-200 dark:border-slate-800 p-3.5 space-y-2 text-xs">
-              <div className="flex justify-between items-center text-slate-600 dark:text-slate-300">
-                <span>Gross Collected (Online)</span>
-                <span className="font-mono font-bold text-slate-900 dark:text-white">₹{(selectedPayment.amount / 100).toFixed(2)}</span>
+            {selectedPayment.status === 'failed' ? (
+              <div className="rounded-xl border border-rose-200 dark:border-rose-800/60 bg-rose-50/50 dark:bg-rose-950/20 p-3.5 space-y-2 text-xs">
+                <div className="flex items-center gap-2 text-rose-700 dark:text-rose-400 font-bold">
+                  <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
+                  <span>Payment Failed / Declined by Bank</span>
+                </div>
+                <div className="flex justify-between items-center text-slate-600 dark:text-slate-300 pt-1">
+                  <span>Error Reason:</span>
+                  <span className="font-mono font-bold capitalize text-rose-600">
+                    {selectedPayment.error_reason ? selectedPayment.error_reason.replace(/_/g, ' ') : (selectedPayment.error_description || 'Bank Technical Error')}
+                  </span>
+                </div>
+                {selectedPayment.error_code && (
+                  <div className="flex justify-between items-center text-slate-500 text-[11px]">
+                    <span>Error Code:</span>
+                    <span className="font-mono">{selectedPayment.error_code}</span>
+                  </div>
+                )}
+                {selectedPayment.error_source && (
+                  <div className="flex justify-between items-center text-slate-500 text-[11px]">
+                    <span>Error Source:</span>
+                    <span className="font-mono capitalize">{selectedPayment.error_source.replace(/_/g, ' ')}</span>
+                  </div>
+                )}
+                <div className="flex justify-between items-center text-slate-600 dark:text-slate-300 pt-1 border-t border-rose-100 dark:border-rose-900">
+                  <span>Gross Attempted:</span>
+                  <span className="font-mono line-through text-slate-500">₹{(selectedPayment.amount / 100).toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between items-center text-slate-600 dark:text-slate-300 border-t border-rose-100 dark:border-rose-900 pt-1 font-bold">
+                  <span>Net Deposited to Bank:</span>
+                  <span className="font-mono text-slate-700 dark:text-slate-300">₹0.00</span>
+                </div>
               </div>
-              <div className="flex justify-between items-center text-slate-500 text-[11px] pl-2">
-                <span>↳ Base Gateway MDR (2.00%)</span>
-                <span className="font-mono">-₹{((selectedPayment.amount * 0.02) / 100).toFixed(2)}</span>
+            ) : (
+              <div className="rounded-xl border border-slate-200 dark:border-slate-800 p-3.5 space-y-2 text-xs">
+                <div className="flex justify-between items-center text-slate-600 dark:text-slate-300">
+                  <span>Gross Collected (Online)</span>
+                  <span className="font-mono font-bold text-slate-900 dark:text-white">₹{(selectedPayment.amount / 100).toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between items-center text-slate-500 text-[11px] pl-2">
+                  <span>↳ Base Gateway MDR (2.00%)</span>
+                  <span className="font-mono">-₹{((selectedPayment.amount * 0.02) / 100).toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between items-center text-slate-500 text-[11px] pl-2">
+                  <span>↳ GST on MDR Fee (18.00%)</span>
+                  <span className="font-mono">-₹{((selectedPayment.amount * 0.0036) / 100).toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between items-center text-rose-500 font-semibold pt-1 border-t border-slate-100 dark:border-slate-800">
+                  <span>Total Razorpay Fee Deducted (2.36%)</span>
+                  <span className="font-mono font-bold">-₹{((selectedPayment.fee || 0) / 100).toFixed(2)}</span>
+                </div>
+                <div className="pt-2 border-t border-slate-100 dark:border-slate-800 flex justify-between items-center font-bold text-sm">
+                  <span className="text-slate-900 dark:text-white">Net Deposited to Bank</span>
+                  <span className="font-mono text-emerald-600 dark:text-emerald-400 font-extrabold">₹{((selectedPayment.net_amount || 0) / 100).toFixed(2)}</span>
+                </div>
               </div>
-              <div className="flex justify-between items-center text-slate-500 text-[11px] pl-2">
-                <span>↳ GST on MDR Fee (18.00%)</span>
-                <span className="font-mono">-₹{((selectedPayment.amount * 0.0036) / 100).toFixed(2)}</span>
-              </div>
-              <div className="flex justify-between items-center text-rose-500 font-semibold pt-1 border-t border-slate-100 dark:border-slate-800">
-                <span>Total Razorpay Fee Deducted (2.36%)</span>
-                <span className="font-mono font-bold">-₹{((selectedPayment.fee || 0) / 100).toFixed(2)}</span>
-              </div>
-              <div className="pt-2 border-t border-slate-100 dark:border-slate-800 flex justify-between items-center font-bold text-sm">
-                <span className="text-slate-900 dark:text-white">Net Deposited to Bank</span>
-                <span className="font-mono text-emerald-600 dark:text-emerald-400 font-extrabold">₹{((selectedPayment.net_amount || 0) / 100).toFixed(2)}</span>
-              </div>
-            </div>
+            )}
 
             <div className="flex items-center justify-between pt-2">
               <div className="flex items-center gap-1.5 text-[11px] text-slate-400 font-mono">
@@ -1033,15 +1152,17 @@ export default function PaymentsManager({ payments = [], orders = [], token, onR
               </div>
 
               <div className="flex items-center gap-2">
-                <Button
-                  size="sm"
-                  variant="outline"
-                  disabled={refunding}
-                  onClick={() => handleProcessRefund(selectedPayment.provider_payment_id || '', selectedPayment.order_id)}
-                  className="h-7 text-xs font-bold text-rose-600 dark:text-rose-400 border-rose-200 dark:border-rose-800 hover:bg-rose-50"
-                >
-                  {refunding ? 'Refunding...' : '💸 1-Click Refund'}
-                </Button>
+                {selectedPayment.status !== 'failed' && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    disabled={refunding}
+                    onClick={() => handleProcessRefund(selectedPayment.provider_payment_id || '', selectedPayment.order_id)}
+                    className="h-7 text-xs font-bold text-rose-600 dark:text-rose-400 border-rose-200 dark:border-rose-800 hover:bg-rose-50"
+                  >
+                    {refunding ? 'Refunding...' : '💸 1-Click Refund'}
+                  </Button>
+                )}
 
                 <a
                   href={`https://dashboard.razorpay.com/app/payments/${selectedPayment.provider_payment_id}`}
