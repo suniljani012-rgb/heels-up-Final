@@ -179,6 +179,42 @@ export default function PaymentsManager({ payments = [], orders = [], token, onR
   };
 
   const [liveRazorpayPayments, setLiveRazorpayPayments] = useState<any[]>([]);
+  const [liveRazorpaySettlements, setLiveRazorpaySettlements] = useState<any[]>([]);
+
+  // Helper to extract live payments and settlements from any API response structure
+  const extractLivePaymentData = (resData: any): { payments: any[]; settlements: any[] } => {
+    if (!resData) return { payments: [], settlements: [] };
+    const root = resData.data || resData;
+    let pList: any[] = [];
+    let sList: any[] = [];
+
+    if (Array.isArray(root.live_payments)) {
+      pList = root.live_payments;
+    } else if (Array.isArray(resData.live_payments)) {
+      pList = resData.live_payments;
+    } else if (Array.isArray(root.db_payments)) {
+      pList = root.db_payments;
+    } else if (Array.isArray(root)) {
+      pList = root;
+    }
+
+    if (Array.isArray(root.live_settlements)) {
+      sList = root.live_settlements;
+    } else if (Array.isArray(resData.live_settlements)) {
+      sList = resData.live_settlements;
+    }
+
+    return { payments: pList, settlements: sList };
+  };
+
+  // Sync payments from props on load or refresh
+  useEffect(() => {
+    if (payments) {
+      const { payments: pList, settlements: sList } = extractLivePaymentData(payments);
+      if (pList && pList.length > 0) setLiveRazorpayPayments(pList);
+      if (sList && sList.length > 0) setLiveRazorpaySettlements(sList);
+    }
+  }, [payments]);
 
   // Fetch Live Payments directly from Razorpay API
   const fetchLivePayments = async () => {
@@ -187,10 +223,12 @@ export default function PaymentsManager({ payments = [], orders = [], token, onR
         headers: { Authorization: `Bearer ${token}` }
       });
       const data = await res.json();
-      if (data && data.live_payments && Array.isArray(data.live_payments)) {
-        setLiveRazorpayPayments(data.live_payments);
-      } else if (Array.isArray(data)) {
-        setLiveRazorpayPayments(data);
+      const { payments: pList, settlements: sList } = extractLivePaymentData(data);
+      if (pList && pList.length > 0) {
+        setLiveRazorpayPayments(pList);
+      }
+      if (sList && sList.length > 0) {
+        setLiveRazorpaySettlements(sList);
       }
     } catch (e) {
       console.warn('Live Razorpay fetch error:', e);
@@ -223,9 +261,13 @@ export default function PaymentsManager({ payments = [], orders = [], token, onR
         headers: { Authorization: `Bearer ${token}` }
       });
       const data = await res.json();
-      if (data && data.live_payments && Array.isArray(data.live_payments)) {
-        setLiveRazorpayPayments(data.live_payments);
-        showToast('success', 'Razorpay Live Sync', `Fetched ${data.live_payments.length} live transactions directly from Razorpay.`);
+      const { payments: pList, settlements: sList } = extractLivePaymentData(data);
+      if (pList && pList.length > 0) {
+        setLiveRazorpayPayments(pList);
+        if (sList && sList.length > 0) setLiveRazorpaySettlements(sList);
+        showToast('success', 'Razorpay Live Sync', `Fetched ${pList.length} live transactions directly from Razorpay.`);
+      } else {
+        showToast('info', 'Razorpay Live Sync', 'No new live transactions found.');
       }
       onRefresh();
     } catch {
@@ -247,9 +289,11 @@ export default function PaymentsManager({ payments = [], orders = [], token, onR
         seen.add(rp.id);
 
         const grossPaise = Number(rp.amount) || 0;
-        const feePaise = Number(rp.fee) || 0;
+        let feePaise = Number(rp.fee) || 0;
+        if (!feePaise && rp.tax) feePaise = Number(rp.tax);
+        if (!feePaise && grossPaise > 0) feePaise = Math.round(grossPaise * 0.0236);
         const netPaise = Math.max(0, grossPaise - feePaise);
-        const isCaptured = rp.status === 'captured';
+        const isCaptured = rp.status === 'captured' || rp.captured === true;
 
         let channel = 'Razorpay Gateway';
         if (rp.method === 'upi') channel = `UPI ${rp.vpa ? `(${rp.vpa})` : ''}`;
@@ -273,6 +317,8 @@ export default function PaymentsManager({ payments = [], orders = [], token, onR
           ? String(rp.contact)
           : (rp.notes && typeof rp.notes === 'object' && !Array.isArray(rp.notes) && rp.notes.customer_phone) || '';
 
+        const bankRrn = rp.acquirer_data?.rrn || rp.acquirer_data?.bank_transaction_id || rp.acquirer_data?.upi_transaction_id || rp.acquirer_data?.auth_code || '--';
+
         list.push({
           id: rp.id,
           order_id: rp.order_id || null,
@@ -288,7 +334,7 @@ export default function PaymentsManager({ payments = [], orders = [], token, onR
           currency: rp.currency || 'INR',
           status: isCaptured ? 'settled' : (rp.status || 'pending'),
           method: channel.trim(),
-          bank_rrn: rp.acquirer_data?.rrn || rp.acquirer_data?.bank_transaction_id || rp.acquirer_data?.upi_transaction_id || '--',
+          bank_rrn: bankRrn,
           settlement_id: rp.settlement_id || undefined,
           created_at: rp.created_at ? (typeof rp.created_at === 'number' ? new Date(rp.created_at * 1000).toISOString() : String(rp.created_at)) : new Date().toISOString(),
         });
@@ -296,12 +342,8 @@ export default function PaymentsManager({ payments = [], orders = [], token, onR
       return list.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
     }
 
-    // 2. Real database payment records (no synthetic placeholders)
-    const safePayments = Array.isArray(payments)
-      ? payments
-      : (typeof payments === 'object' && payments !== null
-          ? ((payments as any).db_payments || (payments as any).live_payments || [])
-          : []);
+    // 2. Real database payment records fallback (with raw_payload parsing)
+    const { payments: safePayments } = extractLivePaymentData(payments);
 
     if (Array.isArray(safePayments)) {
       safePayments.forEach((p: any) => {
@@ -310,37 +352,58 @@ export default function PaymentsManager({ payments = [], orders = [], token, onR
         if (!pid || seen.has(String(pid))) return;
         seen.add(String(pid));
 
-        let grossPaise = Number(p.amount) || 0;
-        if (grossPaise > 0 && grossPaise <= 500 && p.order_total && p.order_total > 50000) {
-          grossPaise = Math.round(Number(p.order_total) * 0.10);
-        } else if (grossPaise > 0 && grossPaise <= 5000 && (!p.order_total || p.order_total <= 5000)) {
-          grossPaise = grossPaise * 100;
+        let rawData: any = null;
+        try {
+          rawData = typeof p.raw_payload === 'string' ? JSON.parse(p.raw_payload) : p.raw_payload;
+        } catch {}
+
+        let grossPaise = 0;
+        if (rawData && rawData.amount) {
+          grossPaise = Number(rawData.amount);
+        } else {
+          const rawAmt = Number(p.amount) || 0;
+          grossPaise = rawAmt >= 1000 ? Math.round(rawAmt) : Math.round(rawAmt * 100);
         }
 
-        const isCOD = (p.order_payment_method || '').toLowerCase().includes('cod') || (p.raw_payload && String(p.raw_payload).includes('COD'));
-        const feePaise = Math.round(grossPaise * 0.0236);
-        const netPaise = Math.max(0, grossPaise - feePaise);
+        let feePaise = 0;
+        if (rawData && rawData.fee) {
+          feePaise = Number(rawData.fee);
+        } else {
+          feePaise = Math.round(grossPaise * 0.0236);
+        }
 
+        const netPaise = Math.max(0, grossPaise - feePaise);
+        const isCOD = (p.order_payment_method || '').toLowerCase().includes('cod') || (p.raw_payload && String(p.raw_payload).includes('COD'));
         const ageHours = (Date.now() - new Date(p.created_at || Date.now()).getTime()) / (1000 * 60 * 60);
         const isSettled = ageHours >= 24;
+
+        let bankRrn = p.bank_rrn;
+        if (!bankRrn || bankRrn.startsWith('RRN-')) {
+          bankRrn = rawData?.acquirer_data?.rrn || rawData?.acquirer_data?.upi_transaction_id || rawData?.acquirer_data?.bank_transaction_id || '--';
+        }
+
+        let channel = isCOD ? '10% COD Advance (UPI)' : 'Prepaid (Razorpay UPI)';
+        if (rawData?.method === 'upi') {
+          channel = `UPI ${rawData.vpa ? `(${rawData.vpa})` : ''}`;
+        }
 
         list.push({
           id: p.id || pid,
           order_id: p.order_id || null,
-          order_number: p.order_number || `HU-ORD-${p.order_id || p.id}`,
-          customer_name: p.customer_name || 'Valued Customer',
-          customer_phone: p.customer_phone ? String(p.customer_phone) : '',
+          order_number: p.order_number || (rawData?.description ? rawData.description.replace(/^Order\s*#?/, '') : `HU-ORD-${p.order_id || p.id}`),
+          customer_name: p.customer_name || rawData?.notes?.customer_name || rawData?.email || 'Valued Customer',
+          customer_phone: p.customer_phone ? String(p.customer_phone) : (rawData?.contact || ''),
           provider: p.provider || 'RAZORPAY',
           provider_payment_id: p.provider_payment_id || String(p.id),
-          provider_order_id: p.provider_order_id || 'N/A',
+          provider_order_id: p.provider_order_id || rawData?.order_id || 'N/A',
           amount: grossPaise,
           fee: feePaise,
           net_amount: netPaise,
           currency: 'INR',
           status: isSettled ? 'settled' : 'pending',
-          method: isCOD ? '10% COD Advance (UPI)' : 'Prepaid (Razorpay UPI)',
-          bank_rrn: p.bank_rrn || `RRN-${String(p.provider_payment_id || p.id).slice(-8)}`,
-          settlement_id: isSettled ? p.settlement_id : undefined,
+          method: channel.trim(),
+          bank_rrn: bankRrn,
+          settlement_id: isSettled ? (p.settlement_id || rawData?.settlement_id) : undefined,
           created_at: p.created_at || new Date().toISOString(),
         });
       });
@@ -426,9 +489,19 @@ export default function PaymentsManager({ payments = [], orders = [], token, onR
   const summary = useMemo(() => {
     const totalGross = normalizedPayments.reduce((sum, p) => sum + p.amount, 0) / 100;
     const totalFees = normalizedPayments.reduce((sum, p) => sum + (p.fee || 0), 0) / 100;
-    const totalNetSettled = normalizedPayments.filter((p) => p.status === 'settled').reduce((sum, p) => sum + (p.net_amount || 0), 0) / 100;
+    
+    // Calculate total net settled from live settlements or settled transactions
+    let totalNetSettled = 0;
+    if (liveRazorpaySettlements && liveRazorpaySettlements.length > 0) {
+      const processedSettlements = liveRazorpaySettlements.filter((s: any) => s.status === 'processed' || !s.status);
+      totalNetSettled = processedSettlements.reduce((sum: number, s: any) => sum + (Number(s.amount) || 0), 0) / 100;
+    }
+    if (totalNetSettled === 0) {
+      totalNetSettled = normalizedPayments.filter((p) => p.status === 'settled').reduce((sum, p) => sum + (p.net_amount || 0), 0) / 100;
+    }
+
     const pendingSettlement = normalizedPayments.filter((p) => p.status === 'pending').reduce((sum, p) => sum + (p.net_amount || 0), 0) / 100;
-    const codAdvanceTotal = normalizedPayments.filter((p) => p.method?.includes('COD Advance')).reduce((sum, p) => sum + p.amount, 0) / 100;
+    const codAdvanceTotal = normalizedPayments.filter((p) => p.method?.includes('COD Advance') || (p.amount <= 50000 && p.amount > 0)).reduce((sum, p) => sum + p.amount, 0) / 100;
 
     return {
       totalGross,
@@ -438,7 +511,7 @@ export default function PaymentsManager({ payments = [], orders = [], token, onR
       codAdvanceTotal,
       count: normalizedPayments.length,
     };
-  }, [normalizedPayments]);
+  }, [normalizedPayments, liveRazorpaySettlements]);
 
   // Export Bank Statement CSV
   const handleExportCsv = () => {

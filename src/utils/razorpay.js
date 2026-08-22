@@ -3,17 +3,39 @@
 // Cloudflare Workers runtime (NO Node.js crypto — use WebCrypto)
 // ============================================================
 
-async function getRazorpayCredentials(env) {
-  let keyId = (env.RAZORPAY_KEY_ID || "").trim();
-  let keySecret = (env.RAZORPAY_KEY_SECRET || "").trim();
+function cleanCredString(val) {
+  if (!val) return "";
+  let s = String(val).trim();
   try {
-    const rows = await env.DB.prepare("SELECT key, value FROM settings WHERE LOWER(key) IN ('razorpay_key_id', 'razorpay_key', 'razorpay_key_secret', 'razorpay_secret')").all();
-    for (const row of (rows.results || [])) {
-      const k = (row.key || '').toLowerCase();
-      if ((k === 'razorpay_key_id' || k === 'razorpay_key') && row.value) keyId = row.value.trim();
-      if ((k === 'razorpay_key_secret' || k === 'razorpay_secret') && row.value) keySecret = row.value.trim();
-    }
+    const parsed = JSON.parse(s);
+    if (typeof parsed === 'string') s = parsed.trim();
   } catch {}
+  if ((s.startsWith('"') && s.endsWith('"')) || (s.startsWith("'") && s.endsWith("'"))) {
+    s = s.slice(1, -1).trim();
+  }
+  return s;
+}
+
+async function getRazorpayCredentials(env) {
+  let keyId = cleanCredString(env.RAZORPAY_KEY_ID || "");
+  let keySecret = cleanCredString(env.RAZORPAY_KEY_SECRET || "");
+  try {
+    const rows = await env.DB.prepare(
+      "SELECT key, value FROM settings WHERE LOWER(key) IN ('razorpay_key_id', 'razorpay_key', 'razorpay_id', 'razorpay_api_key', 'razorpay_key_secret', 'razorpay_secret', 'razorpay_api_secret')"
+    ).all();
+    for (const row of (rows.results || [])) {
+      const k = (row.key || '').toLowerCase().trim();
+      const val = cleanCredString(row.value);
+      if (['razorpay_key_id', 'razorpay_key', 'razorpay_id', 'razorpay_api_key'].includes(k) && val) {
+        keyId = val;
+      }
+      if (['razorpay_key_secret', 'razorpay_secret', 'razorpay_api_secret'].includes(k) && val) {
+        keySecret = val;
+      }
+    }
+  } catch (e) {
+    console.warn('Error reading Razorpay credentials from settings table:', e);
+  }
   return { keyId, keySecret };
 }
 

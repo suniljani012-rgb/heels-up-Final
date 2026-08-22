@@ -216,7 +216,7 @@ const ADMIN_API_CACHE = new Map<string, any>();
     returns:   [{ endpoint: '/api/admin/returns', setter: setReturnsList }],
     pos:       [{ endpoint: '/api/admin/pos/sales?all=true', setter: setPosSalesList }],
     audits:    [{ endpoint: '/api/admin/audit-logs', setter: setAuditLogs }],
-    payments:  [{ endpoint: '/api/admin/payments', setter: setPaymentsList }],
+    payments:  [{ endpoint: '/api/admin/payments?live=true', setter: setPaymentsList }],
     logistics: [{ endpoint: '/api/admin/orders?limit=250', setter: setOrdersList }],
     analysis:  [
       { endpoint: '/api/admin/orders?limit=250', setter: setOrdersList },

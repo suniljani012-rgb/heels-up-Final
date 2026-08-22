@@ -83,11 +83,20 @@ export async function paymentRouter(request, env) {
       "UPDATE orders SET payment_status='paid', order_status='confirmed', razorpay_order_id=?, razorpay_payment_id=?, razorpay_signature=?, paid_at=?, updated_at=? WHERE id=?"
     ).bind(razorpay_order_id, razorpay_payment_id, razorpay_signature, paidAt, paidAt, orderId).run();
 
-    // Insert payment record
-    const actualPaidAmount = pending.paymentMethod === 'COD' ? Math.round(pending.totalAmount * 0.10) : pending.totalAmount;
+    // Insert payment record with exact Razorpay details
+    let rzpPayment = null;
+    try {
+      rzpPayment = await razorpay.fetchPayment(env, razorpay_payment_id);
+    } catch {}
+
+    const isCOD = pending.paymentMethod === 'COD';
+    const fallbackPaise = isCOD ? Math.round(pending.totalAmount * 0.10) * 100 : Math.round(pending.totalAmount * 100);
+    const paidAmountPaise = rzpPayment && rzpPayment.amount ? Number(rzpPayment.amount) : fallbackPaise;
+    const finalPayload = rzpPayment ? JSON.stringify(rzpPayment) : JSON.stringify(body);
+
     await env.DB.prepare(
       "INSERT INTO payments (order_id, provider, provider_order_id, provider_payment_id, amount, currency, status, raw_payload, created_at) VALUES (?,'RAZORPAY',?,?,?,'INR','captured',?,?)"
-    ).bind(orderId, razorpay_order_id, razorpay_payment_id, actualPaidAmount, JSON.stringify(body), paidAt).run();
+    ).bind(orderId, razorpay_order_id, razorpay_payment_id, paidAmountPaise, finalPayload, paidAt).run();
 
     // Increment coupon usage
     if (pending.couponCode) {
