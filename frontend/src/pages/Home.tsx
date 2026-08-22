@@ -255,8 +255,6 @@ export default function Home() {
     showToast('success', 'Added to Bag 🛍️', `${prod.name} (Size 38) added to your shopping bag.`)
   }
 
-  const [openHomeFaq, setOpenHomeFaq] = useState<number | null>(null)
-
   return (
     <div className="w-full">
       <SEO
@@ -594,87 +592,6 @@ export default function Home() {
           </div>
         </section>
       )}
-
-      {/* National SEO Ranking Content Section (#1 Rank for 'heels' & 'heel' in India) */}
-      <section className="max-w-7xl mx-auto px-6 md:px-8 my-16 border-t border-gray-100 pt-16">
-        <div className="max-w-4xl mx-auto text-left space-y-6 text-gray-600 text-xs leading-relaxed font-sans">
-          <h1 className="text-2xl md:text-3xl font-bold text-gray-900 font-display italic">
-            Buy Heels &amp; Heel Online in India — #1 Ladies Footwear Store | HeelsUp
-          </h1>
-          <p>
-            Welcome to <strong>HeelsUp</strong>, India’s premier destination to buy handcrafted <strong>ladies heels online</strong>. Whether you are looking for comfortable <strong>block heels</strong> for work, glamorous <strong>stiletto heels</strong> for parties, classic <strong>pencil heels</strong>, elegant <strong>bridal heels</strong>, or casual <strong>flats &amp; wedges</strong>, HeelsUp brings you unmatched craftsmanship, premium cushioned soles, and pan-India express delivery.
-          </p>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-2">
-            <div>
-              <h3 className="font-bold text-gray-900 text-sm mb-1.5">Block Heels Online India</h3>
-              <p className="text-[11px] leading-normal text-gray-500">Discover all-day comfortable block heels designed for Indian women. Ideal for office, daily wear, and festive celebrations.</p>
-            </div>
-            <div>
-              <h3 className="font-bold text-gray-900 text-sm mb-1.5">Stilettos &amp; Pencil Heels</h3>
-              <p className="text-[11px] leading-normal text-gray-500">Elevate your evening wardrobe with high-shine stiletto heels and pencil heels featuring anti-slip soles and memory foam padding.</p>
-            </div>
-            <div>
-              <h3 className="font-bold text-gray-900 text-sm mb-1.5">Bridal &amp; Party Heels</h3>
-              <p className="text-[11px] leading-normal text-gray-500">Explore luxury handcrafted bridal heels with golden embellishments, rhinestones, and custom sizing for weddings.</p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Frequently Asked Questions (GEO AI Answer Engine Optimization) */}
-      <section className="max-w-7xl mx-auto px-6 md:px-8 mb-20">
-        <div className="max-w-3xl mx-auto border border-gray-100 rounded-3xl p-8 md:p-12 bg-[#fcfbf9] shadow-sm">
-          <div className="text-center mb-8">
-            <span className="text-[10px] font-bold text-[#b38d4f] uppercase tracking-widest bg-[#ead2ae]/30 px-3 py-1 rounded-full">
-              Got Questions?
-            </span>
-            <h2 className="text-2xl md:text-3xl font-light text-gray-900 font-display italic mt-3">
-              Frequently Asked Questions
-            </h2>
-            <p className="text-xs text-gray-500 mt-1">Everything you need to know about shopping luxury footwear at HeelsUp</p>
-          </div>
-
-          <div className="space-y-3">
-            {[
-              {
-                q: "Does HeelsUp offer cash on delivery (COD)?",
-                a: "Yes! HeelsUp offers Cash on Delivery (COD) on all orders across India."
-              },
-              {
-                q: "What is HeelsUp's return and exchange policy?",
-                a: "HeelsUp offers a hassle-free 7-day exchange policy. If the size or style doesn't fit, we arrange a doorstep reverse pickup and replacement."
-              },
-              {
-                q: "What are the shipping charges and delivery time?",
-                a: "Free express delivery across India on orders above ₹1599. Orders are delivered in 3 to 5 working days with live SMS and WhatsApp tracking."
-              },
-              {
-                q: "Where is HeelsUp footwear manufactured?",
-                a: "Every pair of HeelsUp footwear is handcrafted by master artisans in Jodhpur, Rajasthan using premium vegan leather and padded memory foam insoles."
-              }
-            ].map((faq, idx) => (
-              <div key={idx} className="border border-gray-200 rounded-xl bg-white overflow-hidden shadow-sm transition-all">
-                <button
-                  type="button"
-                  onClick={() => setOpenHomeFaq(openHomeFaq === idx ? null : idx)}
-                  className="w-full px-5 py-4 text-left flex items-center justify-between text-xs font-semibold text-gray-900 hover:bg-[#fcfbf9] transition-colors"
-                >
-                  <span className="flex items-center gap-2">
-                    <HelpCircle className="w-4 h-4 text-[#b38d4f]" />
-                    {faq.q}
-                  </span>
-                  <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform ${openHomeFaq === idx ? 'rotate-180 text-primary' : ''}`} />
-                </button>
-                {openHomeFaq === idx && (
-                  <div className="px-5 pb-4 pt-1 text-xs text-gray-600 leading-relaxed border-t border-gray-100 bg-[#fcfbf9]/40">
-                    {faq.a}
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
 
       {/* View All Reviews Modal */}
       <AnimatePresence>

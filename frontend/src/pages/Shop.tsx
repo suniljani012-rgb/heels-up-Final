@@ -223,8 +223,6 @@ export default function Shop() {
     { value: 'rating', label: 'Customer Rating' }
   ]
 
-  const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(null)
-
   const landingData = SEO_LANDING_PAGES[category] || null
   const currentCategoryLabel = landingData?.keyword || categoriesList.find(c => c.value.toLowerCase() === category)?.label || (category ? category.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase()) : 'All Collections')
 
@@ -567,61 +565,6 @@ export default function Shop() {
               </button>
             </div>
           )}
-        </div>
-      </div>
-
-      {/* Frequently Asked Questions (GEO & AI Answer Optimization) */}
-      <div className="mt-20 border-t border-gray-100 pt-12 pb-16">
-        <div className="max-w-3xl mx-auto">
-          <div className="text-center mb-8">
-            <span className="text-[10px] font-bold text-[#b38d4f] uppercase tracking-widest bg-[#ead2ae]/30 px-3 py-1 rounded-full">
-              Help & Information
-            </span>
-            <h2 className="text-2xl font-light text-gray-900 font-display italic mt-3">
-              Frequently Asked Questions about {currentCategoryLabel}
-            </h2>
-            <p className="text-xs text-gray-500 mt-1">Everything you need to know about ordering footwear & handbags at HeelsUp</p>
-          </div>
-
-          <div className="space-y-3">
-            {(landingData?.faqs || [
-              {
-                q: "Does HeelsUp provide Cash on Delivery (COD)?",
-                a: "Yes! We offer cash on delivery (COD) across India with trusted courier partners (Delhivery, BlueDart, DTDC)."
-              },
-              {
-                q: "How does the 7-day exchange policy work?",
-                a: "If the size doesn't fit or you wish to exchange the color, we provide a doorstep reverse pickup and replacement within 7 days of delivery."
-              },
-              {
-                q: "What are the shipping charges and delivery timeframe?",
-                a: "Shipping is 100% FREE across India on orders above ₹1599. Orders are usually delivered within 3 to 5 business days."
-              },
-              {
-                q: "How can I choose the right heel size?",
-                a: "Our footwear strictly follows Indian/EU standard sizing. We recommend ordering your usual Indian shoe size (e.g. Ind 5 = EU 38). Every product page also includes our AI Sizing Guide."
-              }
-            ]).map((faq, idx) => (
-              <div key={idx} className="border border-gray-200 rounded-xl bg-white overflow-hidden shadow-sm transition-all">
-                <button
-                  type="button"
-                  onClick={() => setOpenFaqIndex(openFaqIndex === idx ? null : idx)}
-                  className="w-full px-5 py-4 text-left flex items-center justify-between text-xs font-semibold text-gray-900 hover:bg-[#fcfbf9] transition-colors"
-                >
-                  <span className="flex items-center gap-2">
-                    <HelpCircle className="w-4 h-4 text-[#b38d4f]" />
-                    {faq.q}
-                  </span>
-                  <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform ${openFaqIndex === idx ? 'rotate-180 text-primary' : ''}`} />
-                </button>
-                {openFaqIndex === idx && (
-                  <div className="px-5 pb-4 pt-1 text-xs text-gray-600 leading-relaxed border-t border-gray-100 bg-[#fcfbf9]/40">
-                    {faq.a}
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
         </div>
       </div>
     </div>
