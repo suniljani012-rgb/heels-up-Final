@@ -33,7 +33,7 @@ export default function Checkout() {
       showToast('error', 'Login Required 🔐', 'Please sign in or create an account to proceed with checkout.')
       navigate('/login?redirect=/checkout')
     } else if (items.length > 0) {
-      trackCheckout(Math.round(getCartSubtotal() / 100), items.length)
+      trackCheckout(Math.round(getCartSubtotal() / 100), items.length, items)
     }
   }, [token, user, navigate])
 

@@ -1,8 +1,9 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { useSearchParams, Link } from 'react-router-dom'
 import { CheckCircle, ShoppingBag, ArrowRight, Loader2, MapPin, CreditCard, Calendar } from 'lucide-react'
 import HeicImage from '../components/HeicImage'
 import { formatSizeToIndian } from '../utils/sizeHelper'
+import { trackPurchase } from '../utils/analytics'
 
 interface OrderItem {
   product_id: number;
@@ -43,6 +44,7 @@ export default function OrderConfirmation() {
   
   const [order, setOrder] = useState<OrderDetail | null>(null)
   const [loading, setLoading] = useState(true)
+  const hasTrackedPurchaseRef = useRef(false)
 
   useEffect(() => {
     if (!orderNumber) {
@@ -66,6 +68,27 @@ export default function OrderConfirmation() {
 
     fetchOrder()
   }, [orderNumber])
+
+  // Track completed purchase in GA4 E-commerce (exactly once per confirmation render)
+  useEffect(() => {
+    if (order && !hasTrackedPurchaseRef.current) {
+      hasTrackedPurchaseRef.current = true
+      trackPurchase({
+        transaction_id: order.order_number,
+        value: (order.total_amount || 0) / 100, // Rupees
+        shipping: (order.shipping_amount || 0) / 100,
+        tax: 0,
+        items: order.items?.map(it => ({
+          product_id: it.product_id,
+          product_name: it.product_name,
+          price: (it.price || 0) / 100,
+          quantity: it.quantity,
+          size: it.size,
+          color: it.color
+        }))
+      })
+    }
+  }, [order])
 
   if (loading) {
     return (

@@ -1,12 +1,13 @@
 import { useEffect, lazy, Suspense, useRef } from 'react'
 import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { trackPageView } from './utils/analytics'
+import { initAnalytics, trackPageView } from './utils/analytics'
 import { initGlobalErrorTracking, logPageView } from './utils/activityTracker'
 import Header from './components/Header'
 import Footer from './components/Footer'
 import CartDrawer from './components/CartDrawer'
 import ToastContainer from './components/ToastContainer'
+import CookieBanner from './components/CookieBanner'
 import { BannerSkeleton, ProductGridSkeleton, ProductDetailSkeleton } from './components/Skeletons'
 
 import Home from './pages/Home'
@@ -53,13 +54,14 @@ function AppContent() {
     const duration = Math.round((Date.now() - pageStartTimeRef.current) / 1000);
     pageStartTimeRef.current = Date.now();
 
-    trackPageView(currentPath);
     if (!isAdmin) {
+      trackPageView(currentPath, document.title);
       logPageView(currentPath, document.title || 'Storefront', duration > 0 && duration < 1800 ? duration : 0);
     }
   }, [location.pathname, location.search, isAdmin])
 
   useEffect(() => {
+    initAnalytics();
     initGlobalErrorTracking();
     if ('scrollRestoration' in window.history) {
       window.history.scrollRestoration = 'manual'
@@ -291,6 +293,7 @@ function AppContent() {
           </span>
         </a>
       )}
+      {!isAdmin && <CookieBanner />}
     </div>
   )
 }

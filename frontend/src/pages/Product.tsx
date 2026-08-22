@@ -9,6 +9,7 @@ import HeicImage from '../components/HeicImage'
 import SEO from '../components/SEO'
 import { formatSizeToIndian } from '../utils/sizeHelper'
 import { cacheProductData, prefetchProductApi, getCachedProduct } from '../utils/productCache'
+import { trackViewItem, trackAddToCart } from '../utils/analytics'
 
 interface ProductDetail {
   id: number;
@@ -207,6 +208,18 @@ export default function Product() {
     }
   }, [product, reviews, images])
 
+  useEffect(() => {
+    if (product) {
+      trackViewItem({
+        id: product.id,
+        name: product.name,
+        price: product.price,
+        category: product.category,
+        sku: product.sku
+      })
+    }
+  }, [product?.id])
+
   // Review Form States
   const [reviewName, setReviewName] = useState('')
   const [reviewRating, setReviewRating] = useState(5)
@@ -346,6 +359,15 @@ export default function Product() {
       img: activeImage || '',
       category: product.category,
       qty: qty
+    })
+    trackAddToCart({
+      id: product.id,
+      name: product.name,
+      price: product.price,
+      size: selectedSize || '38',
+      color: selectedColor,
+      qty: qty,
+      category: product.category
     })
     showToast('success', 'Added to Bag 🛍️', `${product.name} (Size ${formatSizeToIndian(selectedSize)}) has been added.`)
   }
