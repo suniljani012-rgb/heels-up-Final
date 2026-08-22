@@ -21,7 +21,7 @@ export const CLARITY_PROJECT_ID =
   (typeof window !== 'undefined' && window.CLARITY_PROJECT_ID) ||
   import.meta.env?.VITE_CLARITY_ID ||
   import.meta.env?.VITE_CLARITY_PROJECT_ID ||
-  '';
+  'y6azkzg8f1';
 
 /**
  * Check if running in a local/dev environment where analytics should be suppressed
